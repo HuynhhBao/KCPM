@@ -1665,7 +1665,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                   title: 'Bạn cần trả',
                   amount: totalIOwe,
                   icon: Icons.call_made_rounded,
-                  color: AppColors.warning,
+                  color: AppColors.danger,
                 ),
               ),
               const SizedBox(width: 12),
@@ -1674,7 +1674,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                   title: 'Bạn được nhận',
                   amount: totalOwedToMe,
                   icon: Icons.call_received_rounded,
-                  color: AppColors.primary,
+                  color: AppColors.success,
                 ),
               ),
             ],
@@ -1692,7 +1692,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
               buildDebtGroupTitle(
                 title: 'Bạn đang nợ',
                 icon: Icons.call_made_rounded,
-                color: AppColors.warning,
+                color: AppColors.danger,
               ),
               const SizedBox(height: 10),
               ...iOwe.map(
@@ -1708,7 +1708,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
               buildDebtGroupTitle(
                 title: 'Đang nợ bạn',
                 icon: Icons.call_received_rounded,
-                color: AppColors.primary,
+                color: AppColors.success,
               ),
               const SizedBox(height: 10),
               ...owedToMe.map(
@@ -1812,8 +1812,8 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
         loadingDebtDetailUserId == otherUserId;
 
     final color = isOwe
-        ? AppColors.warning
-        : AppColors.primary;
+        ? AppColors.danger
+        : AppColors.success;
 
     return InkWell(
       onTap: isLoadingDebtDetail
@@ -1962,8 +1962,8 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     }
 
     final summaryColor = isIOwe
-        ? AppColors.warning
-        : AppColors.primary;
+      ? AppColors.danger
+      : AppColors.success;
 
     return SafeArea(
       child: Container(
@@ -2109,8 +2109,8 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
         : '$otherName nợ bạn';
 
     final color = isIOwe
-        ? AppColors.warning
-        : AppColors.primary;
+      ? AppColors.danger
+      : AppColors.success;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -2298,7 +2298,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                     title: '$virtualName cần trả',
                     amount: totalVirtualOwes,
                     icon: Icons.call_made_rounded,
-                    color: AppColors.warning,
+                    color: AppColors.danger,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -2307,7 +2307,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                     title: '$virtualName được nhận',
                     amount: totalOwedToVirtual,
                     icon: Icons.call_received_rounded,
-                    color: AppColors.primary,
+                    color: AppColors.success,
                   ),
                 ),
               ],
@@ -2325,7 +2325,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                 buildDebtGroupTitle(
                   title: '$virtualName đang nợ',
                   icon: Icons.call_made_rounded,
-                  color: AppColors.warning,
+                  color: AppColors.danger,
                 ),
                 const SizedBox(height: 10),
                 ...virtualOwes.map(
@@ -2341,7 +2341,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                 buildDebtGroupTitle(
                   title: 'Đang nợ $virtualName',
                   icon: Icons.call_received_rounded,
-                  color: AppColors.primary,
+                  color: AppColors.success,
                 ),
                 const SizedBox(height: 10),
                 ...owedToVirtual.map(
@@ -2373,8 +2373,8 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
         loadingVirtualDebtDetailUserId == otherUserId;
 
     final color = virtualOwes
-        ? AppColors.warning
-        : AppColors.primary;
+      ? AppColors.danger
+      : AppColors.success;
 
     return InkWell(
       onTap: isLoadingVirtualDebtDetail
@@ -2582,8 +2582,8 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     }
 
     final summaryColor = isVirtualOwes
-        ? AppColors.warning
-        : AppColors.primary;
+      ? AppColors.danger
+      : AppColors.success;
 
     return SafeArea(
       child: Container(
@@ -2759,8 +2759,8 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
         : '$otherName nợ $virtualName';
 
     final color = isVirtualOwes
-        ? AppColors.warning
-        : AppColors.primary;
+      ? AppColors.danger
+      : AppColors.success;
 
     return Container(
       padding: const EdgeInsets.all(14),
