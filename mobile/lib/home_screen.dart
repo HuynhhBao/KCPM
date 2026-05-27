@@ -79,27 +79,34 @@ class _HomeScreenState extends State<HomeScreen> {
       householdSummaryMap.clear();
 
       for (final item in summaries) {
-        final summary =
-            Map<String, dynamic>.from(item);
+        final summary = Map<String, dynamic>.from(item);
 
-        final householdId =
-            summary['id']?.toString() ?? '';
+        final householdId = summary['id']?.toString() ?? '';
 
-        final groupOwe = double.tryParse(
+        final rawGroupOwe = double.tryParse(
               summary['total_owe']?.toString() ?? '0',
             ) ??
             0;
 
-        final groupReceive = double.tryParse(
+        final rawGroupReceive = double.tryParse(
               summary['total_receive']?.toString() ?? '0',
             ) ??
             0;
+        final groupNet = rawGroupReceive - rawGroupOwe;
 
-        owe += groupOwe;
-        receive += groupReceive;
+        double displayGroupOwe = 0;
+        double displayGroupReceive = 0;
 
-        groupOweMap[householdId] = groupOwe;
-        groupReceiveMap[householdId] = groupReceive;
+        if (groupNet > 0) {
+          displayGroupReceive = groupNet;
+          receive += groupNet;
+        } else if (groupNet < 0) {
+          displayGroupOwe = groupNet.abs();
+          owe += groupNet.abs();
+        }
+
+        groupOweMap[householdId] = displayGroupOwe;
+        groupReceiveMap[householdId] = displayGroupReceive;
 
         householdSummaryMap[householdId] = summary;
       }
@@ -446,11 +453,11 @@ class _HomeScreenState extends State<HomeScreen> {
     IconData statusIcon = Icons.check_circle_rounded;
 
     if (groupOwe > 0) {
-      statusText = 'Bạn đang nợ: ${formatMoney(groupOwe)}đ';
+      statusText = 'Bạn đang nợ ${formatMoney(groupOwe)}đ';
       statusColor = AppColors.danger;
       statusIcon = Icons.arrow_upward_rounded;
     } else if (groupReceive > 0) {
-      statusText = 'Bạn sẽ nhận: ${formatMoney(groupReceive)}đ';
+      statusText = 'Bạn sẽ nhận ${formatMoney(groupReceive)}đ';
       statusColor = AppColors.success;
       statusIcon = Icons.arrow_downward_rounded;
     }
