@@ -41,3 +41,8 @@ backend/media/
 # OS
 .DS_Store
 Thumbs.db
+
+
+# Python cache files
+**/__pycache__/
+*.pyc
