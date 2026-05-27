@@ -417,6 +417,16 @@ class ApiService {
     await dio.post('/households/$householdId/leave/');
   }
 
+  static Future<void> deleteHousehold(String householdId) async {
+    try {
+      await dio.delete('/households/$householdId/');
+    } on DioException catch (e) {
+      throw parseDioException(e);
+    } catch (_) {
+      throw 'Không thể xóa nhóm';
+    }
+  }
+
   static Future<Map<String, dynamic>>
     getHouseholdDetail(
     String householdId,

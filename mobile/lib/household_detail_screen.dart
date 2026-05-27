@@ -32,6 +32,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
   bool isLoading = true;
   bool isAddingMember = false;
   bool isLeavingHousehold = false;
+  bool isDeletingHousehold = false;
   bool isKickingMember = false;
   String? kickingMemberId;
   String? editingExpenseId;
@@ -735,6 +736,85 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
         }
       }
     }
+
+  Future<void> confirmDeleteHousehold() async {
+    if (isDeletingHousehold) return;
+
+    if (!isCurrentUserOwner) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Chỉ chủ nhóm mới được xóa nhóm'),
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: !isDeletingHousehold,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text('Xóa nhóm?'),
+          content: Text(
+            'Nhóm "${household.name}" sẽ bị xóa khỏi danh sách nhóm của bạn. '
+            'Bạn chỉ nên xóa nhóm khi toàn bộ công nợ đã được xử lý.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext, false);
+              },
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.danger,
+                foregroundColor: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.pop(dialogContext, true);
+              },
+              child: const Text('Xóa nhóm'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed != true) return;
+
+    setState(() {
+      isDeletingHousehold = true;
+    });
+
+    try {
+      await ApiService.deleteHousehold(household.id);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Đã xóa nhóm'),
+        ),
+      );
+
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isDeletingHousehold = false;
+        });
+      }
+    }
+  }
 
   Future<void> confirmKickMember(dynamic member) async {
     if (isKickingMember) return;
@@ -3382,6 +3462,10 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
               if (value == 'leave') {
                 confirmLeaveHousehold();
               }
+
+              if (value == 'delete') {
+                confirmDeleteHousehold();
+              }
             },
             itemBuilder: (context) => [
               PopupMenuItem(
@@ -3392,12 +3476,26 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                 child: const Text('Thêm thành viên'),
               ),
               PopupMenuItem(
-                value: 'leave',
-                enabled: !isLeavingHousehold,
-                child: Text(
-                  isLeavingHousehold ? 'Đang rời nhóm...' : 'Rời nhóm',
+                  value: 'leave',
+                  enabled: !isLeavingHousehold && !isDeletingHousehold,
+                  child: Text(
+                    isLeavingHousehold ? 'Đang rời nhóm...' : 'Rời nhóm',
+                  ),
                 ),
-              ),
+                if (isCurrentUserOwner) ...[
+                  const PopupMenuDivider(),
+                  PopupMenuItem(
+                    value: 'delete',
+                    enabled: !isDeletingHousehold && !isLeavingHousehold,
+                    child: Text(
+                      isDeletingHousehold ? 'Đang xóa nhóm...' : 'Xóa nhóm',
+                      style: const TextStyle(
+                        color: AppColors.danger,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
             ],
           ),
         ],

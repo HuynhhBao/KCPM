@@ -202,7 +202,7 @@ class HouseholdSummaryListView(
 
 
 class HouseholdDetailView(
-    generics.RetrieveAPIView
+    generics.RetrieveDestroyAPIView
 ):
     serializer_class = HouseholdSerializer
     permission_classes = [IsAuthenticated]
@@ -215,6 +215,86 @@ class HouseholdDetailView(
             'members',
             'members__user',
         ).distinct()
+
+    @transaction.atomic
+    def destroy(self, request, *args, **kwargs):
+        household = Household.objects.select_for_update().filter(
+            id=kwargs.get('pk'),
+            is_active=True,
+        ).first()
+
+        if not household:
+            return Response(
+                {
+                    'detail':
+                    'Không tìm thấy nhóm.'
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        membership = HouseholdMember.objects.filter(
+            household=household,
+            user=request.user,
+        ).first()
+
+        if not membership:
+            return Response(
+                {
+                    'detail':
+                    'Bạn không thuộc nhóm này.'
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if membership.role != HouseholdMember.Role.OWNER:
+            return Response(
+                {
+                    'detail':
+                    'Chỉ chủ nhóm mới được xóa nhóm.'
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        has_unpaid_debt = Debt.objects.filter(
+            household=household,
+            is_paid=False,
+        ).exists()
+
+        if has_unpaid_debt:
+            return Response(
+                {
+                    'detail':
+                    'Không thể xóa nhóm khi còn công nợ chưa thanh toán.'
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        household.is_active = False
+        household.save(
+            update_fields=[
+                'is_active',
+                'updated_at',
+            ]
+        )
+
+        Activity.objects.create(
+            household=household,
+            actor=request.user,
+            activity_type=Activity.ActivityType.MEMBER_JOINED,
+            title=f'{request.user.email} đã xóa nhóm',
+            metadata={
+                'action': 'household_deleted',
+                'household_id': str(household.id),
+                'household_name': household.name,
+            },
+        )
+
+        return Response(
+            {
+                'message': 'Đã xóa nhóm.'
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class JoinHouseholdView(APIView):
