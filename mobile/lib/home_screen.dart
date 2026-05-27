@@ -177,23 +177,13 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget buildHeader() {
     return Row(
       children: [
-        Container(
-          width: 58,
-          height: 58,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: const LinearGradient(
-              colors: [
-                AppColors.primary,
-                AppColors.secondary,
-              ],
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Image.asset(
-              'assets/images/logo.png',
-            ),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: Image.asset(
+            'assets/images/logo.jpg',
+            width: 58,
+            height: 58,
+            fit: BoxFit.cover,
           ),
         ),
         const SizedBox(width: 14),
@@ -655,20 +645,6 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      floatingActionButton: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-
-          const SizedBox(height: 12),
-
-          FloatingActionButton.extended(
-            heroTag: 'create_group',
-            onPressed: openCreateHousehold,
-            icon: const Icon(Icons.add),
-            label: const Text('Tạo nhóm'),
-          ),
-        ],
-      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: refreshData,
