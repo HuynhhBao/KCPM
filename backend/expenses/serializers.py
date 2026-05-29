@@ -1,4 +1,5 @@
 from decimal import Decimal
+import html
 
 from django.db import transaction
 from rest_framework import serializers
@@ -169,7 +170,7 @@ class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
                 'Tên khoản chi không được để trống.'
             )
 
-        return value
+        return html.escape(value)
 
     def validate_amount(self, value):
         if value <= 0:
