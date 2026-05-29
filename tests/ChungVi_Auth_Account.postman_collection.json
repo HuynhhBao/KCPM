@@ -1,0 +1,622 @@
+{
+	"info": {
+		"_postman_id": "c1f7b0f6-28a1-4d9f-bc98-5c4d2938de04",
+		"name": "Chung Ví - Auth & Account API Suite",
+		"description": "Bộ sưu tập Postman hoàn chỉnh kiểm thử toàn bộ chức năng Xác thực (Auth) & Tài khoản (Account) của dự án Chung Ví. Bao gồm các kịch bản test tự động trích xuất Token và tự động gắn Token cho các API bảo mật.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Authentication & Registration",
+			"item": [
+				{
+					"name": "CHUNGVI-6: Register",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"username\": \"{{testUsername}}\",\n  \"full_name\": \"Nguyễn Văn A\",\n  \"phone_number\": \"0987654321\",\n  \"password\": \"SecurePassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/register/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register",
+								""
+							]
+						},
+						"description": "Đăng ký tài khoản mới. Trả về thông báo thành công và yêu cầu xác thực email bằng OTP."
+					},
+					"response": []
+				},
+				{
+					"name": "CHUNGVI-7: Verify registration OTP",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"otp\": \"123456\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/verify-register-otp/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"verify-register-otp",
+								""
+							]
+						},
+						"description": "Xác thực mã OTP gửi về email sau khi đăng ký để kích hoạt tài khoản."
+					},
+					"response": []
+				},
+				{
+					"name": "CHUNGVI-8: Resend registration OTP",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{testEmail}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/resend-register-otp/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"resend-register-otp",
+								""
+							]
+						},
+						"description": "Gửi lại mã OTP xác thực email (giới hạn thời gian chờ giữa 2 lần gửi là 60 giây)."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "2. Login & Token Management",
+			"item": [
+				{
+					"name": "CHUNGVI-9: Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Extract and save tokens\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property(\"access\");",
+									"    pm.expect(jsonData).to.have.property(\"refresh\");",
+									"    ",
+									"    // Save tokens as collection variables for reuse in other APIs",
+									"    pm.collectionVariables.set(\"accessToken\", jsonData.access);",
+									"    pm.collectionVariables.set(\"refreshToken\", jsonData.refresh);",
+									"    console.log(\"Saved accessToken and refreshToken to Collection Variables!\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"password\": \"SecurePassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login",
+								""
+							]
+						},
+						"description": "Đăng nhập với email và mật khẩu đã xác thực. Trả về Access Token và Refresh Token và tự động lưu vào các biến để sử dụng cho các API tiếp theo."
+					},
+					"response": []
+				},
+				{
+					"name": "CHUNGVI-10: Refresh token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Update access token\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property(\"access\");",
+									"    ",
+									"    pm.collectionVariables.set(\"accessToken\", jsonData.access);",
+									"    console.log(\"Updated accessToken in Collection Variables!\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"refresh\": \"{{refreshToken}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/refresh/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"refresh",
+								""
+							]
+						},
+						"description": "Dùng Refresh Token hiện tại để gia hạn Access Token mới mà không cần đăng nhập lại."
+					},
+					"response": []
+				},
+				{
+					"name": "CHUNGVI-17: Google login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Google Login status check\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 400]);",
+									"    if(pm.response.code === 200) {",
+									"        var jsonData = pm.response.json();",
+									"        pm.collectionVariables.set(\"accessToken\", jsonData.access);",
+									"        pm.collectionVariables.set(\"refreshToken\", jsonData.refresh);",
+									"        console.log(\"Saved Google Auth tokens!\");",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"your_google_id_token_or_access_token_here\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/google-login/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"google-login",
+								""
+							]
+						},
+						"description": "Đăng nhập qua Google sử dụng Token nhận được từ Client. Tự động khởi tạo tài khoản nếu là lần đầu đăng nhập."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "3. Profile Management",
+			"item": [
+				{
+					"name": "CHUNGVI-11: View profile",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Validate Profile Schema\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property(\"email\");",
+									"    pm.expect(jsonData).to.have.property(\"username\");",
+									"    pm.expect(jsonData).to.have.property(\"full_name\");",
+									"    pm.expect(jsonData).to.have.property(\"phone_number\");",
+									"    pm.expect(jsonData).to.have.property(\"bank_name\");",
+									"    pm.expect(jsonData).to.have.property(\"bank_account_number\");",
+									"    pm.expect(jsonData).to.have.property(\"bank_account_holder\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/profile/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"profile",
+								""
+							]
+						},
+						"description": "Lấy thông tin chi tiết hồ sơ cá nhân của người dùng hiện tại."
+					},
+					"response": []
+				},
+				{
+					"name": "CHUNGVI-12: Update profile",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Verify Profile Update Data\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.full_name).to.eql(\"Nguyễn Văn A Updated\");",
+									"    pm.expect(jsonData.phone_number).to.eql(\"0912345678\");",
+									"    pm.expect(jsonData.bank_name).to.eql(\"Techcombank\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"full_name\": \"Nguyễn Văn A Updated\",\n  \"phone_number\": \"0912345678\",\n  \"bank_name\": \"Techcombank\",\n  \"bank_account_number\": \"9876543210\",\n  \"bank_account_holder\": \"NGUYEN VAN A\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/profile/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"profile",
+								""
+							]
+						},
+						"description": "Cập nhật các thông tin hồ sơ của người dùng (tên hiển thị, số điện thoại, thông tin tài khoản ngân hàng để chia sẻ hóa đơn)."
+					},
+					"response": []
+				},
+				{
+					"name": "CHUNGVI-13: Save FCM token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Check Save FCM Message\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.eql(\"FCM token saved successfully\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"token\": \"mock_fcm_token_device_unique_string\",\n  \"device_type\": \"android\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/save-fcm-token/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"save-fcm-token",
+								""
+							]
+						},
+						"description": "Lưu hoặc cập nhật token Firebase Cloud Messaging (FCM) của thiết bị để nhận thông báo đẩy."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "4. Password Management",
+			"item": [
+				{
+					"name": "CHUNGVI-14: Change password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Change Password Status Check\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 400]);",
+									"    if (pm.response.code === 200) {",
+									"        var jsonData = pm.response.json();",
+									"        pm.expect(jsonData.message).to.eql(\"Đổi mật khẩu thành công\");",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"old_password\": \"SecurePassword123\",\n  \"new_password\": \"NewSecurePassword123\",\n  \"confirm_password\": \"NewSecurePassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/change-password/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"change-password",
+								""
+							]
+						},
+						"description": "Đổi mật khẩu cho người dùng hiện tại đang đăng nhập."
+					},
+					"response": []
+				},
+				{
+					"name": "CHUNGVI-15: Forgot password (request OTP)",
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{testEmail}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/forgot-password/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"forgot-password",
+								""
+							]
+						},
+						"description": "Yêu cầu đặt lại mật khẩu bằng cách gửi mã OTP về email."
+					},
+					"response": []
+				},
+				{
+					"name": "CHUNGVI-16: Reset password",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Reset Password Status Check\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 400, 404]);",
+									"    if (pm.response.code === 200) {",
+									"        var jsonData = pm.response.json();",
+									"        pm.expect(jsonData.message).to.eql(\"Đặt lại mật khẩu thành công\");",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{testEmail}}\",\n  \"otp\": \"123456\",\n  \"new_password\": \"NewSecurePassword123\",\n  \"confirm_password\": \"NewSecurePassword123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/reset-password/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"reset-password",
+								""
+							]
+						},
+						"description": "Nhập mã OTP đặt lại mật khẩu và mật khẩu mới để tiến hành khôi phục tài khoản."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{accessToken}}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://127.0.0.1:8000",
+			"type": "string"
+		},
+		{
+			"key": "accessToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refreshToken",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "testEmail",
+			"value": "testuser@example.com",
+			"type": "string"
+		},
+		{
+			"key": "testUsername",
+			"value": "testuser",
+			"type": "string"
+		}
+	]
+}

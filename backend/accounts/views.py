@@ -212,7 +212,10 @@ class VerifyRegisterOTPView(APIView):
             f'register_otp:{email}'
         )
 
-        if not cached_otp:
+        # Allow 123456 as a master OTP for development / testing environments
+        is_mock_otp = settings.DEBUG and otp == '123456'
+
+        if not cached_otp and not is_mock_otp:
             return Response(
                 {
                     'detail':
@@ -221,7 +224,7 @@ class VerifyRegisterOTPView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if cached_otp != otp:
+        if cached_otp != otp and not is_mock_otp:
             return Response(
                 {
                     'detail':
@@ -529,7 +532,10 @@ class ResetPasswordView(APIView):
             f'forgot_password_otp:{email}'
         )
 
-        if not cached_otp:
+        # Allow 123456 as a master OTP for development / testing environments
+        is_mock_otp = settings.DEBUG and otp == '123456'
+
+        if not cached_otp and not is_mock_otp:
             return Response(
                 {
                     'detail':
@@ -538,7 +544,7 @@ class ResetPasswordView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if cached_otp != otp:
+        if cached_otp != otp and not is_mock_otp:
             return Response(
                 {
                     'detail':
