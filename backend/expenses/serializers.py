@@ -111,7 +111,8 @@ class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
         decimal_places=0,
         error_messages={
             'max_digits': 'Số tiền quá lớn, hệ thống chỉ hỗ trợ tối đa 12 chữ số.',
-            'max_whole_digits': 'Số tiền vượt mức cho phép.'
+            'max_whole_digits': 'Số tiền vượt mức cho phép.',
+            'invalid': 'Số tiền không hợp lệ.'
         }
     )
 
