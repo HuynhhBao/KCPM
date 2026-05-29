@@ -99,6 +99,13 @@ class ExpenseParticipantSerializer(serializers.ModelSerializer):
 
 
 class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
+    title = serializers.CharField(
+        max_length=255,
+        error_messages={
+            'max_length': 'Tên khoản chi không được vượt quá 255 ký tự.',
+        }
+    )
+
     payer = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(),
         required=False,
