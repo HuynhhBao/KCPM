@@ -101,7 +101,10 @@ class ExpenseParticipantSerializer(serializers.ModelSerializer):
 class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
     payer = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(),
-        required=False
+        required=False,
+        error_messages={
+            'does_not_exist': 'Người trả tiền không tồn tại trong hệ thống.'
+        }
     )
 
     participants = ExpenseParticipantInputSerializer(
