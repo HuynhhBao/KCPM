@@ -2118,7 +2118,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                           ),
                         ),
                       ),
-                      if (readBool(item['is_virtual']))
+                      if (item['is_virtual'] == true)
                         Container(
                           margin: const EdgeInsets.only(left: 8),
                           padding: const EdgeInsets.symmetric(

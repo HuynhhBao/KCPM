@@ -3,6 +3,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 
 from notifications.models import FCMDevice
 
@@ -359,6 +360,11 @@ class CustomTokenObtainPairView(
 class UserProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
     permission_classes = [IsAuthenticated]
+    parser_classes = [
+        JSONParser,
+        MultiPartParser,
+        FormParser,
+    ]
 
     def get_object(self):
         return self.request.user
