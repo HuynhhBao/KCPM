@@ -433,6 +433,15 @@ class ChangePasswordView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        if old_password == new_password:
+            return Response(
+                {
+                    'detail':
+                    'Mật khẩu mới không được trùng với mật khẩu hiện tại'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         user.set_password(new_password)
 
         user.save()
