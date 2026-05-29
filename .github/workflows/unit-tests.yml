@@ -2,14 +2,20 @@ name: Unit Tests
 
 on:
   workflow_dispatch:
+
   push:
     paths:
       - "backend/unit_tests/**"
       - ".github/workflows/unit-tests.yml"
+
   pull_request:
     paths:
       - "backend/unit_tests/**"
       - ".github/workflows/unit-tests.yml"
+
+permissions:
+  contents: read
+  checks: write
 
 jobs:
   unit-tests:
@@ -18,12 +24,15 @@ jobs:
     services:
       postgres:
         image: postgres:15
+
         env:
           POSTGRES_DB: test_db
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
+
         ports:
           - 5432:5432
+
         options: >-
           --health-cmd "pg_isready -U postgres"
           --health-interval 10s
@@ -33,10 +42,11 @@ jobs:
     env:
       SECRET_KEY: "test-secret-key"
       DEBUG: "True"
+
       DB_NAME: test_db
       DB_USER: postgres
       DB_PASSWORD: postgres
-      DB_HOST: 127.0.0.1
+      DB_HOST: localhost
       DB_PORT: 5432
 
     defaults:
@@ -50,7 +60,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.13"
+          python-version: "3.12"
 
       - name: Install dependencies
         run: |
@@ -58,8 +68,21 @@ jobs:
           pip install -r requirements.txt
           pip install pytest pytest-django pytest-cov
 
+      - name: Run migrations
+        env:
+          DJANGO_SETTINGS_MODULE: core.settings
+        run: |
+          python manage.py migrate
+
       - name: Run unit tests
         env:
           DJANGO_SETTINGS_MODULE: core.settings
         run: |
-          pytest unit_tests -v
+          pytest unit_tests -v --tb=short \
+            --junitxml=../test-results.xml
+
+      - name: Publish test results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: test-results.xml
