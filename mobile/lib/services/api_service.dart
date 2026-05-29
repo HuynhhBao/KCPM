@@ -830,6 +830,29 @@ class ApiService {
     );
   }
 
+  static Future<Map<String, dynamic>> createPairPayment({
+    required String householdId,
+    required int receiverId,
+    required int amount,
+    String note = '',
+  }) async {
+    try {
+      final response = await dio.post(
+        '/payments/households/$householdId/pair-payments/',
+        data: {
+          'receiver_id': receiverId,
+          'amount': amount,
+          'note': note,
+        },
+      );
+
+      return Map<String, dynamic>.from(response.data);
+    } on DioException catch (e) {
+      throw parseDioException(e);
+    } catch (_) {
+      throw 'Không thể gửi yêu cầu thanh toán';
+    }
+  }
 
   static Future<Map<String, dynamic>> markDebtPaid(
     String debtId, {

@@ -8,6 +8,7 @@ import 'services/api_service.dart';
 import 'widgets/app_empty_state.dart';
 import 'widgets/app_error_state.dart';
 import 'widgets/app_loading_state.dart';
+import 'debt_detail_screen.dart';
 
 enum DebtFilter {
   all,
@@ -31,6 +32,7 @@ class _DebtOverviewScreenState
 
   String? errorMessage;
   String currentUserEmail = '';
+  int currentUserId = 0;
   String? submittingDebtId;
 
   DebtFilter selectedFilter = DebtFilter.all;
@@ -61,6 +63,9 @@ class _DebtOverviewScreenState
       try {
         final profile = await ApiService.getProfile();
         final email = profile['email']?.toString() ?? '';
+        final userId = readInt(
+          profile['id'] ?? profile['user_id'],
+        );
 
         final householdResponse =
             await ApiService.getHouseholds();
@@ -153,6 +158,7 @@ class _DebtOverviewScreenState
 
         setState(() {
           currentUserEmail = email.toLowerCase().trim();
+          currentUserId = userId;
           allDebtPairs = loadedPairs;
 
           debtItemsById
@@ -889,33 +895,64 @@ class _DebtOverviewScreenState
     });
 
     try {
-      final response =
-          await ApiService.getHouseholdMyDebtDetail(
-        householdId: pair.household.id,
-        otherUserId: pair.otherUserId,
-      );
+      Map<String, dynamic> detail;
 
-      final detail = Map<String, dynamic>.from(response);
-
-      final rows = readMapList(detail['items'])
-          .map(_DebtDetailRow.fromJson)
-          .toList();
-
-      if (!mounted) return;
-
-      await showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (sheetContext) {
-          return buildPairDebtDetailSheet(
-            sheetContext: sheetContext,
-            pair: pair,
-            detail: detail,
-            rows: rows,
+      if (pair.isVirtual) {
+        if (currentUserId <= 0) {
+          showSnackBar(
+            'Không xác định được người dùng hiện tại.',
           );
-        },
-      );
+          return;
+        }
+
+        final response =
+            await ApiService.getVirtualMemberDebtDetail(
+          householdId: pair.household.id,
+          virtualUserId: pair.otherUserId,
+          otherUserId: currentUserId,
+        );
+
+        detail = Map<String, dynamic>.from(response);
+
+        if (!mounted) return;
+
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => DebtDetailScreen(
+              householdId: pair.household.id,
+              otherUserId: currentUserId,
+              virtualUserId: pair.otherUserId,
+              isVirtualMode: true,
+              initialDetail: detail,
+            ),
+          ),
+        );
+      } else {
+        final response =
+            await ApiService.getHouseholdMyDebtDetail(
+          householdId: pair.household.id,
+          otherUserId: pair.otherUserId,
+        );
+
+        detail = Map<String, dynamic>.from(response);
+
+        if (!mounted) return;
+
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => DebtDetailScreen(
+              householdId: pair.household.id,
+              otherUserId: pair.otherUserId,
+              isVirtualMode: false,
+              initialDetail: detail,
+            ),
+          ),
+        );
+      }
+
+      if (mounted) {
+        await loadDebts(showLoading: false);
+      }
     } catch (e) {
       if (!mounted) return;
 
@@ -2041,24 +2078,6 @@ class _DebtDetailRow {
     required this.direction,
     required this.amount,
   });
-
-  factory _DebtDetailRow.fromJson(
-    Map<String, dynamic> json,
-  ) {
-    return _DebtDetailRow(
-      debtId: json['debt_id']?.toString() ?? '',
-      expenseId: json['expense_id']?.toString() ?? '',
-      expenseTitle:
-          json['expense_title']?.toString() ?? 'Khoản chi',
-      expenseDate: json['expense_date']?.toString() ?? '',
-      payerName: json['payer_name']?.toString() ?? '',
-      direction: json['direction']?.toString() ?? '',
-      amount: double.tryParse(
-            json['amount'].toString(),
-          ) ??
-          0,
-    );
-  }
 }
 
 class _DebtItem {

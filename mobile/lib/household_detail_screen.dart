@@ -12,6 +12,7 @@ import 'widgets/app_error_state.dart';
 import 'widgets/app_loading_state.dart';
 import 'package:flutter/services.dart';
 import 'household_members_screen.dart';
+import 'debt_detail_screen.dart';
 
 enum _DebtViewMode {
   currentUser,
@@ -952,6 +953,21 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     return int.tryParse(value.toString()) ?? 0;
   }
 
+  bool readBool(dynamic value) {
+    if (value == null) return false;
+
+    if (value is bool) return value;
+
+    if (value is num) return value == 1;
+
+    final text = value.toString().trim().toLowerCase();
+
+    return text == 'true' ||
+        text == '1' ||
+        text == 'yes' ||
+        text == 'y';
+  }
+
   List<Map<String, dynamic>> readMapList(dynamic value) {
     if (value is! List) return [];
 
@@ -1569,6 +1585,10 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
       item['other_user_id'],
     );
 
+    final isVirtualDebtPair = readBool(
+      item['is_virtual'],
+    );
+
     if (otherUserId <= 0 || isLoadingDebtDetail) {
       return;
     }
@@ -1579,24 +1599,61 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     });
 
     try {
-      final response =
-          await ApiService.getHouseholdMyDebtDetail(
-        householdId: household.id,
-        otherUserId: otherUserId,
-      );
+      if (isVirtualDebtPair) {
+        final currentUserId = readInt(
+          myDebtSummary?['user_id'],
+        );
 
-      if (!mounted) return;
-
-      await showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (sheetContext) {
-          return buildPairDebtDetailSheet(
-            Map<String, dynamic>.from(response),
+        if (currentUserId <= 0) {
+          throw Exception(
+            'Không xác định được người dùng hiện tại để mở công nợ thành viên ảo.',
           );
-        },
-      );
+        }
+
+        final response =
+            await ApiService.getVirtualMemberDebtDetail(
+          householdId: household.id,
+          virtualUserId: otherUserId,
+          otherUserId: currentUserId,
+        );
+
+        if (!mounted) return;
+
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => DebtDetailScreen(
+              householdId: household.id,
+              otherUserId: currentUserId,
+              virtualUserId: otherUserId,
+              isVirtualMode: true,
+              initialDetail: Map<String, dynamic>.from(response),
+            ),
+          ),
+        );
+      } else {
+        final response =
+            await ApiService.getHouseholdMyDebtDetail(
+          householdId: household.id,
+          otherUserId: otherUserId,
+        );
+
+        if (!mounted) return;
+
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => DebtDetailScreen(
+              householdId: household.id,
+              otherUserId: otherUserId,
+              isVirtualMode: false,
+              initialDetail: Map<String, dynamic>.from(response),
+            ),
+          ),
+        );
+      }
+
+      if (mounted) {
+        await refreshData();
+      }
     } catch (e) {
       if (!mounted) return;
 
@@ -2061,7 +2118,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                           ),
                         ),
                       ),
-                      if (item['is_virtual'] == true)
+                      if (readBool(item['is_virtual']))
                         Container(
                           margin: const EdgeInsets.only(left: 8),
                           padding: const EdgeInsets.symmetric(
@@ -2561,16 +2618,21 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
 
       if (!mounted) return;
 
-      await showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (_) {
-          return buildVirtualDebtDetailSheet(
-            Map<String, dynamic>.from(response),
-          );
-        },
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => DebtDetailScreen(
+            householdId: household.id,
+            otherUserId: otherUserId,
+            virtualUserId: virtualUserId,
+            isVirtualMode: true,
+            initialDetail: Map<String, dynamic>.from(response),
+          ),
+        ),
       );
+
+      if (mounted) {
+        await refreshData();
+      }
     } catch (e) {
       if (!mounted) return;
 
