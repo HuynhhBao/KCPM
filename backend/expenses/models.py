@@ -83,7 +83,40 @@ class Debt(BaseModel):
     )
     amount = models.DecimalField(max_digits=12, decimal_places=0)
 
+    paid_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=0,
+        default=Decimal('0')
+    )
+
     is_paid = models.BooleanField(default=False)
+
+    @property
+    def remaining_amount(self):
+        paid_amount = self.paid_amount or Decimal('0')
+        remaining = self.amount - paid_amount
+
+        if remaining <= 0:
+            return Decimal('0')
+
+        return remaining
+
+    def apply_payment(self, amount):
+        amount = Decimal(amount)
+
+        if amount <= 0:
+            return
+
+        paid_amount = self.paid_amount or Decimal('0')
+        self.paid_amount = min(
+            self.amount,
+            paid_amount + amount,
+        )
+        self.is_paid = self.paid_amount >= self.amount
+
+    def mark_fully_paid(self):
+        self.paid_amount = self.amount
+        self.is_paid = True
 
     def __str__(self):
         return f'{self.from_user.email} owes {self.to_user.email}: {self.amount}'

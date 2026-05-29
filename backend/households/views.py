@@ -64,6 +64,15 @@ def money_to_int(amount):
 
     return int(amount)
 
+def debt_remaining_to_int(debt):
+    paid_amount = getattr(debt, 'paid_amount', 0) or 0
+    remaining = debt.amount - paid_amount
+
+    if remaining <= 0:
+        return 0
+
+    return int(remaining)
+
 
 def serialize_debt_user(user, request=None):
     avatar_url = ''
@@ -999,7 +1008,10 @@ class MyDebtSummaryView(APIView):
                     'expense_ids': set(),
                 }
 
-            amount = money_to_int(debt.amount)
+            amount = debt_remaining_to_int(debt)
+
+            if amount <= 0:
+                continue
 
             if direction == 'i_owe':
                 pair_map[other_user.id]['i_owe_amount'] += amount
@@ -1129,7 +1141,10 @@ class MyDebtDetailView(APIView):
         items = []
 
         for debt in debts:
-            amount = money_to_int(debt.amount)
+            amount = debt_remaining_to_int(debt)
+
+            if amount <= 0:
+                continue
 
             if debt.from_user_id == current_user.id:
                 direction = 'i_owe'
@@ -1159,6 +1174,10 @@ class MyDebtDetailView(APIView):
                     ),
                     'direction': direction,
                     'amount': amount,
+                    'original_amount': money_to_int(debt.amount),
+                    'paid_amount': money_to_int(
+                        getattr(debt, 'paid_amount', 0)
+                    ),
                 }
             )
 
@@ -1253,7 +1272,10 @@ class VirtualMemberDebtSummaryView(APIView):
                     'expense_ids': set(),
                 }
 
-            amount = money_to_int(debt.amount)
+            amount = debt_remaining_to_int(debt)
+
+            if amount <= 0:
+                continue
 
             if direction == 'virtual_owes':
                 pair_map[other_user.id][
@@ -1396,7 +1418,10 @@ class VirtualMemberDebtDetailView(APIView):
         items = []
 
         for debt in debts:
-            amount = money_to_int(debt.amount)
+            amount = debt_remaining_to_int(debt)
+
+            if amount <= 0:
+                continue
 
             if debt.from_user_id == virtual_user.id:
                 direction = 'virtual_owes'
@@ -1426,6 +1451,10 @@ class VirtualMemberDebtDetailView(APIView):
                     ),
                     'direction': direction,
                     'amount': amount,
+                    'original_amount': money_to_int(debt.amount),
+                    'paid_amount': money_to_int(
+                        getattr(debt, 'paid_amount', 0)
+                    ),
                 }
             )
 
@@ -1537,9 +1566,15 @@ class SettleVirtualMemberDebtPairView(APIView):
         settled_total_amount = 0
 
         for debt in debts:
-            settled_total_amount += money_to_int(debt.amount)
-            debt.is_paid = True
-            debt.save(update_fields=['is_paid'])
+            settled_total_amount += debt_remaining_to_int(debt)
+            debt.mark_fully_paid()
+            debt.save(
+                update_fields=[
+                    'paid_amount',
+                    'is_paid',
+                    'updated_at',
+                ]
+            )
 
         return Response(
             {

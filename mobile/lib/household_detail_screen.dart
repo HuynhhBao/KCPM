@@ -3113,7 +3113,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
 
   Widget buildExpenseSection() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
@@ -3123,93 +3123,135 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
         children: [
           Row(
             children: [
-              const Text(
-                'Khoản chi gần đây',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.textDark,
+              const Expanded(
+                child: Text(
+                  'Khoản chi gần đây',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.textDark,
+                  ),
                 ),
               ),
-              const Spacer(),
-              TextButton(
-                onPressed: () {},
-                child: const Text('View all'),
-              ),
+              if (hasMoreExpenses)
+                TextButton(
+                  onPressed: isLoadingMoreExpenses
+                      ? null
+                      : () {
+                          loadMoreExpenses();
+                        },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    'Xem thêm',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
             ],
           ),
-          const SizedBox(height: 16),
+
+          const SizedBox(height: 12),
 
           if (expenses.isEmpty)
             buildEmptyCard(
               icon: Icons.receipt_long,
               title: 'Chưa có khoản chi',
             )
-          else
-            Column(
-              children: [
-                ...expenses.map(
-                  buildCompactExpenseCard,
-                ),
-
-                if (isLoadingMoreExpenses)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 18),
-                    child: Center(
-                      child: CircularProgressIndicator(),
-                    ),
-                  ),
-
-                if (isExpensePageError)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Column(
-                      children: [
-                        const Text(
-                          'Không tải được thêm khoản chi',
-                          style: TextStyle(
-                            color: AppColors.textLight,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        OutlinedButton(
-                          onPressed: () {
-                            setState(() {
-                              isExpensePageError = false;
-                            });
-
-                            loadMoreExpenses();
-                          },
-                          child: const Text('Thử lại'),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                if (!hasMoreExpenses &&
-                    expenses.isNotEmpty &&
-                    !isLoadingMoreExpenses)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: Text(
-                      'Đã tải hết khoản chi',
-                      style: TextStyle(
-                        color: AppColors.textLight,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-              ],
+          else ...[
+            ...List.generate(
+              expenses.length,
+              (index) => buildCompactExpenseCard(
+                expenses[index],
+                showDivider: index != expenses.length - 1,
+              ),
             ),
+
+            if (isLoadingMoreExpenses)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: SizedBox(
+                    width: 26,
+                    height: 26,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                    ),
+                  ),
+                ),
+              ),
+
+            if (isExpensePageError)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: AppColors.border,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Không tải được thêm khoản chi',
+                        style: TextStyle(
+                          color: AppColors.textLight,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton(
+                        onPressed: () {
+                          setState(() {
+                            isExpensePageError = false;
+                          });
+
+                          loadMoreExpenses();
+                        },
+                        child: const Text('Thử lại'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            if (!hasMoreExpenses &&
+                expenses.isNotEmpty &&
+                !isLoadingMoreExpenses)
+              const Padding(
+                padding: EdgeInsets.only(top: 12, bottom: 4),
+                child: Center(
+                  child: Text(
+                    'Đã tải hết khoản chi',
+                    style: TextStyle(
+                      color: AppColors.textLight,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ],
       ),
     );
   }
 
   Widget buildCompactExpenseCard(
-    Expense expense,
-  ) {
+    Expense expense, {
+    bool showDivider = true,
+  }) {
     final payerName = displayUserName(
       name: expense.payerName,
       email: expense.payerEmail,
@@ -3218,146 +3260,160 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     final isBusy = editingExpenseId == expense.id ||
         deletingExpenseId == expense.id;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Row(
+    final participantText = expense.participants.isEmpty
+        ? 'Chưa có người tham gia'
+        : 'Chia cho ${expense.participants.length} người';
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: expense.canManage && !isBusy
+          ? () => openEditExpenseScreen(expense)
+          : null,
+      child: Column(
         children: [
-          buildAvatar(
-            imageUrl: expense.payerAvatar,
-            name: payerName,
-            radius: 24,
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(18),
-              onTap: expense.canManage && !isBusy
-                  ? () => openEditExpenseScreen(expense)
-                  : null,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 4,
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                buildAvatar(
+                  imageUrl: expense.payerAvatar,
+                  name: payerName,
+                  radius: 23,
                 ),
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      expense.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textDark,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Người trả: $payerName',
-                      style: const TextStyle(
-                        color: AppColors.textLight,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      expense.expenseDate,
-                      style: const TextStyle(
-                        color: AppColors.textLight,
-                        fontSize: 12,
-                      ),
-                    ),
-                    if (expense.participants.isNotEmpty) ...[
-                      const SizedBox(height: 4),
+
+                const SizedBox(width: 14),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        'Chia cho ${expense.participants.length} người',
+                        expense.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+
+                      const SizedBox(height: 6),
+
+                      Text(
+                        'Người trả: $payerName',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: AppColors.textLight,
-                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      Text(
+                        '${expense.expenseDate} · $participantText',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.textLight,
                           fontWeight: FontWeight.w600,
+                          fontSize: 12,
                         ),
                       ),
                     ],
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '${formatMoney(expense.amount)}đ',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (isBusy)
-                const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.4,
                   ),
-                )
-              else if (expense.canManage)
-                PopupMenuButton<String>(
-                  padding: EdgeInsets.zero,
-                  icon: const Icon(
-                    Icons.more_horiz_rounded,
-                    color: AppColors.textLight,
-                  ),
-                  onSelected: (value) {
-                    if (value == 'edit') {
-                      openEditExpenseScreen(expense);
-                    }
+                ),
 
-                    if (value == 'delete') {
-                      confirmDeleteExpense(expense);
-                    }
-                  },
-                  itemBuilder: (context) => const [
-                    PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit_rounded),
-                          SizedBox(width: 10),
-                          Text('Sửa'),
-                        ],
+                const SizedBox(width: 12),
+
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${formatMoney(expense.amount)}đ',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.primary,
                       ),
                     ),
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.delete_outline_rounded,
-                            color: Colors.red,
+
+                    const SizedBox(height: 6),
+
+                    if (isBusy)
+                      const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.4,
+                        ),
+                      )
+                    else if (expense.canManage)
+                      PopupMenuButton<String>(
+                        padding: EdgeInsets.zero,
+                        iconSize: 22,
+                        icon: const Icon(
+                          Icons.more_horiz_rounded,
+                          color: AppColors.textLight,
+                        ),
+                        onSelected: (value) {
+                          if (value == 'edit') {
+                            openEditExpenseScreen(expense);
+                          }
+
+                          if (value == 'delete') {
+                            confirmDeleteExpense(expense);
+                          }
+                        },
+                        itemBuilder: (context) => const [
+                          PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit_rounded),
+                                SizedBox(width: 10),
+                                Text('Sửa'),
+                              ],
+                            ),
                           ),
-                          SizedBox(width: 10),
-                          Text(
-                            'Xóa',
-                            style: TextStyle(
-                              color: Colors.red,
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete_outline_rounded,
+                                  color: Colors.red,
+                                ),
+                                SizedBox(width: 10),
+                                Text(
+                                  'Xóa',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
-                      ),
-                    ),
+                      )
+                    else
+                      const SizedBox(height: 22),
                   ],
                 ),
-            ],
+              ],
+            ),
           ),
+
+          if (showDivider)
+            const Divider(
+              height: 1,
+              thickness: 1,
+              color: AppColors.border,
+            ),
         ],
       ),
     );
