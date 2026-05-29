@@ -1,6 +1,6 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from django.db.models import Sum
+from django.db.models import Q
 
 from households.models import (
     Activity,
@@ -240,35 +240,85 @@ class HouseholdSummarySerializer(
     def get_expense_count(self, obj):
         return obj.expenses.count()
 
-    def get_total_owe(self, obj):
+    def _get_user_debt_totals(self, obj):
         request = self.context.get('request')
 
         if not request:
-            return 0
+            return {
+                'total_owe': 0,
+                'total_receive': 0,
+            }
 
-        total = obj.debts.filter(
-            from_user=request.user,
+        cache = getattr(self, '_debt_totals_cache', {})
+        cache_key = (str(obj.id), request.user.id)
+
+        if cache_key in cache:
+            return cache[cache_key]
+
+        current_user = request.user
+
+        debts = obj.debts.filter(
             is_paid=False,
-        ).aggregate(
-            total=Sum('amount')
-        )['total']
+        ).filter(
+            Q(from_user=current_user) |
+            Q(to_user=current_user)
+        ).select_related(
+            'from_user',
+            'to_user',
+        )
 
-        return total or 0
+        pair_map = {}
+
+        for debt in debts:
+            paid_amount = debt.paid_amount or 0
+            remaining = debt.amount - paid_amount
+
+            if remaining <= 0:
+                continue
+
+            remaining_amount = int(remaining)
+
+            if debt.from_user_id == current_user.id:
+                other_user_id = debt.to_user_id
+                direction = 'owe'
+            else:
+                other_user_id = debt.from_user_id
+                direction = 'receive'
+
+            if other_user_id not in pair_map:
+                pair_map[other_user_id] = {
+                    'owe': 0,
+                    'receive': 0,
+                }
+
+            pair_map[other_user_id][direction] += remaining_amount
+
+        total_owe = 0
+        total_receive = 0
+
+        for item in pair_map.values():
+            net_amount = item['owe'] - item['receive']
+
+            if net_amount > 0:
+                total_owe += net_amount
+            elif net_amount < 0:
+                total_receive += abs(net_amount)
+
+        result = {
+            'total_owe': total_owe,
+            'total_receive': total_receive,
+        }
+
+        cache[cache_key] = result
+        self._debt_totals_cache = cache
+
+        return result
+
+    def get_total_owe(self, obj):
+        return self._get_user_debt_totals(obj)['total_owe']
 
     def get_total_receive(self, obj):
-        request = self.context.get('request')
-
-        if not request:
-            return 0
-
-        total = obj.debts.filter(
-            to_user=request.user,
-            is_paid=False,
-        ).aggregate(
-            total=Sum('amount')
-        )['total']
-
-        return total or 0
+        return self._get_user_debt_totals(obj)['total_receive']
 
     def get_latest_activity(self, obj):
         latest = obj.activities.order_by(

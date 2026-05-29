@@ -216,6 +216,45 @@ def get_owner_household_or_response(request, household_id):
 
     return household, None
 
+def get_virtual_pair_household_or_response(
+    request,
+    household_id,
+    other_user_id,
+):
+    household = Household.objects.filter(
+        id=household_id,
+        is_active=True,
+        members__user=request.user,
+    ).distinct().first()
+
+    if not household:
+        return None, Response(
+            {
+                'detail':
+                'Không tìm thấy nhóm hoặc bạn không thuộc nhóm này.'
+            },
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    is_owner = HouseholdMember.objects.filter(
+        household=household,
+        user=request.user,
+        role=HouseholdMember.Role.OWNER,
+    ).exists()
+
+    is_involved_user = request.user.id == other_user_id
+
+    if not is_owner and not is_involved_user:
+        return None, Response(
+            {
+                'detail':
+                'Bạn chỉ được xem công nợ thành viên ảo khi là chủ nhóm hoặc là người liên quan trực tiếp.'
+            },
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    return household, None
+
 
 def get_virtual_user_or_response(household, virtual_user_id):
     membership = HouseholdMember.objects.filter(
@@ -1503,9 +1542,10 @@ class VirtualMemberDebtDetailView(APIView):
         virtual_user_id,
         other_user_id,
     ):
-        household, error_response = get_owner_household_or_response(
+        household, error_response = get_virtual_pair_household_or_response(
             request,
             household_id,
+            other_user_id,
         )
 
         if error_response:
@@ -1655,9 +1695,10 @@ class SettleVirtualMemberDebtPairView(APIView):
         virtual_user_id,
         other_user_id,
     ):
-        household, error_response = get_owner_household_or_response(
+        household, error_response = get_virtual_pair_household_or_response(
             request,
             household_id,
+            other_user_id,
         )
 
         if error_response:
