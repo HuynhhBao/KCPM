@@ -35,7 +35,12 @@ class _DebtOverviewScreenState
 
   DebtFilter selectedFilter = DebtFilter.all;
 
-  List<_DebtItem> allDebts = [];
+  bool isLoadingPairDetail = false;
+  String? loadingPairKey;
+
+  List<_DebtPairItem> allDebtPairs = [];
+
+  final Map<String, _DebtItem> debtItemsById = {};
 
   @override
   void initState() {
@@ -43,93 +48,131 @@ class _DebtOverviewScreenState
     loadDebts();
   }
 
-  Future<void> loadDebts({
-    bool showLoading = true,
-  }) async {
-    if (showLoading) {
-      setState(() {
-        isLoading = true;
-        errorMessage = null;
-      });
-    }
+    Future<void> loadDebts({
+      bool showLoading = true,
+    }) async {
+      if (showLoading) {
+        setState(() {
+          isLoading = true;
+          errorMessage = null;
+        });
+      }
 
-    try {
-      final profile = await ApiService.getProfile();
-      final email = profile['email']?.toString() ?? '';
+      try {
+        final profile = await ApiService.getProfile();
+        final email = profile['email']?.toString() ?? '';
 
-      final householdResponse =
-          await ApiService.getHouseholds();
+        final householdResponse =
+            await ApiService.getHouseholds();
 
-      final households = householdResponse
-          .whereType<Map>()
-          .map(
-            (item) => Household.fromJson(
-              Map<String, dynamic>.from(item),
-            ),
-          )
-          .where((household) => household.isActive)
-          .toList();
+        final households = householdResponse
+            .whereType<Map>()
+            .map(
+              (item) => Household.fromJson(
+                Map<String, dynamic>.from(item),
+              ),
+            )
+            .where((household) => household.isActive)
+            .toList();
 
-      final loadedDebts = <_DebtItem>[];
+        final loadedPairs = <_DebtPairItem>[];
+        final loadedDebtItemsById = <String, _DebtItem>{};
 
-      for (final household in households) {
-        var page = 1;
-
-        while (true) {
-          final response =
-              await ApiService.getHouseholdDebts(
+        for (final household in households) {
+          final summary =
+              await ApiService.getHouseholdMyDebtSummary(
             household.id,
-            page: page,
           );
 
-          final results =
-              List<dynamic>.from(response['results']);
+          final iOwe = readMapList(summary['i_owe']);
+          final owedToMe = readMapList(summary['owed_to_me']);
 
-          for (final item in results) {
-            loadedDebts.add(
-              _DebtItem(
+          for (final item in iOwe) {
+            loadedPairs.add(
+              _DebtPairItem.fromSummary(
                 household: household,
-                debt: Debt.fromJson(
-                  Map<String, dynamic>.from(item),
-                ),
+                json: item,
+                direction: _DebtPairDirection.iOwe,
               ),
             );
           }
 
-          final next = response['next'];
-
-          if (next == null ||
-              next.toString().trim().isEmpty) {
-            break;
+          for (final item in owedToMe) {
+            loadedPairs.add(
+              _DebtPairItem.fromSummary(
+                household: household,
+                json: item,
+                direction: _DebtPairDirection.owedToMe,
+              ),
+            );
           }
 
-          page++;
+          var page = 1;
 
-          if (page > 20) {
-            break;
+          while (true) {
+            final response =
+                await ApiService.getHouseholdDebts(
+              household.id,
+              page: page,
+            );
+
+            final results =
+                List<dynamic>.from(response['results'] ?? []);
+
+            for (final item in results) {
+              final debt = Debt.fromJson(
+                Map<String, dynamic>.from(item),
+              );
+
+              loadedDebtItemsById[debt.id] = _DebtItem(
+                household: household,
+                debt: debt,
+              );
+            }
+
+            final next = response['next'];
+
+            if (next == null ||
+                next.toString().trim().isEmpty) {
+              break;
+            }
+
+            page++;
+
+            if (page > 20) {
+              break;
+            }
           }
         }
+
+        loadedPairs.sort(
+          (a, b) => b.amount.compareTo(a.amount),
+        );
+
+        if (!mounted) return;
+
+        setState(() {
+          currentUserEmail = email.toLowerCase().trim();
+          allDebtPairs = loadedPairs;
+
+          debtItemsById
+            ..clear()
+            ..addAll(loadedDebtItemsById);
+
+          isLoading = false;
+          isRefreshing = false;
+          errorMessage = null;
+        });
+      } catch (e) {
+        if (!mounted) return;
+
+        setState(() {
+          isLoading = false;
+          isRefreshing = false;
+          errorMessage = getErrorMessage(e);
+        });
       }
-
-      if (!mounted) return;
-
-      setState(() {
-        currentUserEmail = email.toLowerCase().trim();
-        allDebts = loadedDebts;
-        isLoading = false;
-        isRefreshing = false;
-        errorMessage = null;
-      });
-    } catch (e) {
-      if (!mounted) return;
-
-      setState(() {
-        isLoading = false;
-        isRefreshing = false;
-        errorMessage = getErrorMessage(e);
-      });
     }
-  }
 
   Future<void> refreshDebts() async {
     if (isRefreshing) return;
@@ -253,55 +296,82 @@ class _DebtOverviewScreenState
     );
   }
 
-  List<_DebtItem> get visibleDebts {
-    if (selectedFilter == DebtFilter.owe) {
-      return allDebts
+    List<_DebtPairItem> get visibleDebts {
+      if (selectedFilter == DebtFilter.owe) {
+        return allDebtPairs
+            .where(
+              (item) =>
+                  item.direction == _DebtPairDirection.iOwe,
+            )
+            .toList();
+      }
+
+      if (selectedFilter == DebtFilter.receive) {
+        return allDebtPairs
+            .where(
+              (item) =>
+                  item.direction ==
+                  _DebtPairDirection.owedToMe,
+            )
+            .toList();
+      }
+
+      return allDebtPairs;
+    }
+
+    double get totalOwe {
+      return allDebtPairs
           .where(
-            (item) => item.isCurrentUserDebtor(
-              currentUserEmail,
-            ),
+            (item) =>
+                item.direction == _DebtPairDirection.iOwe,
+          )
+          .fold<double>(
+            0,
+            (sum, item) => sum + item.amount,
+          );
+    }
+
+    double get totalReceive {
+      return allDebtPairs
+          .where(
+            (item) =>
+                item.direction ==
+                _DebtPairDirection.owedToMe,
+          )
+          .fold<double>(
+            0,
+            (sum, item) => sum + item.amount,
+          );
+    }
+
+    int readInt(dynamic value) {
+      if (value == null) return 0;
+
+      if (value is int) return value;
+
+      return int.tryParse(value.toString()) ?? 0;
+    }
+
+    double readDouble(dynamic value) {
+      if (value == null) return 0;
+
+      if (value is num) {
+        return value.toDouble();
+      }
+
+      return double.tryParse(value.toString()) ?? 0;
+    }
+
+    List<Map<String, dynamic>> readMapList(dynamic value) {
+      if (value is! List) return [];
+
+      return value
+          .whereType<Map>()
+          .map(
+            (item) => Map<String, dynamic>.from(item),
           )
           .toList();
     }
-
-    if (selectedFilter == DebtFilter.receive) {
-      return allDebts
-          .where(
-            (item) => item.isCurrentUserReceiver(
-              currentUserEmail,
-            ),
-          )
-          .toList();
-    }
-
-    return allDebts;
-  }
-
-  double get totalOwe {
-    return allDebts
-        .where(
-          (item) => item.isCurrentUserDebtor(
-            currentUserEmail,
-          ),
-        )
-        .fold<double>(
-          0,
-          (sum, item) => sum + item.debt.amount,
-        );
-  }
-
-  double get totalReceive {
-    return allDebts
-        .where(
-          (item) => item.isCurrentUserReceiver(
-            currentUserEmail,
-          ),
-        )
-        .fold<double>(
-          0,
-          (sum, item) => sum + item.debt.amount,
-        );
-  }
 
   String getErrorMessage(Object error) {
     final message = error.toString();
@@ -351,7 +421,7 @@ class _DebtOverviewScreenState
       );
     }
 
-    if (allDebts.isEmpty) {
+    if (allDebtPairs.isEmpty) {
       return RefreshIndicator(
         onRefresh: refreshDebts,
         color: AppColors.primary,
@@ -600,24 +670,26 @@ class _DebtOverviewScreenState
     );
   }
 
-  Widget buildDebtCard(_DebtItem item) {
-    final debt = item.debt;
+  Widget buildDebtCard(_DebtPairItem item) {
+    final isOwe =
+        item.direction == _DebtPairDirection.iOwe;
 
-    final isOwe = item.isCurrentUserDebtor(
-      currentUserEmail,
-    );
+    final isLoadingThis =
+        isLoadingPairDetail &&
+        loadingPairKey == item.key;
 
     final title = isOwe
-        ? 'Bạn nợ ${displayName(debt.toUserName, debt.toUserEmail)}'
-        : '${displayName(debt.fromUserName, debt.fromUserEmail)} nợ bạn';
+        ? 'Bạn nợ ${item.otherName}'
+        : '${item.otherName} nợ bạn';
 
-    final subtitle = buildDebtSubtitle(
-      debt: debt,
-      isOwe: isOwe,
-    );
+    final subtitle = item.expenseCount <= 0
+        ? item.household.name
+        : '${item.expenseCount} khoản phát sinh • ${item.household.name}';
 
     return InkWell(
-      onTap: () => showDebtDetail(item),
+      onTap: isLoadingPairDetail
+          ? null
+          : () => showDebtDetail(item),
       borderRadius: BorderRadius.circular(24),
       child: Container(
         padding: const EdgeInsets.all(16),
@@ -625,9 +697,7 @@ class _DebtOverviewScreenState
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(
-            color: debt.hasPendingPayment
-                ? AppColors.primary.withValues(alpha: 0.40)
-                : AppColors.border,
+            color: AppColors.border,
           ),
           boxShadow: [
             BoxShadow(
@@ -640,7 +710,7 @@ class _DebtOverviewScreenState
         child: Row(
           children: [
             buildAvatar(
-              isOwe ? debt.toUserName : debt.fromUserName,
+              item.otherName,
               isOwe
                   ? Icons.call_made_rounded
                   : Icons.call_received_rounded,
@@ -649,54 +719,60 @@ class _DebtOverviewScreenState
             const SizedBox(width: 14),
             Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.textDark,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.2,
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: AppColors.textDark,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                      ),
+                      if (item.isVirtual)
+                        Container(
+                          margin:
+                              const EdgeInsets.only(left: 8),
+                          padding:
+                              const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary
+                                .withValues(alpha: 0.10),
+                            borderRadius:
+                                BorderRadius.circular(999),
+                          ),
+                          child: const Text(
+                            'Ảo',
+                            style: TextStyle(
+                              color: AppColors.primary,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 5),
                   Text(
                     subtitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: debt.hasPendingPayment
-                          ? AppColors.primary
-                          : AppColors.textLight,
+                    style: const TextStyle(
+                      color: AppColors.textLight,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                     ),
-                  ),
-                  const SizedBox(height: 7),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.groups_rounded,
-                        size: 15,
-                        color: AppColors.textLight,
-                      ),
-                      const SizedBox(width: 5),
-                      Expanded(
-                        child: Text(
-                          item.household.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.textLight,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
@@ -706,7 +782,7 @@ class _DebtOverviewScreenState
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  formatMoney(debt.amount),
+                  formatMoney(item.amount),
                   style: TextStyle(
                     color: isOwe
                         ? Colors.redAccent
@@ -717,8 +793,7 @@ class _DebtOverviewScreenState
                   ),
                 ),
                 const SizedBox(height: 6),
-                if (isSubmittingPayment &&
-                    submittingDebtId == debt.id)
+                if (isLoadingThis)
                   const SizedBox(
                     width: 18,
                     height: 18,
@@ -803,28 +878,538 @@ class _DebtOverviewScreenState
     );
   }
 
-  Future<void> showDebtDetail(_DebtItem item) async {
+  Future<void> showDebtDetail(
+    _DebtPairItem pair,
+  ) async {
+    if (isLoadingPairDetail) return;
+
+    setState(() {
+      isLoadingPairDetail = true;
+      loadingPairKey = pair.key;
+    });
+
+    try {
+      final response =
+          await ApiService.getHouseholdMyDebtDetail(
+        householdId: pair.household.id,
+        otherUserId: pair.otherUserId,
+      );
+
+      final detail = Map<String, dynamic>.from(response);
+
+      final rows = readMapList(detail['items'])
+          .map(_DebtDetailRow.fromJson)
+          .toList();
+
+      if (!mounted) return;
+
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (sheetContext) {
+          return buildPairDebtDetailSheet(
+            sheetContext: sheetContext,
+            pair: pair,
+            detail: detail,
+            rows: rows,
+          );
+        },
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      showSnackBar(getErrorMessage(e));
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoadingPairDetail = false;
+          loadingPairKey = null;
+        });
+      }
+    }
+  }
+
+  Widget buildPairDebtDetailSheet({
+    required BuildContext sheetContext,
+    required _DebtPairItem pair,
+    required Map<String, dynamic> detail,
+    required List<_DebtDetailRow> rows,
+  }) {
+    final otherName =
+        detail['other_name']?.toString() ?? pair.otherName;
+
+    final netDirection =
+        detail['net_direction']?.toString() ?? '';
+
+    final netAmount = readDouble(
+      detail['net_amount'],
+    );
+
+    final isIOwe = netDirection == 'i_owe';
+    final isOwedToMe = netDirection == 'owed_to_me';
+
+    String summaryText;
+
+    if (isIOwe) {
+      summaryText =
+          'Bạn cần trả $otherName ${formatMoney(netAmount)}';
+    } else if (isOwedToMe) {
+      summaryText =
+          '$otherName cần trả bạn ${formatMoney(netAmount)}';
+    } else {
+      summaryText =
+          'Bạn và $otherName không còn chênh lệch công nợ.';
+    }
+
+    final summaryColor =
+        isIOwe ? Colors.redAccent : AppColors.primary;
+
+    return SafeArea(
+      child: Container(
+        margin: const EdgeInsets.all(14),
+        padding: const EdgeInsets.fromLTRB(
+          18,
+          16,
+          18,
+          18,
+        ),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.12),
+              blurRadius: 30,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        constraints: BoxConstraints(
+          maxHeight:
+              MediaQuery.of(context).size.height * 0.86,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 42,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: AppColors.border,
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Công nợ với $otherName',
+              style: const TextStyle(
+                color: AppColors.textDark,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: summaryColor.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(
+                  color:
+                      summaryColor.withValues(alpha: 0.16),
+                ),
+              ),
+              child: Text(
+                summaryText,
+                style: TextStyle(
+                  color: summaryColor,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w900,
+                  height: 1.35,
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            const Text(
+              'Chi tiết phát sinh',
+              style: TextStyle(
+                color: AppColors.textDark,
+                fontSize: 16,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 10),
+            if (rows.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: Text(
+                    'Không có khoản phát sinh.',
+                    style: TextStyle(
+                      color: AppColors.textLight,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              )
+            else
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: rows.length,
+                  separatorBuilder: (_, _) =>
+                      const SizedBox(height: 12),
+                  itemBuilder: (_, index) {
+                    return buildDebtDetailExpenseCard(
+                      sheetContext: sheetContext,
+                      row: rows[index],
+                      otherName: otherName,
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget buildDebtDetailExpenseCard({
+    required BuildContext sheetContext,
+    required _DebtDetailRow row,
+    required String otherName,
+  }) {
+    final rawDebtItem = debtItemsById[row.debtId];
+
+    final isIOwe = row.direction == 'i_owe';
+
+    final color =
+        isIOwe ? Colors.redAccent : AppColors.primary;
+
+    final label = isIOwe
+        ? 'Bạn nợ $otherName'
+        : '$otherName nợ bạn';
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.border,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  isIOwe
+                      ? Icons.call_made_rounded
+                      : Icons.call_received_rounded,
+                  color: color,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      row.expenseTitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.textDark,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      [
+                        if (row.payerName.isNotEmpty)
+                          'Người trả: ${row.payerName}',
+                        if (row.expenseDate.isNotEmpty)
+                          row.expenseDate,
+                      ].join(' • '),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: AppColors.textLight,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      label,
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                formatMoney(row.amount),
+                style: TextStyle(
+                  color: color,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+
+          if (rawDebtItem != null) ...[
+            const SizedBox(height: 12),
+            buildBankInfo(rawDebtItem.debt),
+            const SizedBox(height: 12),
+            buildDetailPaymentActions(
+              sheetContext: sheetContext,
+              item: rawDebtItem,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget buildDetailPaymentActions({
+    required BuildContext sheetContext,
+    required _DebtItem item,
+  }) {
     final debt = item.debt;
 
     final isOwe = item.isCurrentUserDebtor(
       currentUserEmail,
     );
 
-    final receiverName = displayName(
-      debt.toUserName,
-      debt.toUserEmail,
+    final isReceiver = item.isCurrentUserReceiver(
+      currentUserEmail,
     );
 
-    final debtorName = displayName(
-      debt.fromUserName,
-      debt.fromUserEmail,
+    final isSubmitting =
+        isSubmittingPayment && submittingDebtId == debt.id;
+
+    if (debt.hasPendingPayment) {
+      if (isReceiver) {
+        return Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        Navigator.pop(sheetContext);
+                        await rejectPayment(debt);
+                      },
+                icon: const Icon(Icons.close_rounded),
+                label: const Text('Từ chối'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: FilledButton.icon(
+                onPressed: isSubmitting
+                    ? null
+                    : () async {
+                        Navigator.pop(sheetContext);
+                        await confirmPayment(debt);
+                      },
+                icon: isSubmitting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.check_rounded),
+                label: const Text('Xác nhận'),
+              ),
+            ),
+          ],
+        );
+      }
+
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: 0.18),
+          ),
+        ),
+        child: const Text(
+          'Đang chờ người nhận xác nhận thanh toán.',
+          style: TextStyle(
+            color: AppColors.primary,
+            fontWeight: FontWeight.w800,
+            height: 1.35,
+          ),
+        ),
+      );
+    }
+
+    if (debt.hasVirtualMember && debt.canMarkPaid) {
+      return SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: FilledButton.icon(
+          onPressed: isSubmitting
+              ? null
+              : () async {
+                  Navigator.pop(sheetContext);
+                  await markDebtPaid(debt);
+                },
+          icon: isSubmitting
+              ? const SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Icon(Icons.check_circle_rounded),
+          label: Text(
+            isSubmitting
+                ? 'Đang xử lý...'
+                : 'Đánh dấu đã thanh toán ngoài đời',
+          ),
+        ),
+      );
+    }
+
+    if (isOwe) {
+      return Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: OutlinedButton.icon(
+              onPressed: () => showPaymentQrSheet(
+                parentSheetContext: sheetContext,
+                debt: debt,
+              ),
+              icon: const Icon(Icons.qr_code_rounded),
+              label: const Text('Thanh toán / QR'),
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: FilledButton.icon(
+              onPressed: isSubmitting
+                  ? null
+                  : () async {
+                      Navigator.pop(sheetContext);
+                      await markDebtPaid(debt);
+                    },
+              icon: isSubmitting
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.payments_rounded),
+              label: Text(
+                isSubmitting
+                    ? 'Đang gửi...'
+                    : 'Tôi đã thanh toán',
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.border,
+        ),
+      ),
+      child: const Text(
+        'Chờ người nợ gửi yêu cầu xác nhận thanh toán.',
+        style: TextStyle(
+          color: AppColors.textLight,
+          fontWeight: FontWeight.w700,
+          height: 1.35,
+        ),
+      ),
     );
+  }
+
+  String buildVietQrUrl(Debt debt) {
+    final encodedMessage = Uri.encodeComponent(
+      'Thanh toan Chung Vi - ${debt.expenseTitle}',
+    );
+
+    final encodedAccountName = Uri.encodeComponent(
+      debt.bankAccountHolder,
+    );
+
+    return 'https://img.vietqr.io/image/'
+        '${debt.bankName}-${debt.bankAccountNumber}-compact2.png'
+        '?amount=${debt.amount.toInt()}'
+        '&addInfo=$encodedMessage'
+        '&accountName=$encodedAccountName';
+  }
+
+  Future<void> showPaymentQrSheet({
+    required BuildContext parentSheetContext,
+    required Debt debt,
+  }) async {
+    if (debt.bankName.trim().isEmpty ||
+        debt.bankAccountNumber.trim().isEmpty) {
+      showSnackBar(
+        'Người nhận chưa cập nhật thông tin ngân hàng.',
+      );
+      return;
+    }
+
+    final qrUrl = buildVietQrUrl(debt);
 
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) {
+      builder: (qrContext) {
         return SafeArea(
           child: Container(
             margin: const EdgeInsets.all(14),
@@ -837,93 +1422,102 @@ class _DebtOverviewScreenState
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(28),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.12),
-                  blurRadius: 30,
-                  offset: const Offset(0, 12),
-                ),
-              ],
             ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 42,
-                      height: 5,
-                      decoration: BoxDecoration(
-                        color: AppColors.border,
-                        borderRadius:
-                            BorderRadius.circular(999),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 42,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: AppColors.border,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Text(
+                  'QR thanh toán',
+                  style: TextStyle(
+                    color: AppColors.textDark,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(22),
+                  child: Image.network(
+                    qrUrl,
+                    height: 260,
+                    width: 260,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) {
+                      return Container(
+                        height: 220,
+                        width: double.infinity,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: AppColors.background,
+                          borderRadius:
+                              BorderRadius.circular(22),
+                        ),
+                        child: const Text(
+                          'Không thể tải QR. Hãy kiểm tra mã ngân hàng và số tài khoản.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: AppColors.textLight,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 16),
+                buildBankRow(
+                  label: 'Ngân hàng',
+                  value: debt.bankName,
+                ),
+                buildBankRow(
+                  label: 'Chủ tài khoản',
+                  value: debt.bankAccountHolder,
+                ),
+                buildBankRow(
+                  label: 'Số tài khoản',
+                  value: debt.bankAccountNumber,
+                  canCopy: true,
+                ),
+                buildBankRow(
+                  label: 'Số tiền',
+                  value: formatMoney(debt.amount),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.pop(qrContext);
+                        },
+                        child: const Text('Đóng'),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    isOwe
-                        ? 'Thông tin thanh toán'
-                        : 'Chi tiết khoản được nhận',
-                    style: const TextStyle(
-                      color: AppColors.textDark,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: -0.5,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () async {
+                          Navigator.pop(qrContext);
+                          Navigator.pop(parentSheetContext);
+
+                          await markDebtPaid(debt);
+                        },
+                        icon: const Icon(Icons.check_rounded),
+                        label: const Text('Đã thanh toán'),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 14),
-                  buildDetailRow(
-                    icon: Icons.groups_rounded,
-                    label: 'Nhóm',
-                    value: item.household.name,
-                  ),
-                  buildDetailRow(
-                    icon: Icons.receipt_long_rounded,
-                    label: 'Khoản chi',
-                    value: debt.expenseTitle,
-                  ),
-                  buildDetailRow(
-                    icon: Icons.person_rounded,
-                    label: 'Người nợ',
-                    value: debtorName,
-                  ),
-                  buildDetailRow(
-                    icon: Icons.account_balance_wallet_rounded,
-                    label: 'Người nhận',
-                    value: receiverName,
-                  ),
-                  buildDetailRow(
-                    icon: Icons.payments_rounded,
-                    label: 'Số tiền',
-                    value: formatMoney(debt.amount),
-                  ),
-                  if (debt.hasPendingPayment)
-                    buildPendingNotice(isOwe: isOwe),
-                  const SizedBox(height: 10),
-                  const Divider(height: 1),
-                  const SizedBox(height: 14),
-                  const Text(
-                    'Thông tin ngân hàng người nhận',
-                    style: TextStyle(
-                      color: AppColors.textDark,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  buildBankInfo(debt),
-                  const SizedBox(height: 16),
-                  buildPaymentActionSection(item),
-                  const SizedBox(height: 18),
-                  buildPaymentActions(
-                    sheetContext: sheetContext,
-                    debt: debt,
-                    isOwe: isOwe,
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ),
           ),
         );
@@ -1365,6 +1959,105 @@ class _DebtOverviewScreenState
     );
 
     return '$formattedđ';
+  }
+}
+
+enum _DebtPairDirection {
+  iOwe,
+  owedToMe,
+}
+
+class _DebtPairItem {
+  final Household household;
+  final int otherUserId;
+  final String otherName;
+  final String otherEmail;
+  final String otherAvatar;
+  final bool isVirtual;
+  final double amount;
+  final int expenseCount;
+  final _DebtPairDirection direction;
+
+  _DebtPairItem({
+    required this.household,
+    required this.otherUserId,
+    required this.otherName,
+    required this.otherEmail,
+    required this.otherAvatar,
+    required this.isVirtual,
+    required this.amount,
+    required this.expenseCount,
+    required this.direction,
+  });
+
+  String get key {
+    return '${household.id}-$otherUserId-${direction.name}';
+  }
+
+  factory _DebtPairItem.fromSummary({
+    required Household household,
+    required Map<String, dynamic> json,
+    required _DebtPairDirection direction,
+  }) {
+    final rawAmount = json['amount'];
+    final rawExpenseCount = json['expense_count'];
+    final rawOtherUserId = json['other_user_id'];
+
+    return _DebtPairItem(
+      household: household,
+      otherUserId:
+          int.tryParse(rawOtherUserId.toString()) ?? 0,
+      otherName:
+          json['other_name']?.toString().trim().isNotEmpty == true
+              ? json['other_name'].toString()
+              : 'Thành viên',
+      otherEmail: json['other_email']?.toString() ?? '',
+      otherAvatar: json['other_avatar']?.toString() ?? '',
+      isVirtual: json['is_virtual'] == true,
+      amount:
+          double.tryParse(rawAmount.toString()) ?? 0,
+      expenseCount:
+          int.tryParse(rawExpenseCount.toString()) ?? 0,
+      direction: direction,
+    );
+  }
+}
+
+class _DebtDetailRow {
+  final String debtId;
+  final String expenseId;
+  final String expenseTitle;
+  final String expenseDate;
+  final String payerName;
+  final String direction;
+  final double amount;
+
+  _DebtDetailRow({
+    required this.debtId,
+    required this.expenseId,
+    required this.expenseTitle,
+    required this.expenseDate,
+    required this.payerName,
+    required this.direction,
+    required this.amount,
+  });
+
+  factory _DebtDetailRow.fromJson(
+    Map<String, dynamic> json,
+  ) {
+    return _DebtDetailRow(
+      debtId: json['debt_id']?.toString() ?? '',
+      expenseId: json['expense_id']?.toString() ?? '',
+      expenseTitle:
+          json['expense_title']?.toString() ?? 'Khoản chi',
+      expenseDate: json['expense_date']?.toString() ?? '',
+      payerName: json['payer_name']?.toString() ?? '',
+      direction: json['direction']?.toString() ?? '',
+      amount: double.tryParse(
+            json['amount'].toString(),
+          ) ??
+          0,
+    );
   }
 }
 
