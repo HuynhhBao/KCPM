@@ -22,6 +22,7 @@ from payments.serializers import (
     PairPaymentCreateSerializer,
     PaymentActionSerializer,
     PaymentSerializer,
+    VirtualReceiptCreateSerializer,
 )
 from decimal import Decimal
 
@@ -507,6 +508,137 @@ class CreatePairPaymentView(APIView):
                 'message': message,
                 'remaining_after_request': int(remaining_after_request),
                 'payment': PaymentSerializer(payment).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+    
+class RecordVirtualReceiptView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @transaction.atomic
+    def post(self, request, household_id):
+        serializer = VirtualReceiptCreateSerializer(
+            data=request.data
+        )
+        serializer.is_valid(raise_exception=True)
+
+        virtual_user_id = serializer.validated_data['virtual_user_id']
+        amount = serializer.validated_data['amount']
+        note = serializer.validated_data.get('note', '')
+
+        household = Household.objects.filter(
+            id=household_id,
+            is_active=True,
+            members__user=request.user,
+        ).distinct().first()
+
+        if not household:
+            return Response(
+                {
+                    'detail':
+                    'Không tìm thấy nhóm hoặc bạn không thuộc nhóm này.'
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        virtual_membership = HouseholdMember.objects.filter(
+            household=household,
+            user_id=virtual_user_id,
+        ).select_related(
+            'user',
+        ).first()
+
+        if not virtual_membership:
+            return Response(
+                {
+                    'detail': 'Thành viên ảo không thuộc nhóm này.'
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        virtual_user = virtual_membership.user
+
+        if not is_virtual_user(virtual_user):
+            return Response(
+                {
+                    'detail': 'Người được chọn không phải thành viên ảo.'
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        receiver = request.user
+
+        if receiver.id == virtual_user.id:
+            return Response(
+                {
+                    'detail': 'Dữ liệu người nhận không hợp lệ.'
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        state = get_pair_debt_state(
+            household=household,
+            payer=virtual_user,
+            receiver=receiver,
+            lock=True,
+        )
+
+        net_amount = state['net_amount']
+
+        if net_amount <= 0:
+            return Response(
+                {
+                    'detail':
+                    'Thành viên ảo này hiện không còn nợ bạn.'
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if amount > net_amount:
+            return Response(
+                {
+                    'detail':
+                    'Số tiền nhận không được lớn hơn số nợ hiện tại.'
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        remaining_after_confirm = net_amount - amount
+
+        apply_pair_payment_to_debts(
+            state=state,
+            amount=amount,
+        )
+
+        payment = Payment.objects.create(
+            debt=None,
+            household=household,
+            payer=virtual_user,
+            receiver=receiver,
+            amount=amount,
+            is_pair_payment=True,
+            remaining_after_confirm=remaining_after_confirm,
+            status=Payment.Status.CONFIRMED,
+            receiver_note=note,
+            confirmed_at=timezone.now(),
+        )
+
+        if remaining_after_confirm > 0:
+            message = (
+                f'Đã ghi nhận nhận {format_money(amount)}. '
+                f'Còn {format_money(remaining_after_confirm)}.'
+            )
+        else:
+            message = 'Đã ghi nhận nhận đủ tiền từ thành viên ảo.'
+
+        return Response(
+            {
+                'message': message,
+                'remaining_after_confirm': int(remaining_after_confirm),
+                'payment': PaymentSerializer(
+                    payment,
+                    context={'request': request},
+                ).data,
             },
             status=status.HTTP_201_CREATED,
         )

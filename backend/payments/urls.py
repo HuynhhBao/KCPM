@@ -7,6 +7,7 @@ from payments.views import (
     MyPaymentListView,
     PendingPaymentListView,
     RejectPaymentView,
+    RecordVirtualReceiptView,
 )
 
 urlpatterns = [
@@ -18,6 +19,11 @@ urlpatterns = [
     path(
         'households/<uuid:household_id>/pair-payments/',
         CreatePairPaymentView.as_view(),
+    ),
+
+    path(
+        'households/<uuid:household_id>/virtual-receipts/',
+        RecordVirtualReceiptView.as_view(),
     ),
 
     path(

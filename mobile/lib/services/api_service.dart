@@ -598,7 +598,7 @@ class ApiService {
     required String householdId,
     required String title,
     required double amount,
-    required int payer,
+    required String expenseDate,
     required List<int> participants,
     String note = '',
   }) async {
@@ -609,7 +609,7 @@ class ApiService {
           'household': householdId,
           'title': title,
           'amount': amount.toInt(),
-          'payer': payer,
+          'expense_date': expenseDate,
           'participants': participants
               .map(
                 (userId) => {
@@ -654,7 +654,7 @@ class ApiService {
     required String expenseId,
     required String title,
     required double amount,
-    required int payer,
+    required String expenseDate,
     required List<int> participants,
     String note = '',
   }) async {
@@ -664,7 +664,7 @@ class ApiService {
         data: {
           'title': title,
           'amount': amount.toInt(),
-          'payer': payer,
+          'expense_date': expenseDate,
           'participants': participants
               .map(
                 (userId) => {
@@ -1234,6 +1234,30 @@ class ApiService {
       throw parseDioException(e);
     } catch (_) {
       throw 'Không thể đánh dấu xử lý công nợ';
+    }
+  }
+
+  static Future<Map<String, dynamic>> recordVirtualReceipt({
+    required String householdId,
+    required int virtualUserId,
+    required int amount,
+    String note = '',
+  }) async {
+    try {
+      final response = await dio.post(
+        '/payments/households/$householdId/virtual-receipts/',
+        data: {
+          'virtual_user_id': virtualUserId,
+          'amount': amount,
+          'note': note,
+        },
+      );
+
+      return Map<String, dynamic>.from(response.data);
+    } on DioException catch (e) {
+      throw parseDioException(e);
+    } catch (_) {
+      throw 'Không thể ghi nhận tiền đã nhận';
     }
   }
 }

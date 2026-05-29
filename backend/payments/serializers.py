@@ -48,6 +48,27 @@ class PairPaymentCreateSerializer(serializers.Serializer):
 
         return value
 
+class VirtualReceiptCreateSerializer(serializers.Serializer):
+    virtual_user_id = serializers.IntegerField()
+
+    amount = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=0
+    )
+
+    note = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=500
+    )
+
+    def validate_amount(self, value):
+        if value <= Decimal('0'):
+            raise serializers.ValidationError(
+                'Số tiền nhận phải lớn hơn 0.'
+            )
+
+        return value
 
 class PaymentSerializer(serializers.ModelSerializer):
     debt_id = serializers.SerializerMethodField()

@@ -235,7 +235,12 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
         errorMessage = null;
       });
 
-      await loadVirtualMemberDebtSummary();
+      setState(() {
+        selectedDebtViewMode = _DebtViewMode.currentUser;
+        selectedVirtualUserId = null;
+        virtualDebtSummary = null;
+        isLoadingVirtualDebt = false;
+      });
     } catch (e) {
       debugPrint(e.toString());
 
@@ -1585,10 +1590,6 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
       item['other_user_id'],
     );
 
-    final isVirtualDebtPair = readBool(
-      item['is_virtual'],
-    );
-
     if (otherUserId <= 0 || isLoadingDebtDetail) {
       return;
     }
@@ -1599,57 +1600,24 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     });
 
     try {
-      if (isVirtualDebtPair) {
-        final currentUserId = readInt(
-          myDebtSummary?['user_id'],
-        );
+      final response =
+          await ApiService.getHouseholdMyDebtDetail(
+        householdId: household.id,
+        otherUserId: otherUserId,
+      );
 
-        if (currentUserId <= 0) {
-          throw Exception(
-            'Không xác định được người dùng hiện tại để mở công nợ thành viên ảo.',
-          );
-        }
+      if (!mounted) return;
 
-        final response =
-            await ApiService.getVirtualMemberDebtDetail(
-          householdId: household.id,
-          virtualUserId: otherUserId,
-          otherUserId: currentUserId,
-        );
-
-        if (!mounted) return;
-
-        await Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => DebtDetailScreen(
-              householdId: household.id,
-              otherUserId: currentUserId,
-              virtualUserId: otherUserId,
-              isVirtualMode: true,
-              initialDetail: Map<String, dynamic>.from(response),
-            ),
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => DebtDetailScreen(
+            householdId: household.id,
+            otherUserId: otherUserId,
+            isVirtualMode: false,
+            initialDetail: Map<String, dynamic>.from(response),
           ),
-        );
-      } else {
-        final response =
-            await ApiService.getHouseholdMyDebtDetail(
-          householdId: household.id,
-          otherUserId: otherUserId,
-        );
-
-        if (!mounted) return;
-
-        await Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => DebtDetailScreen(
-              householdId: household.id,
-              otherUserId: otherUserId,
-              isVirtualMode: false,
-              initialDetail: Map<String, dynamic>.from(response),
-            ),
-          ),
-        );
-      }
+        ),
+      );
 
       if (mounted) {
         await refreshData();
@@ -1673,52 +1641,22 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
   }
 
   Widget buildDebtSection() {
-    final canViewVirtualDebts =
-        isCurrentUserOwner && virtualMembers.isNotEmpty;
-
-    final isViewingVirtual = canViewVirtualDebts &&
-        selectedDebtViewMode == _DebtViewMode.virtualMember;
-
-    final selectedMemberName = selectedVirtualMember == null
-        ? 'Thành viên ảo'
-        : getMemberName(selectedVirtualMember);
-
-    final rawSummary = isViewingVirtual
-        ? (virtualDebtSummary ?? {})
-        : (myDebtSummary ?? {});
-
-    final virtualName = rawSummary['virtual_name']
-                ?.toString()
-                .trim()
-                .isNotEmpty ==
-            true
-        ? rawSummary['virtual_name'].toString()
-        : selectedMemberName;
-
-    final viewedName = isViewingVirtual ? virtualName : 'Bạn';
+    final rawSummary = myDebtSummary ?? {};
 
     final totalOwe = readDouble(
-      isViewingVirtual
-          ? rawSummary['total_virtual_owes']
-          : rawSummary['total_i_owe'],
+      rawSummary['total_i_owe'],
     );
 
     final totalReceive = readDouble(
-      isViewingVirtual
-          ? rawSummary['total_owed_to_virtual']
-          : rawSummary['total_owed_to_me'],
+      rawSummary['total_owed_to_me'],
     );
 
     final oweItems = readMapList(
-      isViewingVirtual
-          ? rawSummary['virtual_owes']
-          : rawSummary['i_owe'],
+      rawSummary['i_owe'],
     );
 
     final receiveItems = readMapList(
-      isViewingVirtual
-          ? rawSummary['owed_to_virtual']
-          : rawSummary['owed_to_me'],
+      rawSummary['owed_to_me'],
     );
 
     final hasDebt =
@@ -1733,9 +1671,9 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Công nợ',
                   style: TextStyle(
@@ -1745,8 +1683,6 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                   ),
                 ),
               ),
-              if (canViewVirtualDebts)
-                buildDebtViewerSelector(),
             ],
           ),
 
@@ -1756,9 +1692,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
             children: [
               Expanded(
                 child: buildDebtSummaryBox(
-                  title: isViewingVirtual
-                      ? '$viewedName cần trả'
-                      : 'Bạn cần trả',
+                  title: 'Bạn cần trả',
                   amount: totalOwe,
                   icon: Icons.call_made_rounded,
                   color: AppColors.danger,
@@ -1767,9 +1701,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: buildDebtSummaryBox(
-                  title: isViewingVirtual
-                      ? '$viewedName được nhận'
-                      : 'Bạn được nhận',
+                  title: 'Bạn được nhận',
                   amount: totalReceive,
                   icon: Icons.call_received_rounded,
                   color: AppColors.success,
@@ -1780,63 +1712,40 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
 
           const SizedBox(height: 20),
 
-          if (isViewingVirtual && isLoadingVirtualDebt)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(20),
-                child: CircularProgressIndicator(),
-              ),
-            )
-          else if (!hasDebt)
+          if (!hasDebt)
             buildEmptyCard(
               icon: Icons.check_circle_outline,
-              title: isViewingVirtual
-                  ? '$viewedName chưa có công nợ'
-                  : 'Không có công nợ',
+              title: 'Không có công nợ',
             )
           else ...[
             if (oweItems.isNotEmpty) ...[
               buildDebtGroupTitle(
-                title: isViewingVirtual
-                    ? '$viewedName đang nợ'
-                    : 'Bạn đang nợ',
+                title: 'Bạn đang nợ',
                 icon: Icons.call_made_rounded,
                 color: AppColors.danger,
               ),
               const SizedBox(height: 10),
               ...oweItems.map(
-                (item) => isViewingVirtual
-                    ? buildVirtualDebtRow(
-                        item,
-                        virtualOwes: true,
-                      )
-                    : buildPairDebtRow(
-                        item,
-                        isOwe: true,
-                      ),
+                (item) => buildPairDebtRow(
+                  item,
+                  isOwe: true,
+                ),
               ),
               const SizedBox(height: 16),
             ],
 
             if (receiveItems.isNotEmpty) ...[
               buildDebtGroupTitle(
-                title: isViewingVirtual
-                    ? 'Đang nợ $viewedName'
-                    : 'Đang nợ bạn',
+                title: 'Đang nợ bạn',
                 icon: Icons.call_received_rounded,
                 color: AppColors.success,
               ),
               const SizedBox(height: 10),
               ...receiveItems.map(
-                (item) => isViewingVirtual
-                    ? buildVirtualDebtRow(
-                        item,
-                        virtualOwes: false,
-                      )
-                    : buildPairDebtRow(
-                        item,
-                        isOwe: false,
-                      ),
+                (item) => buildPairDebtRow(
+                  item,
+                  isOwe: false,
+                ),
               ),
             ],
           ],

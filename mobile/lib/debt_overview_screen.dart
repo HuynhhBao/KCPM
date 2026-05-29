@@ -895,60 +895,24 @@ class _DebtOverviewScreenState
     });
 
     try {
-      Map<String, dynamic> detail;
+      final response =
+          await ApiService.getHouseholdMyDebtDetail(
+        householdId: pair.household.id,
+        otherUserId: pair.otherUserId,
+      );
 
-      if (pair.isVirtual) {
-        if (currentUserId <= 0) {
-          showSnackBar(
-            'Không xác định được người dùng hiện tại.',
-          );
-          return;
-        }
+      if (!mounted) return;
 
-        final response =
-            await ApiService.getVirtualMemberDebtDetail(
-          householdId: pair.household.id,
-          virtualUserId: pair.otherUserId,
-          otherUserId: currentUserId,
-        );
-
-        detail = Map<String, dynamic>.from(response);
-
-        if (!mounted) return;
-
-        await Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => DebtDetailScreen(
-              householdId: pair.household.id,
-              otherUserId: currentUserId,
-              virtualUserId: pair.otherUserId,
-              isVirtualMode: true,
-              initialDetail: detail,
-            ),
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => DebtDetailScreen(
+            householdId: pair.household.id,
+            otherUserId: pair.otherUserId,
+            isVirtualMode: false,
+            initialDetail: Map<String, dynamic>.from(response),
           ),
-        );
-      } else {
-        final response =
-            await ApiService.getHouseholdMyDebtDetail(
-          householdId: pair.household.id,
-          otherUserId: pair.otherUserId,
-        );
-
-        detail = Map<String, dynamic>.from(response);
-
-        if (!mounted) return;
-
-        await Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (_) => DebtDetailScreen(
-              householdId: pair.household.id,
-              otherUserId: pair.otherUserId,
-              isVirtualMode: false,
-              initialDetail: detail,
-            ),
-          ),
-        );
-      }
+        ),
+      );
 
       if (mounted) {
         await loadDebts(showLoading: false);

@@ -1,9 +1,8 @@
 from decimal import Decimal
 
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import serializers
-
-from accounts.models import User
 from expenses.models import Debt, Expense, ExpenseParticipant
 from households.models import Activity, HouseholdMember
 
@@ -99,11 +98,6 @@ class ExpenseParticipantSerializer(serializers.ModelSerializer):
 
 
 class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
-    payer = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(),
-        required=False
-    )
-
     participants = ExpenseParticipantInputSerializer(
         many=True,
         write_only=True,
@@ -117,7 +111,6 @@ class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
             'household',
             'title',
             'amount',
-            'payer',
             'split_type',
             'note',
             'participants',
@@ -127,7 +120,6 @@ class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             'id',
-            'expense_date',
             'created_at',
             'updated_at',
         ]
@@ -155,6 +147,14 @@ class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
         if value <= 0:
             raise serializers.ValidationError(
                 'Số tiền phải lớn hơn 0.'
+            )
+
+        return value
+
+    def validate_expense_date(self, value):
+        if value > timezone.localdate():
+            raise serializers.ValidationError(
+                'Ngày chi không được lớn hơn hôm nay.'
             )
 
         return value
@@ -204,17 +204,19 @@ class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
                     'Không thể sửa khoản chi đang chờ xác nhận thanh toán.'
                 )
 
-        payer = attrs.get(
-            'payer',
-            instance.payer if instance else request.user
-        )
+        payer = instance.payer if instance else request.user
+
+        if is_virtual_user(payer):
+            raise serializers.ValidationError(
+                'Thành viên ảo không thể là người thanh toán khoản chi.'
+            )
 
         if not HouseholdMember.objects.filter(
             household=household,
             user=payer
         ).exists():
             raise serializers.ValidationError(
-                'Người trả tiền không thuộc nhóm này.'
+                'Người tạo khoản chi không thuộc nhóm này.'
             )
 
         amount = attrs.get(

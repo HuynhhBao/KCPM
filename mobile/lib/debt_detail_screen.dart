@@ -275,6 +275,79 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     }
   }
 
+  Future<bool> submitVirtualReceipt() async {
+    final currentDebt = readInt(detail['net_amount']);
+    final amount = readInt(amountController.text);
+
+    if (amount <= 0 || amount > currentDebt) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Số tiền phải lớn hơn 0 và không vượt quá ${formatMoney(currentDebt)}đ',
+          ),
+        ),
+      );
+      return false;
+    }
+
+    final virtualUserId = widget.isVirtualMode
+        ? widget.virtualUserId
+        : widget.otherUserId;
+
+    if (virtualUserId == null || virtualUserId <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Không xác định được thành viên ảo.'),
+        ),
+      );
+      return false;
+    }
+
+    setState(() {
+      isSubmitting = true;
+    });
+
+    try {
+      await ApiService.recordVirtualReceipt(
+        householdId: widget.householdId,
+        virtualUserId: virtualUserId,
+        amount: amount,
+        note: amount == currentDebt
+            ? 'Đã nhận đủ tiền ngoài đời'
+            : 'Đã nhận trước một phần ngoài đời',
+      );
+
+      if (!mounted) return false;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            amount == currentDebt
+                ? 'Đã ghi nhận nhận đủ tiền.'
+                : 'Đã ghi nhận nhận trước ${formatMoney(amount)}đ.',
+          ),
+        ),
+      );
+
+      await reloadDetail();
+      return true;
+    } catch (e) {
+      if (!mounted) return false;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString())),
+      );
+
+      return false;
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSubmitting = false;
+        });
+      }
+    }
+  }
+
   Future<void> settleVirtualDebt() async {
     if (widget.virtualUserId == null) return;
 
@@ -322,6 +395,8 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     final netDirection = readText(detail['net_direction']);
     final pendingPayment = detail['pending_payment'];
     final canPayNow = detail['can_pay_now'] == true;
+    final isOtherVirtual =
+      detail['is_virtual'] == true || widget.isVirtualMode;
     final items = readMapList(detail['items']);
     final timeline = readMapList(detail['payment_timeline']);
 
@@ -376,6 +451,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
                             isIOwe: isIOwe,
                             pendingPayment: pendingPayment,
                             canPayNow: canPayNow,
+                            isOtherVirtual: isOtherVirtual,
                           ),
                           const SizedBox(height: 14),
                           buildTimelineCard(timeline, items),
@@ -391,6 +467,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     required bool isIOwe,
     required dynamic pendingPayment,
     required bool canPayNow,
+    required bool isOtherVirtual,
   }) {
     final payment = pendingPayment == null
         ? null
@@ -430,11 +507,24 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
           : null;
       buttonColor = AppColors.primary;
     } else {
-      buttonText =
-          hasPendingPayment ? 'Xác nhận đã nhận tiền' : 'Chưa có yêu cầu thanh toán';
-      onPressed =
-          (hasPendingPayment && !isSubmitting) ? confirmPendingPayment : null;
-      buttonColor = hasPendingPayment ? AppColors.primary : AppColors.textLight;
+      if (isOtherVirtual) {
+        buttonText = isSubmitting
+            ? 'Đang ghi nhận...'
+            : 'Ghi nhận đã nhận tiền';
+        onPressed = isSubmitting
+            ? null
+            : () {
+                amountController.text = netAmount.toString();
+                showVirtualReceiptSheet(netAmount);
+              };
+        buttonColor = AppColors.primary;
+      } else {
+        buttonText =
+            hasPendingPayment ? 'Xác nhận đã nhận tiền' : 'Chưa có yêu cầu thanh toán';
+        onPressed =
+            (hasPendingPayment && !isSubmitting) ? confirmPendingPayment : null;
+        buttonColor = hasPendingPayment ? AppColors.primary : AppColors.textLight;
+      }
     }
 
     return Container(
@@ -509,6 +599,164 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void showVirtualReceiptSheet(int currentDebt) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            final inputAmount = readInt(amountController.text);
+            final isFullPayment = inputAmount == currentDebt;
+
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 14,
+                right: 14,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 14,
+              ),
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 28,
+                      offset: const Offset(0, -6),
+                    ),
+                  ],
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 44,
+                          height: 5,
+                          decoration: BoxDecoration(
+                            color: AppColors.border,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      const Text(
+                        'Ghi nhận đã nhận tiền',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Thành viên ảo còn nợ ${formatMoney(currentDebt)}đ. Bạn có thể ghi nhận nhận đủ hoặc nhận trước một phần.',
+                        style: const TextStyle(
+                          color: AppColors.textLight,
+                          fontWeight: FontWeight.w700,
+                          height: 1.35,
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      TextField(
+                        controller: amountController,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          labelText: 'Số tiền đã nhận',
+                          suffixText: 'đ',
+                          filled: true,
+                          fillColor: AppColors.background,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: const BorderSide(
+                              color: AppColors.border,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: const BorderSide(
+                              color: AppColors.border,
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            borderSide: const BorderSide(
+                              color: AppColors.primary,
+                              width: 1.4,
+                            ),
+                          ),
+                        ),
+                        onChanged: (_) {
+                          setSheetState(() {});
+                        },
+                      ),
+                      const SizedBox(height: 10),
+                      OutlinedButton(
+                        onPressed: () {
+                          amountController.text = currentDebt.toString();
+                          setSheetState(() {});
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primary,
+                          side: const BorderSide(color: AppColors.primary),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: const Text(
+                          'Nhận đủ',
+                          style: TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: isSubmitting
+                            ? null
+                            : () async {
+                                final success =
+                                    await submitVirtualReceipt();
+
+                                if (success && sheetContext.mounted) {
+                                  Navigator.of(sheetContext).pop();
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 15),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                        ),
+                        child: Text(
+                          isSubmitting
+                              ? 'Đang ghi nhận...'
+                              : isFullPayment
+                                  ? 'Ghi nhận đã nhận đủ'
+                                  : 'Ghi nhận nhận trước',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

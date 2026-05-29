@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
-
+from django.utils import timezone
 from core.models import BaseModel
 from households.models import Household
 
@@ -30,8 +30,8 @@ class Expense(BaseModel):
         default=SplitType.EQUAL
     )
     note = models.TextField(blank=True)
-    expense_date = models.DateField(auto_now_add=True)
-
+    expense_date = models.DateField(default=timezone.localdate)
+    
     def __str__(self):
         return f'{self.title} - {self.amount}'
 
