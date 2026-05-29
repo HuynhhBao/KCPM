@@ -58,6 +58,34 @@ class TestLoginUnit(unittest.TestCase):
 
         self.assertIn("No active account found", str(ctx.exception.detail))
 
+    def test_login_rejects_inactive_user(self):
+        """Reject login when user is verified but marked inactive (e.g. disabled by admin)."""
+        def fake_validate(self, attrs):
+            raise ValidationError({"detail": "No active account found with the given credentials"})
+
+        serializer = CustomTokenObtainPairSerializer(
+            data={"email": "user@example.com", "password": "pass"}
+        )
+
+        with patch.object(TokenObtainPairSerializer, "validate", fake_validate):
+            with self.assertRaises(ValidationError) as ctx:
+                serializer.validate(serializer.initial_data)
+
+        self.assertIn("No active account found", str(ctx.exception.detail))
+
+    def test_login_raises_when_user_is_none(self):
+        """Raise AttributeError when super().validate() leaves self.user as None."""
+        def fake_validate(self, attrs):
+            self.user = None
+            return {"access": "a", "refresh": "r"}
+
+        serializer = CustomTokenObtainPairSerializer(
+            data={"email": "user@example.com", "password": "pass"}
+        )
+
+        with patch.object(TokenObtainPairSerializer, "validate", fake_validate):
+            with self.assertRaises(AttributeError):
+                serializer.validate(serializer.initial_data)
 
 if __name__ == "__main__":
     unittest.main()
