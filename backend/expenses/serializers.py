@@ -595,6 +595,10 @@ class DebtSerializer(serializers.ModelSerializer):
     pending_payment_status = serializers.SerializerMethodField()
     can_mark_paid = serializers.SerializerMethodField()
     can_confirm_payment = serializers.SerializerMethodField()
+    amount = serializers.SerializerMethodField()
+    original_amount = serializers.SerializerMethodField()
+    paid_amount = serializers.SerializerMethodField()
+    remaining_amount = serializers.SerializerMethodField()
 
     class Meta:
         model = Debt
@@ -624,6 +628,9 @@ class DebtSerializer(serializers.ModelSerializer):
             'pending_payment_status',
             'can_mark_paid',
             'can_confirm_payment',
+            'original_amount',
+            'paid_amount',
+            'remaining_amount',
         ]
 
     def get_from_user_name(self, obj):
@@ -645,8 +652,20 @@ class DebtSerializer(serializers.ModelSerializer):
         )
 
     def get_pending_payment(self, obj):
-        return obj.payments.filter(
+        payment = obj.payments.filter(
             status='pending'
+        ).order_by('-created_at').first()
+
+        if payment:
+            return payment
+
+        from payments.models import Payment
+
+        return Payment.objects.filter(
+            household=obj.household,
+            payer=obj.from_user,
+            receiver=obj.to_user,
+            status='pending',
         ).order_by('-created_at').first()
 
     def get_pending_payment_id(self, obj):
@@ -723,3 +742,18 @@ class DebtSerializer(serializers.ModelSerializer):
             )
 
         return ''
+    
+    def get_amount(self, obj):
+        return int(obj.remaining_amount)
+
+
+    def get_original_amount(self, obj):
+        return int(obj.amount)
+
+
+    def get_paid_amount(self, obj):
+        return int(obj.paid_amount or 0)
+
+
+    def get_remaining_amount(self, obj):
+        return int(obj.remaining_amount)

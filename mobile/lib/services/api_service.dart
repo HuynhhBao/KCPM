@@ -757,18 +757,52 @@ class ApiService {
     required String bankAccountNumber,
     required String bankAccountHolder,
   }) async {
-    final response = await dio.patch(
-      '/auth/profile/',
-      data: {
-        'full_name': fullName,
-        'phone_number': phoneNumber,
-        'bank_name': bankName,
-        'bank_account_number': bankAccountNumber,
-        'bank_account_holder': bankAccountHolder,
-      },
-    );
+    try {
+      final response = await dio.patch(
+        '/auth/profile/',
+        data: {
+          'full_name': fullName,
+          'phone_number': phoneNumber,
+          'bank_name': bankName,
+          'bank_account_number': bankAccountNumber,
+          'bank_account_holder': bankAccountHolder,
+        },
+      );
 
-    return Map<String, dynamic>.from(response.data);
+      return Map<String, dynamic>.from(response.data);
+    } on DioException catch (e) {
+      throw parseDioException(e);
+    } catch (_) {
+      throw 'Không thể cập nhật hồ sơ';
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateAvatar({
+    required List<int> bytes,
+    required String fileName,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'avatar': MultipartFile.fromBytes(
+          bytes,
+          filename: fileName,
+        ),
+      });
+
+      final response = await dio.patch(
+        '/auth/profile/',
+        data: formData,
+        options: Options(
+          contentType: 'multipart/form-data',
+        ),
+      );
+
+      return Map<String, dynamic>.from(response.data);
+    } on DioException catch (e) {
+      throw parseDioException(e);
+    } catch (_) {
+      throw 'Không thể cập nhật ảnh đại diện';
+    }
   }
 
   static Future<void> loginWithGoogle() async {
@@ -830,6 +864,29 @@ class ApiService {
     );
   }
 
+  static Future<Map<String, dynamic>> createPairPayment({
+    required String householdId,
+    required int receiverId,
+    required int amount,
+    String note = '',
+  }) async {
+    try {
+      final response = await dio.post(
+        '/payments/households/$householdId/pair-payments/',
+        data: {
+          'receiver_id': receiverId,
+          'amount': amount,
+          'note': note,
+        },
+      );
+
+      return Map<String, dynamic>.from(response.data);
+    } on DioException catch (e) {
+      throw parseDioException(e);
+    } catch (_) {
+      throw 'Không thể gửi yêu cầu thanh toán';
+    }
+  }
 
   static Future<Map<String, dynamic>> markDebtPaid(
     String debtId, {

@@ -12,6 +12,12 @@ import 'widgets/app_error_state.dart';
 import 'widgets/app_loading_state.dart';
 import 'package:flutter/services.dart';
 import 'household_members_screen.dart';
+import 'debt_detail_screen.dart';
+
+enum _DebtViewMode {
+  currentUser,
+  virtualMember,
+}
 
 class HouseholdDetailScreen extends StatefulWidget {
   final Household household;
@@ -48,6 +54,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
 
   Map<String, dynamic>? virtualDebtSummary;
   int? selectedVirtualUserId;
+  _DebtViewMode selectedDebtViewMode = _DebtViewMode.currentUser;
   bool isLoadingVirtualDebt = false;
   bool isLoadingVirtualDebtDetail = false;
   bool isSettlingVirtualDebt = false;
@@ -252,6 +259,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
       setState(() {
         virtualDebtSummary = null;
         selectedVirtualUserId = null;
+        selectedDebtViewMode = _DebtViewMode.currentUser;
         isLoadingVirtualDebt = false;
       });
 
@@ -945,6 +953,21 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     return int.tryParse(value.toString()) ?? 0;
   }
 
+  bool readBool(dynamic value) {
+    if (value == null) return false;
+
+    if (value is bool) return value;
+
+    if (value is num) return value == 1;
+
+    final text = value.toString().trim().toLowerCase();
+
+    return text == 'true' ||
+        text == '1' ||
+        text == 'yes' ||
+        text == 'y';
+  }
+
   List<Map<String, dynamic>> readMapList(dynamic value) {
     if (value is! List) return [];
 
@@ -1562,6 +1585,10 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
       item['other_user_id'],
     );
 
+    final isVirtualDebtPair = readBool(
+      item['is_virtual'],
+    );
+
     if (otherUserId <= 0 || isLoadingDebtDetail) {
       return;
     }
@@ -1572,24 +1599,61 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     });
 
     try {
-      final response =
-          await ApiService.getHouseholdMyDebtDetail(
-        householdId: household.id,
-        otherUserId: otherUserId,
-      );
+      if (isVirtualDebtPair) {
+        final currentUserId = readInt(
+          myDebtSummary?['user_id'],
+        );
 
-      if (!mounted) return;
-
-      await showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (sheetContext) {
-          return buildPairDebtDetailSheet(
-            Map<String, dynamic>.from(response),
+        if (currentUserId <= 0) {
+          throw Exception(
+            'Không xác định được người dùng hiện tại để mở công nợ thành viên ảo.',
           );
-        },
-      );
+        }
+
+        final response =
+            await ApiService.getVirtualMemberDebtDetail(
+          householdId: household.id,
+          virtualUserId: otherUserId,
+          otherUserId: currentUserId,
+        );
+
+        if (!mounted) return;
+
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => DebtDetailScreen(
+              householdId: household.id,
+              otherUserId: currentUserId,
+              virtualUserId: otherUserId,
+              isVirtualMode: true,
+              initialDetail: Map<String, dynamic>.from(response),
+            ),
+          ),
+        );
+      } else {
+        final response =
+            await ApiService.getHouseholdMyDebtDetail(
+          householdId: household.id,
+          otherUserId: otherUserId,
+        );
+
+        if (!mounted) return;
+
+        await Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => DebtDetailScreen(
+              householdId: household.id,
+              otherUserId: otherUserId,
+              isVirtualMode: false,
+              initialDetail: Map<String, dynamic>.from(response),
+            ),
+          ),
+        );
+      }
+
+      if (mounted) {
+        await refreshData();
+      }
     } catch (e) {
       if (!mounted) return;
 
@@ -1609,26 +1673,56 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
   }
 
   Widget buildDebtSection() {
-    final summary = myDebtSummary ?? {};
+    final canViewVirtualDebts =
+        isCurrentUserOwner && virtualMembers.isNotEmpty;
 
-    final totalIOwe = readDouble(
-      summary['total_i_owe'],
+    final isViewingVirtual = canViewVirtualDebts &&
+        selectedDebtViewMode == _DebtViewMode.virtualMember;
+
+    final selectedMemberName = selectedVirtualMember == null
+        ? 'Thành viên ảo'
+        : getMemberName(selectedVirtualMember);
+
+    final rawSummary = isViewingVirtual
+        ? (virtualDebtSummary ?? {})
+        : (myDebtSummary ?? {});
+
+    final virtualName = rawSummary['virtual_name']
+                ?.toString()
+                .trim()
+                .isNotEmpty ==
+            true
+        ? rawSummary['virtual_name'].toString()
+        : selectedMemberName;
+
+    final viewedName = isViewingVirtual ? virtualName : 'Bạn';
+
+    final totalOwe = readDouble(
+      isViewingVirtual
+          ? rawSummary['total_virtual_owes']
+          : rawSummary['total_i_owe'],
     );
 
-    final totalOwedToMe = readDouble(
-      summary['total_owed_to_me'],
+    final totalReceive = readDouble(
+      isViewingVirtual
+          ? rawSummary['total_owed_to_virtual']
+          : rawSummary['total_owed_to_me'],
     );
 
-    final iOwe = readMapList(
-      summary['i_owe'],
+    final oweItems = readMapList(
+      isViewingVirtual
+          ? rawSummary['virtual_owes']
+          : rawSummary['i_owe'],
     );
 
-    final owedToMe = readMapList(
-      summary['owed_to_me'],
+    final receiveItems = readMapList(
+      isViewingVirtual
+          ? rawSummary['owed_to_virtual']
+          : rawSummary['owed_to_me'],
     );
 
     final hasDebt =
-        iOwe.isNotEmpty || owedToMe.isNotEmpty;
+        oweItems.isNotEmpty || receiveItems.isNotEmpty;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1639,31 +1733,33 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Công nợ của bạn',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              color: AppColors.textDark,
-            ),
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Công nợ',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.textDark,
+                  ),
+                ),
+              ),
+              if (canViewVirtualDebts)
+                buildDebtViewerSelector(),
+            ],
           ),
-          const SizedBox(height: 6),
-          const Text(
-            'Chỉ hiển thị công nợ liên quan đến bạn trong nhóm này.',
-            style: TextStyle(
-              color: AppColors.textLight,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-            ),
-          ),
+
           const SizedBox(height: 18),
 
           Row(
             children: [
               Expanded(
                 child: buildDebtSummaryBox(
-                  title: 'Bạn cần trả',
-                  amount: totalIOwe,
+                  title: isViewingVirtual
+                      ? '$viewedName cần trả'
+                      : 'Bạn cần trả',
+                  amount: totalOwe,
                   icon: Icons.call_made_rounded,
                   color: AppColors.danger,
                 ),
@@ -1671,8 +1767,10 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: buildDebtSummaryBox(
-                  title: 'Bạn được nhận',
-                  amount: totalOwedToMe,
+                  title: isViewingVirtual
+                      ? '$viewedName được nhận'
+                      : 'Bạn được nhận',
+                  amount: totalReceive,
                   icon: Icons.call_received_rounded,
                   color: AppColors.success,
                 ),
@@ -1682,44 +1780,210 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
 
           const SizedBox(height: 20),
 
-          if (!hasDebt)
+          if (isViewingVirtual && isLoadingVirtualDebt)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: CircularProgressIndicator(),
+              ),
+            )
+          else if (!hasDebt)
             buildEmptyCard(
               icon: Icons.check_circle_outline,
-              title: 'Không có công nợ',
+              title: isViewingVirtual
+                  ? '$viewedName chưa có công nợ'
+                  : 'Không có công nợ',
             )
           else ...[
-            if (iOwe.isNotEmpty) ...[
+            if (oweItems.isNotEmpty) ...[
               buildDebtGroupTitle(
-                title: 'Bạn đang nợ',
+                title: isViewingVirtual
+                    ? '$viewedName đang nợ'
+                    : 'Bạn đang nợ',
                 icon: Icons.call_made_rounded,
                 color: AppColors.danger,
               ),
               const SizedBox(height: 10),
-              ...iOwe.map(
-                (item) => buildPairDebtRow(
-                  item,
-                  isOwe: true,
-                ),
+              ...oweItems.map(
+                (item) => isViewingVirtual
+                    ? buildVirtualDebtRow(
+                        item,
+                        virtualOwes: true,
+                      )
+                    : buildPairDebtRow(
+                        item,
+                        isOwe: true,
+                      ),
               ),
               const SizedBox(height: 16),
             ],
 
-            if (owedToMe.isNotEmpty) ...[
+            if (receiveItems.isNotEmpty) ...[
               buildDebtGroupTitle(
-                title: 'Đang nợ bạn',
+                title: isViewingVirtual
+                    ? 'Đang nợ $viewedName'
+                    : 'Đang nợ bạn',
                 icon: Icons.call_received_rounded,
                 color: AppColors.success,
               ),
               const SizedBox(height: 10),
-              ...owedToMe.map(
-                (item) => buildPairDebtRow(
-                  item,
-                  isOwe: false,
-                ),
+              ...receiveItems.map(
+                (item) => isViewingVirtual
+                    ? buildVirtualDebtRow(
+                        item,
+                        virtualOwes: false,
+                      )
+                    : buildPairDebtRow(
+                        item,
+                        isOwe: false,
+                      ),
               ),
             ],
           ],
         ],
+      ),
+    );
+  }
+
+  Widget buildDebtViewerSelector() {
+    const currentUserMenuValue = -1;
+
+    final isViewingVirtual =
+        selectedDebtViewMode == _DebtViewMode.virtualMember;
+
+    final selectedName = isViewingVirtual
+        ? selectedVirtualMember == null
+            ? 'Thành viên ảo'
+            : getMemberName(selectedVirtualMember)
+        : 'Bạn';
+
+    return PopupMenuButton<int>(
+      enabled: !isLoadingVirtualDebt,
+      tooltip: 'Chọn người xem công nợ',
+      onSelected: (value) async {
+        if (value == currentUserMenuValue) {
+          setState(() {
+            selectedDebtViewMode = _DebtViewMode.currentUser;
+            selectedVirtualUserId = null;
+            virtualDebtSummary = null;
+          });
+
+          return;
+        }
+
+        setState(() {
+          selectedDebtViewMode = _DebtViewMode.virtualMember;
+          selectedVirtualUserId = value;
+          virtualDebtSummary = null;
+        });
+
+        await loadVirtualMemberDebtSummary();
+      },
+      itemBuilder: (context) {
+        final items = <PopupMenuEntry<int>>[
+          const PopupMenuItem<int>(
+            value: currentUserMenuValue,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.person_rounded,
+                  size: 20,
+                  color: AppColors.primary,
+                ),
+                SizedBox(width: 10),
+                Text(
+                  'Bạn',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ];
+
+        for (final member in virtualMembers) {
+          final userId = getMemberUserId(member);
+
+          if (userId <= 0) {
+            continue;
+          }
+
+          items.add(
+            PopupMenuItem<int>(
+              value: userId,
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.badge_rounded,
+                    size: 20,
+                    color: AppColors.primary,
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      getMemberName(member),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return items;
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 8,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.background,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: AppColors.border,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isViewingVirtual
+                  ? Icons.badge_rounded
+                  : Icons.person_rounded,
+              size: 18,
+              color: AppColors.primary,
+            ),
+            const SizedBox(width: 8),
+            ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: 120,
+              ),
+              child: Text(
+                selectedName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: AppColors.textDark,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 20,
+              color: AppColors.textLight,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -2195,169 +2459,6 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     );
   }
 
-  Widget buildVirtualMemberDebtSection() {
-    final summary = virtualDebtSummary ?? {};
-
-    final selectedMemberName = selectedVirtualMember == null
-        ? 'Thành viên ảo'
-        : getMemberName(selectedVirtualMember);
-
-    final virtualName =
-        summary['virtual_name']?.toString() ?? selectedMemberName;
-
-    final totalVirtualOwes = readDouble(
-      summary['total_virtual_owes'],
-    );
-
-    final totalOwedToVirtual = readDouble(
-      summary['total_owed_to_virtual'],
-    );
-
-    final virtualOwes = readMapList(
-      summary['virtual_owes'],
-    );
-
-    final owedToVirtual = readMapList(
-      summary['owed_to_virtual'],
-    );
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Quản lý công nợ thành viên ảo',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              color: AppColors.textDark,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Chủ nhóm có thể xem công nợ giùm từng thành viên ảo.',
-            style: TextStyle(
-              color: AppColors.textLight,
-              fontWeight: FontWeight.w600,
-              fontSize: 13,
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          DropdownButtonFormField<int>(
-            initialValue: selectedVirtualUserId,
-            decoration: InputDecoration(
-              labelText: 'Chọn thành viên ảo',
-              filled: true,
-              fillColor: AppColors.background,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(18),
-                borderSide: BorderSide.none,
-              ),
-            ),
-            items: virtualMembers.map<DropdownMenuItem<int>>(
-              (member) {
-                return DropdownMenuItem<int>(
-                  value: getMemberUserId(member),
-                  child: Text(getMemberName(member)),
-                );
-              },
-            ).toList(),
-            onChanged: isLoadingVirtualDebt
-                ? null
-                : (value) async {
-                    if (value == null) return;
-
-                    setState(() {
-                      selectedVirtualUserId = value;
-                    });
-
-                    await loadVirtualMemberDebtSummary();
-                  },
-          ),
-
-          const SizedBox(height: 18),
-
-          if (isLoadingVirtualDebt)
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(20),
-                child: CircularProgressIndicator(),
-              ),
-            )
-          else ...[
-            Row(
-              children: [
-                Expanded(
-                  child: buildDebtSummaryBox(
-                    title: '$virtualName cần trả',
-                    amount: totalVirtualOwes,
-                    icon: Icons.call_made_rounded,
-                    color: AppColors.danger,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: buildDebtSummaryBox(
-                    title: '$virtualName được nhận',
-                    amount: totalOwedToVirtual,
-                    icon: Icons.call_received_rounded,
-                    color: AppColors.success,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 20),
-
-            if (virtualOwes.isEmpty && owedToVirtual.isEmpty)
-              buildEmptyCard(
-                icon: Icons.check_circle_outline,
-                title: '$virtualName chưa có công nợ',
-              )
-            else ...[
-              if (virtualOwes.isNotEmpty) ...[
-                buildDebtGroupTitle(
-                  title: '$virtualName đang nợ',
-                  icon: Icons.call_made_rounded,
-                  color: AppColors.danger,
-                ),
-                const SizedBox(height: 10),
-                ...virtualOwes.map(
-                  (item) => buildVirtualDebtRow(
-                    item,
-                    virtualOwes: true,
-                  ),
-                ),
-                const SizedBox(height: 16),
-              ],
-
-              if (owedToVirtual.isNotEmpty) ...[
-                buildDebtGroupTitle(
-                  title: 'Đang nợ $virtualName',
-                  icon: Icons.call_received_rounded,
-                  color: AppColors.success,
-                ),
-                const SizedBox(height: 10),
-                ...owedToVirtual.map(
-                  (item) => buildVirtualDebtRow(
-                    item,
-                    virtualOwes: false,
-                  ),
-                ),
-              ],
-            ],
-          ],
-        ],
-      ),
-    );
-  }
-
   Widget buildVirtualDebtRow(
     Map<String, dynamic> item, {
     required bool virtualOwes,
@@ -2517,16 +2618,21 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
 
       if (!mounted) return;
 
-      await showModalBottomSheet<void>(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (_) {
-          return buildVirtualDebtDetailSheet(
-            Map<String, dynamic>.from(response),
-          );
-        },
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => DebtDetailScreen(
+            householdId: household.id,
+            otherUserId: otherUserId,
+            virtualUserId: virtualUserId,
+            isVirtualMode: true,
+            initialDetail: Map<String, dynamic>.from(response),
+          ),
+        ),
       );
+
+      if (mounted) {
+        await refreshData();
+      }
     } catch (e) {
       if (!mounted) return;
 
@@ -3069,7 +3175,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
 
   Widget buildExpenseSection() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
@@ -3079,93 +3185,135 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
         children: [
           Row(
             children: [
-              const Text(
-                'Khoản chi gần đây',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.textDark,
+              const Expanded(
+                child: Text(
+                  'Khoản chi gần đây',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.textDark,
+                  ),
                 ),
               ),
-              const Spacer(),
-              TextButton(
-                onPressed: () {},
-                child: const Text('View all'),
-              ),
+              if (hasMoreExpenses)
+                TextButton(
+                  onPressed: isLoadingMoreExpenses
+                      ? null
+                      : () {
+                          loadMoreExpenses();
+                        },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    'Xem thêm',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
             ],
           ),
-          const SizedBox(height: 16),
+
+          const SizedBox(height: 12),
 
           if (expenses.isEmpty)
             buildEmptyCard(
               icon: Icons.receipt_long,
               title: 'Chưa có khoản chi',
             )
-          else
-            Column(
-              children: [
-                ...expenses.map(
-                  buildCompactExpenseCard,
-                ),
-
-                if (isLoadingMoreExpenses)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 18),
-                    child: Center(
-                      child: CircularProgressIndicator(),
-                    ),
-                  ),
-
-                if (isExpensePageError)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Column(
-                      children: [
-                        const Text(
-                          'Không tải được thêm khoản chi',
-                          style: TextStyle(
-                            color: AppColors.textLight,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        OutlinedButton(
-                          onPressed: () {
-                            setState(() {
-                              isExpensePageError = false;
-                            });
-
-                            loadMoreExpenses();
-                          },
-                          child: const Text('Thử lại'),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                if (!hasMoreExpenses &&
-                    expenses.isNotEmpty &&
-                    !isLoadingMoreExpenses)
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 12),
-                    child: Text(
-                      'Đã tải hết khoản chi',
-                      style: TextStyle(
-                        color: AppColors.textLight,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-              ],
+          else ...[
+            ...List.generate(
+              expenses.length,
+              (index) => buildCompactExpenseCard(
+                expenses[index],
+                showDivider: index != expenses.length - 1,
+              ),
             ),
+
+            if (isLoadingMoreExpenses)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: SizedBox(
+                    width: 26,
+                    height: 26,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                    ),
+                  ),
+                ),
+              ),
+
+            if (isExpensePageError)
+              Padding(
+                padding: const EdgeInsets.only(top: 12),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.background,
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: AppColors.border,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      const Text(
+                        'Không tải được thêm khoản chi',
+                        style: TextStyle(
+                          color: AppColors.textLight,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      OutlinedButton(
+                        onPressed: () {
+                          setState(() {
+                            isExpensePageError = false;
+                          });
+
+                          loadMoreExpenses();
+                        },
+                        child: const Text('Thử lại'),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            if (!hasMoreExpenses &&
+                expenses.isNotEmpty &&
+                !isLoadingMoreExpenses)
+              const Padding(
+                padding: EdgeInsets.only(top: 12, bottom: 4),
+                child: Center(
+                  child: Text(
+                    'Đã tải hết khoản chi',
+                    style: TextStyle(
+                      color: AppColors.textLight,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ),
+          ],
         ],
       ),
     );
   }
 
   Widget buildCompactExpenseCard(
-    Expense expense,
-  ) {
+    Expense expense, {
+    bool showDivider = true,
+  }) {
     final payerName = displayUserName(
       name: expense.payerName,
       email: expense.payerEmail,
@@ -3174,146 +3322,160 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     final isBusy = editingExpenseId == expense.id ||
         deletingExpenseId == expense.id;
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Row(
+    final participantText = expense.participants.isEmpty
+        ? 'Chưa có người tham gia'
+        : 'Chia cho ${expense.participants.length} người';
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(18),
+      onTap: expense.canManage && !isBusy
+          ? () => openEditExpenseScreen(expense)
+          : null,
+      child: Column(
         children: [
-          buildAvatar(
-            imageUrl: expense.payerAvatar,
-            name: payerName,
-            radius: 24,
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: InkWell(
-              borderRadius: BorderRadius.circular(18),
-              onTap: expense.canManage && !isBusy
-                  ? () => openEditExpenseScreen(expense)
-                  : null,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 4,
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                buildAvatar(
+                  imageUrl: expense.payerAvatar,
+                  name: payerName,
+                  radius: 23,
                 ),
-                child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      expense.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.textDark,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Người trả: $payerName',
-                      style: const TextStyle(
-                        color: AppColors.textLight,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 13,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      expense.expenseDate,
-                      style: const TextStyle(
-                        color: AppColors.textLight,
-                        fontSize: 12,
-                      ),
-                    ),
-                    if (expense.participants.isNotEmpty) ...[
-                      const SizedBox(height: 4),
+
+                const SizedBox(width: 14),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        'Chia cho ${expense.participants.length} người',
+                        expense.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.textDark,
+                        ),
+                      ),
+
+                      const SizedBox(height: 6),
+
+                      Text(
+                        'Người trả: $payerName',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: AppColors.textLight,
-                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13,
+                        ),
+                      ),
+
+                      const SizedBox(height: 4),
+
+                      Text(
+                        '${expense.expenseDate} · $participantText',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.textLight,
                           fontWeight: FontWeight.w600,
+                          fontSize: 12,
                         ),
                       ),
                     ],
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '${formatMoney(expense.amount)}đ',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (isBusy)
-                const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.4,
                   ),
-                )
-              else if (expense.canManage)
-                PopupMenuButton<String>(
-                  padding: EdgeInsets.zero,
-                  icon: const Icon(
-                    Icons.more_horiz_rounded,
-                    color: AppColors.textLight,
-                  ),
-                  onSelected: (value) {
-                    if (value == 'edit') {
-                      openEditExpenseScreen(expense);
-                    }
+                ),
 
-                    if (value == 'delete') {
-                      confirmDeleteExpense(expense);
-                    }
-                  },
-                  itemBuilder: (context) => const [
-                    PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit_rounded),
-                          SizedBox(width: 10),
-                          Text('Sửa'),
-                        ],
+                const SizedBox(width: 12),
+
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${formatMoney(expense.amount)}đ',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.primary,
                       ),
                     ),
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.delete_outline_rounded,
-                            color: Colors.red,
+
+                    const SizedBox(height: 6),
+
+                    if (isBusy)
+                      const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.4,
+                        ),
+                      )
+                    else if (expense.canManage)
+                      PopupMenuButton<String>(
+                        padding: EdgeInsets.zero,
+                        iconSize: 22,
+                        icon: const Icon(
+                          Icons.more_horiz_rounded,
+                          color: AppColors.textLight,
+                        ),
+                        onSelected: (value) {
+                          if (value == 'edit') {
+                            openEditExpenseScreen(expense);
+                          }
+
+                          if (value == 'delete') {
+                            confirmDeleteExpense(expense);
+                          }
+                        },
+                        itemBuilder: (context) => const [
+                          PopupMenuItem(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(Icons.edit_rounded),
+                                SizedBox(width: 10),
+                                Text('Sửa'),
+                              ],
+                            ),
                           ),
-                          SizedBox(width: 10),
-                          Text(
-                            'Xóa',
-                            style: TextStyle(
-                              color: Colors.red,
+                          PopupMenuItem(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.delete_outline_rounded,
+                                  color: Colors.red,
+                                ),
+                                SizedBox(width: 10),
+                                Text(
+                                  'Xóa',
+                                  style: TextStyle(
+                                    color: Colors.red,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
-                      ),
-                    ),
+                      )
+                    else
+                      const SizedBox(height: 22),
                   ],
                 ),
-            ],
+              ],
+            ),
           ),
+
+          if (showDivider)
+            const Divider(
+              height: 1,
+              thickness: 1,
+              color: AppColors.border,
+            ),
         ],
       ),
     );
@@ -3529,10 +3691,6 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
             buildMembersSection(),
             const SizedBox(height: 30),
             buildDebtSection(),
-            if (isCurrentUserOwner && virtualMembers.isNotEmpty) ...[
-              const SizedBox(height: 30),
-              buildVirtualMemberDebtSection(),
-            ],
             const SizedBox(height: 30),
             if (expenses.isEmpty)
               SizedBox(
