@@ -106,6 +106,15 @@ class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
         }
     )
 
+    amount = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=0,
+        error_messages={
+            'max_digits': 'Số tiền quá lớn, hệ thống chỉ hỗ trợ tối đa 12 chữ số.',
+            'max_whole_digits': 'Số tiền vượt mức cho phép.'
+        }
+    )
+
     payer = serializers.PrimaryKeyRelatedField(
         queryset=User.objects.all(),
         required=False,
