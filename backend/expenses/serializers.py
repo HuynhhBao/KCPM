@@ -473,6 +473,15 @@ class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
         )
 
         return instance
+        
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['participants'] = ExpenseParticipantSerializer(
+            instance.participants.all(),
+            many=True,
+            context=self.context
+        ).data
+        return data
 
 
 class ExpenseListSerializer(serializers.ModelSerializer):
