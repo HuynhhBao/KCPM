@@ -737,8 +737,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget buildHeader() {
     final fullName = valueOf('full_name');
     final email = valueOf('email');
-    final avatarUrl =
-        profile['avatar_url']?.toString().trim() ?? '';
+    final avatarUrl = ApiService.resolveMediaUrl(
+      profile['avatar_url']?.toString(),
+    );
 
     return Container(
       padding: const EdgeInsets.all(28),

@@ -30,6 +30,32 @@ class ApiService {
     return 'https://chungvi-production.up.railway.app/api';
   }
 
+static String resolveMediaUrl(String? rawUrl) {
+  final value = rawUrl?.trim() ?? '';
+
+  if (value.isEmpty) {
+    return '';
+  }
+
+  if (value.startsWith('https://')) {
+    return value;
+  }
+
+  if (value.startsWith('http://')) {
+    return value.replaceFirst('http://', 'https://');
+  }
+
+  final apiUri = Uri.parse(baseUrl);
+  final backendOrigin = '${apiUri.scheme}://${apiUri.host}'
+      '${apiUri.hasPort ? ':${apiUri.port}' : ''}';
+
+  if (value.startsWith('/')) {
+    return '$backendOrigin$value';
+  }
+
+  return '$backendOrigin/$value';
+}
+
   static final Dio dio = Dio(
     BaseOptions(
       baseUrl: baseUrl,
