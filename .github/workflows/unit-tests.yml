@@ -5,12 +5,12 @@ on:
 
   push:
     paths:
-      - "backend/unit_tests/**"
+      - "backend/**"
       - ".github/workflows/unit-tests.yml"
 
   pull_request:
     paths:
-      - "backend/unit_tests/**"
+      - "backend/**"
       - ".github/workflows/unit-tests.yml"
 
 permissions:
