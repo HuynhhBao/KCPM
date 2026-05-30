@@ -28,21 +28,8 @@ def get_user_display_name(user):
 def format_money(amount):
     return f'{amount:,.0f}đ'.replace(',', '.')
 
-
-def is_household_owner(user, household):
-    return HouseholdMember.objects.filter(
-        household=household,
-        user=user,
-        role=HouseholdMember.Role.OWNER,
-    ).exists()
-
-
 def is_user_expense_manager(user, expense):
-    return (
-        expense.payer_id == user.id or
-        is_household_owner(user, expense.household)
-    )
-
+    return expense.payer_id == user.id
 
 class ExpenseParticipantInputSerializer(serializers.Serializer):
     user_id = serializers.IntegerField()
@@ -535,10 +522,7 @@ class ExpenseListSerializer(serializers.ModelSerializer):
         if not request:
             return False
 
-        return is_user_expense_manager(
-            request.user,
-            obj
-        )
+        return obj.payer_id == request.user.id
 
 
 class ExpenseDetailSerializer(ExpenseListSerializer):
@@ -704,10 +688,7 @@ class DebtSerializer(serializers.ModelSerializer):
             if obj.to_user_id == request.user.id:
                 return True
 
-            return is_household_owner(
-                request.user,
-                obj.household
-            )
+            return False
 
         return obj.from_user_id == request.user.id
 

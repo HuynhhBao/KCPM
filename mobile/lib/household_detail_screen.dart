@@ -67,6 +67,8 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
   final ScrollController scrollController =
       ScrollController();
 
+  static const int expensePageSize = 5;
+
   int expensePage = 1;
   bool hasMoreExpenses = true;
   bool isLoadingMoreExpenses = false;
@@ -151,47 +153,59 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     return null;
   }
 
-  Future<void> loadData() async {
+  Future<void> loadData({
+    bool showFullLoading = true,
+  }) async {
     if (!mounted) return;
 
-    setState(() {
-      isLoading = true;
-      errorMessage = null;
-    });
+    if (showFullLoading) {
+      setState(() {
+        isLoading = true;
+        errorMessage = null;
+      });
+    } else {
+      setState(() {
+        errorMessage = null;
+      });
+    }
 
     try {
+      String loadedEmail = currentUserEmail;
+
       final savedEmail = await ApiService.getSavedEmail();
 
       if (savedEmail != null && savedEmail.isNotEmpty) {
-        currentUserEmail =
-            savedEmail.trim().toLowerCase();
+        loadedEmail = savedEmail.trim().toLowerCase();
       } else {
         final profile = await ApiService.getProfile();
 
-        currentUserEmail = profile['email']
+        loadedEmail = profile['email']
                 ?.toString()
                 .trim()
                 .toLowerCase() ??
             '';
       }
 
-      final householdData =
-          await ApiService.getHouseholdDetail(
-        household.id,
-      );
+      final responses = await Future.wait<Map<String, dynamic>>([
+        ApiService.getHouseholdDetail(
+          household.id,
+        ),
+        ApiService.getHouseholdExpenses(
+          household.id,
+          page: 1,
+          pageSize: expensePageSize,
+        ),
+        ApiService.getHouseholdMyDebtSummary(
+          household.id,
+        ),
+      ]);
 
-      final freshHousehold =
-          Household.fromJson(householdData);
+      final householdData = responses[0];
+      final expenseResponse = responses[1];
+      final debtSummary = responses[2];
 
-      final expenseResponse =
-          await ApiService.getHouseholdExpenses(
-        household.id,
-        page: 1,
-      );
-
-      final debtSummary =
-          await ApiService.getHouseholdMyDebtSummary(
-        household.id,
+      final freshHousehold = Household.fromJson(
+        householdData,
       );
 
       final loadedExpenses = List<dynamic>.from(
@@ -202,14 +216,6 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
         ),
       ).toList();
 
-      ///final loadedDebts = List<dynamic>.from(
-        ///debtResponse['results'],
-      ///).map<Debt>(
-        ///(json) => Debt.fromJson(
-          ///Map<String, dynamic>.from(json),
-        ///),
-      ///).toList();
-
       double total = 0;
 
       for (final expense in loadedExpenses) {
@@ -219,6 +225,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
       if (!mounted) return;
 
       setState(() {
+        currentUserEmail = loadedEmail;
         household = freshHousehold;
 
         expenses = loadedExpenses;
@@ -231,15 +238,13 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
         isLoadingMoreExpenses = false;
         isExpensePageError = false;
 
-        isLoading = false;
-        errorMessage = null;
-      });
-
-      setState(() {
         selectedDebtViewMode = _DebtViewMode.currentUser;
         selectedVirtualUserId = null;
         virtualDebtSummary = null;
         isLoadingVirtualDebt = false;
+
+        isLoading = false;
+        errorMessage = null;
       });
     } catch (e) {
       debugPrint(e.toString());
@@ -249,12 +254,15 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
       setState(() {
         errorMessage = 'Không thể tải dữ liệu nhóm';
         isLoading = false;
+        isLoadingMoreExpenses = false;
       });
     }
   }
 
   Future<void> refreshData() async {
-    await loadData();
+    await loadData(
+      showFullLoading: expenses.isEmpty,
+    );
   }
 
   Future<void> loadVirtualMemberDebtSummary() async {
@@ -344,6 +352,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
           await ApiService.getHouseholdExpenses(
         household.id,
         page: nextPage,
+        pageSize: expensePageSize,
       );
 
       final newExpenses = List<dynamic>.from(
@@ -392,7 +401,9 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     );
 
     if (result == true) {
-      await loadData();
+      await loadData(
+        showFullLoading: false,
+      );
     }
   }
 
@@ -442,7 +453,9 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
       );
 
       if (result == true) {
-        await loadData();
+        await loadData(
+          showFullLoading: false,
+        );
       }
     } catch (e) {
       if (!mounted) return;
@@ -530,7 +543,9 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
         ),
       );
 
-      await loadData();
+      await loadData(
+        showFullLoading: false,
+      );
     } catch (e) {
       if (!mounted) return;
 
@@ -607,7 +622,9 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                   ),
                 );
 
-                await loadData();
+                await loadData(
+                  showFullLoading: false,
+                );
               } catch (e) {
                 if (!mounted) return;
 
@@ -683,7 +700,9 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
       ),
     );
 
-    await loadData();
+    await loadData(
+      showFullLoading: false,
+    );
   }
 
   Future<void> confirmLeaveHousehold() async {
@@ -3007,7 +3026,9 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
         ),
       );
 
-      await loadData();
+      await loadData(
+        showFullLoading: false,
+      );
     } catch (e) {
       if (!mounted) return;
 

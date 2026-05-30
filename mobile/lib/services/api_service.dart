@@ -581,9 +581,14 @@ class ApiService {
   static Future<Map<String, dynamic>> getHouseholdExpenses(
     String householdId, {
     int page = 1,
+    int pageSize = 20,
   }) async {
     final response = await dio.get(
-      '/expenses/household/$householdId/?page=$page',
+      '/expenses/household/$householdId/',
+      queryParameters: {
+        'page': page,
+        'page_size': pageSize,
+      },
     );
 
     return {

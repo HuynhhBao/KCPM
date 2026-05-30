@@ -218,8 +218,7 @@ class MarkDebtPaidView(APIView):
         if debt_has_virtual_member(debt):
             can_settle_virtual_debt = (
                 debt.from_user_id == request.user.id or
-                debt.to_user_id == request.user.id or
-                is_household_owner(request.user, debt.household)
+                debt.to_user_id == request.user.id
             )
 
             if not can_settle_virtual_debt:
