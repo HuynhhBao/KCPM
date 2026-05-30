@@ -30,6 +30,13 @@ class ApiService {
     return 'https://chungvi-production.up.railway.app/api';
   }
 
+  static String _backendOrigin() {
+    final apiUri = Uri.parse(baseUrl);
+
+    return '${apiUri.scheme}://${apiUri.host}'
+        '${apiUri.hasPort ? ':${apiUri.port}' : ''}';
+  }
+
   static String resolveMediaUrl(String? rawUrl) {
     final value = rawUrl?.trim() ?? '';
 
@@ -38,8 +45,6 @@ class ApiService {
     }
 
     final apiUri = Uri.parse(baseUrl);
-    final backendOrigin = '${apiUri.scheme}://${apiUri.host}'
-        '${apiUri.hasPort ? ':${apiUri.port}' : ''}';
 
     if (value.startsWith('http://') ||
         value.startsWith('https://')) {
@@ -69,10 +74,18 @@ class ApiService {
     }
 
     if (value.startsWith('/')) {
-      return '$backendOrigin$value';
+      return '${_backendOrigin()}$value';
     }
 
-    return '$backendOrigin/$value';
+    return '${_backendOrigin()}/$value';
+  }
+
+  static String userAvatarUrl(int userId) {
+    if (userId <= 0) {
+      return '';
+    }
+
+    return '${_backendOrigin()}/api/auth/users/$userId/avatar/';
   }
 
   static final Dio dio = Dio(

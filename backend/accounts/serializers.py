@@ -1,6 +1,9 @@
 from django.contrib.auth import get_user_model
-from django.urls import reverse
-from django.utils import timezone
+from accounts.avatar_utils import build_user_avatar_url
+from accounts.cloudinary_storage import (
+    delete_cloudinary_avatar_safely,
+    upload_user_avatar,
+)
 from rest_framework import serializers
 import mimetypes
 import re
@@ -107,32 +110,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
     def get_avatar_url(self, obj):
         request = self.context.get('request')
 
-        if obj.avatar_data:
-            version = ''
-
-            if obj.avatar_updated_at:
-                version = (
-                    f'?v={int(obj.avatar_updated_at.timestamp())}'
-                )
-
-            path = reverse(
-                'user-avatar',
-                kwargs={
-                    'user_id': obj.id,
-                },
-            )
-
-            url = f'{path}{version}'
-
-            if request:
-                return request.build_absolute_uri(url)
-
-            return url
-
-        if obj.avatar and request:
-            return request.build_absolute_uri(obj.avatar.url)
-
-        return ''
+        return build_user_avatar_url(
+            obj,
+            request,
+        )
 
     def validate_full_name(self, value):
         value = value.strip()
@@ -243,37 +224,55 @@ class UserProfileSerializer(serializers.ModelSerializer):
                 value,
             )
 
+        old_storage_path = (
+            instance.avatar_storage_path or ''
+        )
+
         if avatar_file:
-            avatar_file.seek(0)
-
-            file_name = (
-                getattr(avatar_file, 'name', '') or
-                'avatar'
+            upload_result = upload_user_avatar(
+                user=instance,
+                uploaded_file=avatar_file,
             )
 
-            content_type = (
-                getattr(avatar_file, 'content_type', '') or
-                ''
-            )
+            instance.avatar_url = upload_result[
+                'avatar_url'
+            ]
 
-            if (
-                not content_type or
-                content_type == 'application/octet-stream'
-            ):
-                guessed_type, _ = mimetypes.guess_type(file_name)
+            instance.avatar_storage_path = upload_result[
+                'avatar_storage_path'
+            ]
 
-                if guessed_type:
-                    content_type = guessed_type
+            instance.avatar_updated_at = upload_result[
+                'avatar_updated_at'
+            ]
 
-            instance.avatar_data = avatar_file.read()
-            instance.avatar_content_type = (
-                content_type or
-                'application/octet-stream'
-            )
-            instance.avatar_file_name = file_name
-            instance.avatar_updated_at = timezone.now()
+            instance.avatar_data = None
+            instance.avatar_content_type = ''
+            instance.avatar_file_name = ''
+
+            try:
+                if instance.avatar:
+                    instance.avatar.delete(
+                        save=False,
+                    )
+            except Exception:
+                pass
+
+            try:
+                instance.avatar = None
+            except Exception:
+                pass
 
         instance.save()
+
+        if (
+            avatar_file and
+            old_storage_path and
+            old_storage_path != instance.avatar_storage_path
+        ):
+            delete_cloudinary_avatar_safely(
+                old_storage_path,
+            )
 
         return instance
 

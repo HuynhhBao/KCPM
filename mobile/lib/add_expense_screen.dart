@@ -214,6 +214,98 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     return 0;
   }
 
+  String getMemberAvatar(dynamic member) {
+    String rawAvatar = '';
+
+    try {
+      rawAvatar = member.userAvatar?.toString().trim() ?? '';
+    } catch (_) {}
+
+    if (rawAvatar.isEmpty) {
+      try {
+        rawAvatar = member.avatarUrl?.toString().trim() ?? '';
+      } catch (_) {}
+    }
+
+    if (rawAvatar.isEmpty) {
+      try {
+        rawAvatar = member.avatar_url?.toString().trim() ?? '';
+      } catch (_) {}
+    }
+
+    if (rawAvatar.isEmpty) {
+      try {
+        rawAvatar = member.avatar?.toString().trim() ?? '';
+      } catch (_) {}
+    }
+
+    if (rawAvatar.isNotEmpty) {
+      return ApiService.resolveMediaUrl(rawAvatar);
+    }
+
+    final userId = getMemberId(member);
+
+    if (userId <= 0 || getMemberIsVirtual(member)) {
+      return '';
+    }
+
+    return ApiService.userAvatarUrl(userId);
+  }
+
+  Widget buildMemberAvatar({
+    required String name,
+    required String avatarUrl,
+    required bool isVirtual,
+    required bool isSelected,
+  }) {
+    final firstLetter = name.trim().isNotEmpty
+        ? name.trim()[0].toUpperCase()
+        : '?';
+
+    Widget fallbackAvatar() {
+      return CircleAvatar(
+        radius: 20,
+        backgroundColor: isVirtual
+            ? const Color(0xFFE0F2FE)
+            : isSelected
+                ? AppColors.primary
+                : AppColors.primary.withValues(alpha: 0.12),
+        child: isVirtual
+            ? const Icon(
+                Icons.person_outline_rounded,
+                color: Color(0xFF0284C7),
+                size: 21,
+              )
+            : Text(
+                firstLetter,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : AppColors.primary,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+      );
+    }
+
+    if (isVirtual || avatarUrl.trim().isEmpty) {
+      return fallbackAvatar();
+    }
+
+    return ClipOval(
+      child: SizedBox(
+        width: 40,
+        height: 40,
+        child: Image.network(
+          avatarUrl,
+          key: ValueKey(avatarUrl),
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) {
+            return fallbackAvatar();
+          },
+        ),
+      ),
+    );
+  }
+
   double? parseAmount(String value) {
     final cleaned = value
         .replaceAll('.', '')
@@ -585,7 +677,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     final name = getMemberName(member);
     final email = getMemberEmail(member);
     final isVirtual = getMemberIsVirtual(member);
-    final firstLetter = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    final avatarUrl = getMemberAvatar(member);
 
     return GestureDetector(
       onTap: isLoading
@@ -613,18 +705,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         ),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: isSelected
-                  ? AppColors.primary
-                  : AppColors.primary.withValues(alpha: 0.12),
-              child: Text(
-                firstLetter,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : AppColors.primary,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
+            buildMemberAvatar(
+              name: name,
+              avatarUrl: avatarUrl,
+              isVirtual: isVirtual,
+              isSelected: isSelected,
             ),
             const SizedBox(width: 14),
             Expanded(

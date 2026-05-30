@@ -2,6 +2,8 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from django.db.models import Q
 
+from accounts.avatar_utils import build_user_avatar_url
+
 from households.models import (
     Activity,
     Household,
@@ -59,12 +61,13 @@ class HouseholdMemberSerializer(
     def get_user_avatar(self, obj):
         request = self.context.get('request')
 
-        if obj.user.avatar and request:
-            return request.build_absolute_uri(
-                obj.user.avatar.url
-            )
+        if is_virtual_user(obj.user):
+            return ''
 
-        return ''
+        return build_user_avatar_url(
+            obj.user,
+            request,
+        )
 
     def get_is_virtual(self, obj):
         return is_virtual_user(obj.user)

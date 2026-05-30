@@ -1013,6 +1013,28 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     return email;
   }
 
+  String resolveAvatarForMember(dynamic member) {
+    final rawAvatar = (() {
+      try {
+        return member.userAvatar?.toString().trim() ?? '';
+      } catch (_) {
+        return '';
+      }
+    })();
+
+    if (rawAvatar.isNotEmpty) {
+      return ApiService.resolveMediaUrl(rawAvatar);
+    }
+
+    final userId = getMemberUserId(member);
+
+    if (userId <= 0 || isVirtualMember(member)) {
+      return '';
+    }
+
+    return ApiService.userAvatarUrl(userId);
+  }
+
   Widget buildAvatar({
     required String imageUrl,
     required String name,
@@ -1020,25 +1042,36 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
   }) {
     final avatarUrl = ApiService.resolveMediaUrl(imageUrl);
 
-    if (avatarUrl.isNotEmpty) {
+    Widget fallbackAvatar() {
       return CircleAvatar(
         radius: radius,
-        backgroundImage: NetworkImage(avatarUrl),
-        backgroundColor: Colors.grey.shade200,
+        backgroundColor: AppColors.primary,
+        child: Text(
+          name.isNotEmpty ? name[0].toUpperCase() : '?',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            fontSize: radius * 0.8,
+          ),
+        ),
       );
     }
 
-    return CircleAvatar(
-      radius: radius,
-      backgroundColor: AppColors.primary,
-      child: Text(
-        name.isNotEmpty
-            ? name[0].toUpperCase()
-            : '?',
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.w800,
-          fontSize: radius * 0.8,
+    if (avatarUrl.isEmpty) {
+      return fallbackAvatar();
+    }
+
+    return ClipOval(
+      child: SizedBox(
+        width: radius * 2,
+        height: radius * 2,
+        child: Image.network(
+          avatarUrl,
+          key: ValueKey(avatarUrl),
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) {
+            return fallbackAvatar();
+          },
         ),
       ),
     );
@@ -1472,7 +1505,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                             clipBehavior: Clip.none,
                             children: [
                               buildAvatar(
-                                imageUrl: member.userAvatar,
+                                imageUrl: resolveAvatarForMember(member),
                                 name: member.displayName,
                                 radius: 24,
                               ),
@@ -1978,10 +2011,16 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     required bool isOwe,
   }) {
     final name = readDebtUserName(item);
-    final avatar = item['other_avatar']?.toString() ?? '';
+    final rawAvatar = item['other_avatar']?.toString().trim() ?? '';
+    final otherUserId = readInt(item['other_user_id']);
+
+    final avatar = rawAvatar.isNotEmpty
+        ? ApiService.resolveMediaUrl(rawAvatar)
+        : otherUserId > 0
+            ? ApiService.userAvatarUrl(otherUserId)
+            : '';
     final amount = readDouble(item['amount']);
     final expenseCount = readInt(item['expense_count']);
-    final otherUserId = readInt(item['other_user_id']);
     final isLoadingThis =
         isLoadingDebtDetail &&
         loadingDebtDetailUserId == otherUserId;
@@ -2375,10 +2414,17 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     required bool virtualOwes,
   }) {
     final name = item['other_name']?.toString() ?? 'Thành viên';
-    final avatar = item['other_avatar']?.toString() ?? '';
+    final rawAvatar = item['other_avatar']?.toString().trim() ?? '';
+    final otherUserId = readInt(item['other_user_id']);
+    final isOtherVirtual = readBool(item['other_is_virtual']);
+
+    final avatar = rawAvatar.isNotEmpty
+        ? ApiService.resolveMediaUrl(rawAvatar)
+        : (!isOtherVirtual && otherUserId > 0)
+            ? ApiService.userAvatarUrl(otherUserId)
+            : '';
     final amount = readDouble(item['amount']);
     final expenseCount = readInt(item['expense_count']);
-    final otherUserId = readInt(item['other_user_id']);
 
     final isLoadingThis =
         isLoadingVirtualDebtDetail &&

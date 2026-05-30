@@ -716,11 +716,13 @@ class _DebtOverviewScreenState
         child: Row(
           children: [
             buildAvatar(
-              item.otherName,
-              isOwe
+              name: item.otherName,
+              avatarUrl: item.otherAvatar,
+              isVirtual: item.isVirtual,
+              fallbackIcon: isOwe
                   ? Icons.call_made_rounded
                   : Icons.call_received_rounded,
-              isOwe,
+              isOwe: isOwe,
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -844,42 +846,77 @@ class _DebtOverviewScreenState
         : 'Chờ ${displayName(debt.fromUserName, debt.fromUserEmail)} thanh toán';
   }
 
-  Widget buildAvatar(
-    String name,
-    IconData fallbackIcon,
-    bool isOwe,
-  ) {
+  Widget buildAvatar({
+    required String name,
+    required String avatarUrl,
+    required bool isVirtual,
+    required IconData fallbackIcon,
+    required bool isOwe,
+  }) {
     final letter = name.trim().isNotEmpty
         ? name.trim()[0].toUpperCase()
         : '';
 
-    return Container(
-      width: 52,
-      height: 52,
-      decoration: BoxDecoration(
-        color: isOwe
-            ? Colors.redAccent.withValues(alpha: 0.10)
-            : AppColors.primary.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Center(
-        child: letter.isEmpty
-            ? Icon(
-                fallbackIcon,
-                color: isOwe
-                    ? Colors.redAccent
-                    : AppColors.primary,
-              )
-            : Text(
-                letter,
-                style: TextStyle(
-                  color: isOwe
-                      ? Colors.redAccent
-                      : AppColors.primary,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
+    final resolvedAvatar = avatarUrl.trim().isNotEmpty
+        ? ApiService.resolveMediaUrl(avatarUrl.trim())
+        : '';
+
+    Widget fallbackAvatar() {
+      return Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: isVirtual
+              ? const Color(0xFFE0F2FE)
+              : isOwe
+                  ? Colors.redAccent.withValues(alpha: 0.10)
+                  : AppColors.primary.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Center(
+          child: isVirtual
+              ? const Icon(
+                  Icons.person_outline_rounded,
+                  color: Color(0xFF0284C7),
+                )
+              : letter.isEmpty
+                  ? Icon(
+                      fallbackIcon,
+                      color: isOwe
+                          ? Colors.redAccent
+                          : AppColors.primary,
+                    )
+                  : Text(
+                      letter,
+                      style: TextStyle(
+                        color: isOwe
+                            ? Colors.redAccent
+                            : AppColors.primary,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+        ),
+      );
+    }
+
+    if (isVirtual || resolvedAvatar.isEmpty) {
+      return fallbackAvatar();
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: SizedBox(
+        width: 52,
+        height: 52,
+        child: Image.network(
+          resolvedAvatar,
+          key: ValueKey(resolvedAvatar),
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) {
+            return fallbackAvatar();
+          },
+        ),
       ),
     );
   }

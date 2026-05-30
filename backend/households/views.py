@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Q
+from accounts.avatar_utils import build_user_avatar_url
 
 from rest_framework import generics
 from rest_framework.pagination import PageNumberPagination
@@ -79,9 +80,10 @@ def debt_remaining_to_int(debt):
 def serialize_debt_user(user, request=None):
     avatar_url = ''
 
-    if getattr(user, 'avatar', None) and request:
-        avatar_url = request.build_absolute_uri(
-            user.avatar.url
+    if not is_virtual_user(user):
+        avatar_url = build_user_avatar_url(
+            user,
+            request,
         )
 
     return {
@@ -90,6 +92,32 @@ def serialize_debt_user(user, request=None):
         'other_email': user.email,
         'other_avatar': avatar_url,
         'is_virtual': is_virtual_user(user),
+    }
+
+def serialize_debt_payer(user, request=None):
+    if not user:
+        return {
+            'payer_id': None,
+            'payer_name': 'Không rõ người chi',
+            'payer_email': '',
+            'payer_avatar': '',
+            'payer_is_virtual': False,
+        }
+
+    avatar_url = ''
+
+    if not is_virtual_user(user):
+        avatar_url = build_user_avatar_url(
+            user,
+            request,
+        )
+
+    return {
+        'payer_id': user.id,
+        'payer_name': get_user_display_name(user),
+        'payer_email': user.email,
+        'payer_avatar': avatar_url,
+        'payer_is_virtual': is_virtual_user(user),
     }
 
 def serialize_bank_info(user):
@@ -1295,8 +1323,9 @@ class MyDebtDetailView(APIView):
                         if debt.expense.expense_date
                         else ''
                     ),
-                    'payer_name': get_user_display_name(
-                        debt.expense.payer
+                    **serialize_debt_payer(
+                        debt.expense.payer,
+                        request,
                     ),
                     'from_user_name': get_user_display_name(
                         debt.from_user
@@ -1624,8 +1653,9 @@ class VirtualMemberDebtDetailView(APIView):
                         if debt.expense.expense_date
                         else ''
                     ),
-                    'payer_name': get_user_display_name(
-                        debt.expense.payer
+                    **serialize_debt_payer(
+                        debt.expense.payer,
+                        request,
                     ),
                     'from_user_name': get_user_display_name(
                         debt.from_user

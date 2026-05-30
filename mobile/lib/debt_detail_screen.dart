@@ -389,8 +389,15 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final name = widget.isVirtualMode
-      ? readText(detail['virtual_name' ])
-      : readText(detail['other_name' ]);
+        ? readText(detail['virtual_name'])
+        : readText(detail['other_name']);
+
+    final avatarUrl = widget.isVirtualMode
+        ? ''
+        : ApiService.resolveMediaUrl(
+            readText(detail['other_avatar']),
+          );
+
     final netAmount = readInt(detail['net_amount']);
     final netDirection = readText(detail['net_direction']);
     final pendingPayment = detail['pending_payment'];
@@ -447,6 +454,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
                         children: [
                           buildHeroCard(
                             name: name,
+                            avatarUrl: avatarUrl,
                             netAmount: netAmount,
                             isIOwe: isIOwe,
                             pendingPayment: pendingPayment,
@@ -461,8 +469,71 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     );
   }
 
+  Widget buildDebtPersonAvatar({
+    required String name,
+    required String avatarUrl,
+    required bool isVirtual,
+    required bool isIOwe,
+  }) {
+    final letter = name.trim().isNotEmpty
+        ? name.trim()[0].toUpperCase()
+        : '?';
+
+    Widget fallbackAvatar() {
+      return Container(
+        width: 58,
+        height: 58,
+        decoration: BoxDecoration(
+          color: isVirtual
+              ? const Color(0xFFE0F2FE)
+              : isIOwe
+                  ? Colors.redAccent.withValues(alpha: 0.10)
+                  : AppColors.primary.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(22),
+        ),
+        child: Center(
+          child: isVirtual
+              ? const Icon(
+                  Icons.person_outline_rounded,
+                  color: Color(0xFF0284C7),
+                  size: 30,
+                )
+              : Text(
+                  letter,
+                  style: TextStyle(
+                    color: isIOwe ? Colors.redAccent : AppColors.primary,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+        ),
+      );
+    }
+
+    if (isVirtual || avatarUrl.trim().isEmpty) {
+      return fallbackAvatar();
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(22),
+      child: SizedBox(
+        width: 58,
+        height: 58,
+        child: Image.network(
+          avatarUrl,
+          key: ValueKey(avatarUrl),
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) {
+            return fallbackAvatar();
+          },
+        ),
+      ),
+    );
+  }
+
   Widget buildHeroCard({
     required String name,
+    required String avatarUrl,
     required int netAmount,
     required bool isIOwe,
     required dynamic pendingPayment,
@@ -544,14 +615,28 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            headline,
-            style: const TextStyle(
-              fontSize: 21,
-              height: 1.25,
-              fontWeight: FontWeight.w900,
-              color: AppColors.textDark,
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              buildDebtPersonAvatar(
+                name: name,
+                avatarUrl: avatarUrl,
+                isVirtual: isOtherVirtual,
+                isIOwe: isIOwe,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  headline,
+                  style: const TextStyle(
+                    fontSize: 21,
+                    height: 1.25,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.textDark,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 18),
           Text(
@@ -1105,10 +1190,64 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
 
     return buildHistoryRow(
       initial: 'T',
+      avatarUrl: '',
+      isVirtual: false,
       title: 'Thanh toán ${formatMoney(amount)}đ',
       subtitle: date.isEmpty ? statusText : '$statusText · $date',
       amountText: status == 'confirmed' ? '+${formatMoney(amount)}đ' : '',
       isLast: isLast,
+    );
+  }
+
+  Widget buildHistoryAvatar({
+    required String initial,
+    required String avatarUrl,
+    required bool isVirtual,
+  }) {
+    final resolvedAvatar = avatarUrl.trim().isNotEmpty
+        ? ApiService.resolveMediaUrl(avatarUrl.trim())
+        : '';
+
+    Widget fallbackAvatar() {
+      return CircleAvatar(
+        radius: 28,
+        backgroundColor: isVirtual
+            ? const Color(0xFFE0F2FE)
+            : AppColors.primary,
+        child: isVirtual
+            ? const Icon(
+                Icons.person_outline_rounded,
+                color: Color(0xFF0284C7),
+                size: 28,
+              )
+            : Text(
+                initial,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+      );
+    }
+
+    if (isVirtual || resolvedAvatar.isEmpty) {
+      return fallbackAvatar();
+    }
+
+    return ClipOval(
+      child: SizedBox(
+        width: 56,
+        height: 56,
+        child: Image.network(
+          resolvedAvatar,
+          key: ValueKey(resolvedAvatar),
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) {
+            return fallbackAvatar();
+          },
+        ),
+      ),
     );
   }
 
@@ -1121,18 +1260,27 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     final paidAmount = readInt(item['paid_amount']);
     final date = formatDate(item['expense_date']);
 
+    final payerName = readText(item['payer_name']);
+    final payerAvatar = readText(item['payer_avatar']);
+    final isPayerVirtual = item['payer_is_virtual'] == true;
+
     final subtitleParts = [
+      if (payerName.isNotEmpty) 'Người chi: $payerName',
       if (date.isNotEmpty) date,
       if (paidAmount > 0) 'Đã trả ${formatMoney(paidAmount)}đ',
       'Còn ${formatMoney(amount)}đ',
     ];
 
-    final initial = title.isNotEmpty
-        ? title.characters.first.toUpperCase()
+    final initialSource = payerName.isNotEmpty ? payerName : title;
+
+    final initial = initialSource.isNotEmpty
+        ? initialSource.characters.first.toUpperCase()
         : 'N';
 
     return buildHistoryRow(
       initial: initial,
+      avatarUrl: payerAvatar,
+      isVirtual: isPayerVirtual,
       title: title.isEmpty ? 'Khoản chi' : title,
       subtitle: subtitleParts.join(' · '),
       amountText: '${formatMoney(amount)}đ',
@@ -1142,6 +1290,8 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
 
   Widget buildHistoryRow({
     required String initial,
+    required String avatarUrl,
+    required bool isVirtual,
     required String title,
     required String subtitle,
     required String amountText,
@@ -1152,17 +1302,10 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            CircleAvatar(
-              radius: 28,
-              backgroundColor: AppColors.primary,
-              child: Text(
-                initial,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
+            buildHistoryAvatar(
+              initial: initial,
+              avatarUrl: avatarUrl,
+              isVirtual: isVirtual,
             ),
             const SizedBox(width: 16),
             Expanded(

@@ -401,7 +401,12 @@ class UserAvatarView(APIView):
             content_type=content_type,
         )
 
-        response['Cache-Control'] = 'public, max-age=86400'
+        if request.GET.get('v'):
+            response['Cache-Control'] = 'public, max-age=31536000, immutable'
+        else:
+            response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response['Pragma'] = 'no-cache'
+            response['Expires'] = '0'
 
         return response
 

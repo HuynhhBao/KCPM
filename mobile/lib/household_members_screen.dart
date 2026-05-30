@@ -45,10 +45,22 @@ class _HouseholdMembersScreenState
 
   int getMemberUserId(dynamic member) {
     try {
-      return member.user as int;
-    } catch (_) {
-      return 0;
-    }
+      final value = member.user;
+
+      if (value is int) return value;
+
+      return int.tryParse(value.toString()) ?? 0;
+    } catch (_) {}
+
+    try {
+      final value = member.userId;
+
+      if (value is int) return value;
+
+      return int.tryParse(value.toString()) ?? 0;
+    } catch (_) {}
+
+    return 0;
   }
 
   String getMemberName(dynamic member) {
@@ -80,11 +92,25 @@ class _HouseholdMembersScreenState
   }
 
   String getMemberAvatar(dynamic member) {
-    try {
-      return member.userAvatar.toString();
-    } catch (_) {
+    final rawAvatar = (() {
+      try {
+        return member.userAvatar?.toString().trim() ?? '';
+      } catch (_) {
+        return '';
+      }
+    })();
+
+    if (rawAvatar.isNotEmpty) {
+      return ApiService.resolveMediaUrl(rawAvatar);
+    }
+
+    final userId = getMemberUserId(member);
+
+    if (userId <= 0 || getMemberIsVirtual(member)) {
       return '';
     }
+
+    return ApiService.userAvatarUrl(userId);
   }
 
   bool getMemberIsVirtual(dynamic member) {
@@ -128,32 +154,46 @@ class _HouseholdMembersScreenState
     final name = getMemberName(member);
     final isVirtual = getMemberIsVirtual(member);
 
-    if (!isVirtual && avatar.isNotEmpty) {
+    Widget fallbackAvatar() {
       return CircleAvatar(
         radius: 24,
-        backgroundImage: NetworkImage(avatar),
+        backgroundColor: isVirtual
+            ? const Color(0xFFE0F2FE)
+            : const Color(0xFF087B63),
+        child: isVirtual
+            ? const Icon(
+                Icons.person_outline_rounded,
+                color: Color(0xFF0284C7),
+                size: 25,
+              )
+            : Text(
+                name.isNotEmpty ? name[0].toUpperCase() : '?',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
+                ),
+              ),
       );
     }
 
-    return CircleAvatar(
-      radius: 24,
-      backgroundColor: isVirtual
-          ? const Color(0xFFE0F2FE)
-          : const Color(0xFF087B63),
-      child: isVirtual
-          ? const Icon(
-              Icons.person_outline_rounded,
-              color: Color(0xFF0284C7),
-              size: 25,
-            )
-          : Text(
-              name.isNotEmpty ? name[0].toUpperCase() : '?',
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-                fontSize: 18,
-              ),
-            ),
+    if (isVirtual || avatar.isEmpty) {
+      return fallbackAvatar();
+    }
+
+    return ClipOval(
+      child: SizedBox(
+        width: 48,
+        height: 48,
+        child: Image.network(
+          avatar,
+          key: ValueKey(avatar),
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) {
+            return fallbackAvatar();
+          },
+        ),
+      ),
     );
   }
 
