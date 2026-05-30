@@ -1035,6 +1035,41 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     return ApiService.userAvatarUrl(userId);
   }
 
+  String resolveAvatarForExpensePayer(Expense expense) {
+    final rawPayerAvatar = expense.payerAvatar.trim();
+
+    if (rawPayerAvatar.isNotEmpty) {
+      return ApiService.resolveMediaUrl(rawPayerAvatar);
+    }
+
+    final payerId = expense.payerId;
+    final payerEmail = expense.payerEmail.trim().toLowerCase();
+
+    for (final member in household.members) {
+      final memberUserId = getMemberUserId(member);
+      final memberEmail = getMemberEmail(member)
+          .trim()
+          .toLowerCase();
+
+      final matchedById =
+          payerId > 0 && memberUserId == payerId;
+
+      final matchedByEmail =
+          payerEmail.isNotEmpty && memberEmail == payerEmail;
+
+      if (matchedById || matchedByEmail) {
+        return resolveAvatarForMember(member);
+      }
+    }
+
+    if (payerId > 0 &&
+        !payerEmail.endsWith('@virtual.chungvi.local')) {
+      return ApiService.userAvatarUrl(payerId);
+    }
+
+    return '';
+  }
+
   Widget buildAvatar({
     required String imageUrl,
     required String name,
@@ -3296,7 +3331,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 buildAvatar(
-                  imageUrl: expense.payerAvatar,
+                  imageUrl: resolveAvatarForExpensePayer(expense),
                   name: payerName,
                   radius: 23,
                 ),
