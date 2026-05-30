@@ -237,6 +237,19 @@ class ChangePasswordSerializer(serializers.Serializer):
         write_only=True
     )
 
+    def validate_new_password(self, value):
+        if not re.search(r'[A-Z]', value):
+            raise serializers.ValidationError(
+                'Mật khẩu phải chứa ít nhất 1 chữ hoa'
+            )
+
+        if not re.search(r'[0-9]', value):
+            raise serializers.ValidationError(
+                'Mật khẩu phải chứa ít nhất 1 chữ số'
+            )
+
+        return value
+
     def validate(self, attrs):
         if attrs['new_password'] != attrs['confirm_password']:
             raise serializers.ValidationError(
@@ -269,6 +282,19 @@ class ResetPasswordSerializer(serializers.Serializer):
     confirm_password = serializers.CharField(
         write_only=True
     )
+
+    def validate_new_password(self, value):
+        if not re.search(r'[A-Z]', value):
+            raise serializers.ValidationError(
+                'Mật khẩu phải chứa ít nhất 1 chữ hoa'
+            )
+
+        if not re.search(r'[0-9]', value):
+            raise serializers.ValidationError(
+                'Mật khẩu phải chứa ít nhất 1 chữ số'
+            )
+
+        return value
 
     def validate(self, attrs):
         if attrs['new_password'] != attrs['confirm_password']:
