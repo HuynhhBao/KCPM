@@ -1,5 +1,8 @@
 from django.contrib.auth import get_user_model
+from django.urls import reverse
+from django.utils import timezone
 from rest_framework import serializers
+import mimetypes
 import re
 
 User = get_user_model()
@@ -67,6 +70,12 @@ class ResendRegisterOTPSerializer(serializers.Serializer):
 
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    avatar = serializers.ImageField(
+        write_only=True,
+        required=False,
+        allow_null=True
+    )
+
     avatar_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -97,6 +106,28 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     def get_avatar_url(self, obj):
         request = self.context.get('request')
+
+        if obj.avatar_data:
+            version = ''
+
+            if obj.avatar_updated_at:
+                version = (
+                    f'?v={int(obj.avatar_updated_at.timestamp())}'
+                )
+
+            path = reverse(
+                'user-avatar',
+                kwargs={
+                    'user_id': obj.id,
+                },
+            )
+
+            url = f'{path}{version}'
+
+            if request:
+                return request.build_absolute_uri(url)
+
+            return url
 
         if obj.avatar and request:
             return request.build_absolute_uri(obj.avatar.url)
@@ -179,7 +210,18 @@ class UserProfileSerializer(serializers.ModelSerializer):
             'image/webp',
         ]
 
-        content_type = getattr(value, 'content_type', '')
+        content_type = getattr(value, 'content_type', '') or ''
+
+        if (
+            not content_type or
+            content_type == 'application/octet-stream'
+        ):
+            guessed_type, _ = mimetypes.guess_type(
+                getattr(value, 'name', '')
+            )
+
+            if guessed_type:
+                content_type = guessed_type
 
         if content_type and content_type not in allowed_types:
             raise serializers.ValidationError(
@@ -187,6 +229,53 @@ class UserProfileSerializer(serializers.ModelSerializer):
             )
 
         return value
+    
+    def update(self, instance, validated_data):
+        avatar_file = validated_data.pop(
+            'avatar',
+            None
+        )
+
+        for attr, value in validated_data.items():
+            setattr(
+                instance,
+                attr,
+                value,
+            )
+
+        if avatar_file:
+            avatar_file.seek(0)
+
+            file_name = (
+                getattr(avatar_file, 'name', '') or
+                'avatar'
+            )
+
+            content_type = (
+                getattr(avatar_file, 'content_type', '') or
+                ''
+            )
+
+            if (
+                not content_type or
+                content_type == 'application/octet-stream'
+            ):
+                guessed_type, _ = mimetypes.guess_type(file_name)
+
+                if guessed_type:
+                    content_type = guessed_type
+
+            instance.avatar_data = avatar_file.read()
+            instance.avatar_content_type = (
+                content_type or
+                'application/octet-stream'
+            )
+            instance.avatar_file_name = file_name
+            instance.avatar_updated_at = timezone.now()
+
+        instance.save()
+
+        return instance
 
     def validate(self, attrs):
         bank_name = attrs.get(

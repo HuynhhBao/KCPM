@@ -29,7 +29,10 @@ class HouseholdMember {
       fullName: json['user_full_name']?.toString() ??
           json['full_name']?.toString() ??
           '',
-      userAvatar: json['user_avatar']?.toString() ?? '',
+      userAvatar: json['user_avatar']?.toString() ??
+          json['avatar_url']?.toString() ??
+          json['avatar']?.toString() ??
+          '',
       role: json['role']?.toString() ?? 'member',
       isVirtual: json['is_virtual'] ?? false,
     );

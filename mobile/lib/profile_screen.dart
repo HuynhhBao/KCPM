@@ -122,15 +122,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         isUploadingAvatar = true;
       });
 
-      final updated = await ApiService.updateAvatar(
+      await ApiService.updateAvatar(
         bytes: bytes,
         fileName: image.name.isNotEmpty ? image.name : 'avatar.jpg',
       );
 
+      final refreshedProfile = await ApiService.getProfile();
+
       if (!mounted) return;
 
       setState(() {
-        profile = updated;
+        profile = refreshedProfile;
       });
 
       showMessage('Đã cập nhật ảnh đại diện');
@@ -737,9 +739,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget buildHeader() {
     final fullName = valueOf('full_name');
     final email = valueOf('email');
-    final avatarUrl = ApiService.resolveMediaUrl(
-      profile['avatar_url']?.toString(),
-    );
+    final rawAvatarUrl = [
+      profile['avatar_url'],
+      profile['avatar'],
+      profile['user_avatar'],
+    ]
+        .map((value) => value?.toString().trim() ?? '')
+        .firstWhere(
+          (value) => value.isNotEmpty,
+          orElse: () => '',
+        );
+
+    final avatarUrl = ApiService.resolveMediaUrl(rawAvatarUrl);
 
     return Container(
       padding: const EdgeInsets.all(28),
@@ -774,8 +785,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: avatarUrl.isNotEmpty
                       ? Image.network(
                           avatarUrl,
+                          key: ValueKey(avatarUrl),
                           fit: BoxFit.cover,
-                          errorBuilder: (_,_, _) {
+                          errorBuilder: (_, _, _) {
                             return const Icon(
                               Icons.person_rounded,
                               size: 52,

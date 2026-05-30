@@ -1018,10 +1018,12 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     required String name,
     double radius = 24,
   }) {
-    if (imageUrl.isNotEmpty) {
+    final avatarUrl = ApiService.resolveMediaUrl(imageUrl);
+
+    if (avatarUrl.isNotEmpty) {
       return CircleAvatar(
         radius: radius,
-        backgroundImage: NetworkImage(imageUrl),
+        backgroundImage: NetworkImage(avatarUrl),
         backgroundColor: Colors.grey.shade200,
       );
     }

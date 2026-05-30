@@ -30,31 +30,50 @@ class ApiService {
     return 'https://chungvi-production.up.railway.app/api';
   }
 
-static String resolveMediaUrl(String? rawUrl) {
-  final value = rawUrl?.trim() ?? '';
+  static String resolveMediaUrl(String? rawUrl) {
+    final value = rawUrl?.trim() ?? '';
 
-  if (value.isEmpty) {
-    return '';
+    if (value.isEmpty) {
+      return '';
+    }
+
+    final apiUri = Uri.parse(baseUrl);
+    final backendOrigin = '${apiUri.scheme}://${apiUri.host}'
+        '${apiUri.hasPort ? ':${apiUri.port}' : ''}';
+
+    if (value.startsWith('http://') ||
+        value.startsWith('https://')) {
+      final uri = Uri.tryParse(value);
+
+      if (uri == null) {
+        return value;
+      }
+
+      final isLocalUrl =
+          uri.host == '127.0.0.1' ||
+          uri.host == 'localhost';
+
+      final isLocalApi =
+          apiUri.host == '127.0.0.1' ||
+          apiUri.host == 'localhost';
+
+      if (isLocalUrl || isLocalApi) {
+        return value;
+      }
+
+      if (value.startsWith('http://')) {
+        return value.replaceFirst('http://', 'https://');
+      }
+
+      return value;
+    }
+
+    if (value.startsWith('/')) {
+      return '$backendOrigin$value';
+    }
+
+    return '$backendOrigin/$value';
   }
-
-  if (value.startsWith('https://')) {
-    return value;
-  }
-
-  if (value.startsWith('http://')) {
-    return value.replaceFirst('http://', 'https://');
-  }
-
-  final apiUri = Uri.parse(baseUrl);
-  final backendOrigin = '${apiUri.scheme}://${apiUri.host}'
-      '${apiUri.hasPort ? ':${apiUri.port}' : ''}';
-
-  if (value.startsWith('/')) {
-    return '$backendOrigin$value';
-  }
-
-  return '$backendOrigin/$value';
-}
 
   static final Dio dio = Dio(
     BaseOptions(
