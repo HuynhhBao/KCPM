@@ -7,6 +7,7 @@ import 'services/api_service.dart';
 import 'widgets/app_empty_state.dart';
 import 'widgets/app_error_state.dart';
 import 'widgets/app_loading_state.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -20,6 +21,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool isLoading = true;
   bool isSaving = false;
   bool isLoggingOut = false;
+  bool isUploadingAvatar = false;
 
   String? errorMessage;
 
@@ -86,6 +88,69 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> refreshProfile() async {
     await loadProfile();
+  }
+
+  Future<void> uploadAvatar() async {
+    if (isUploadingAvatar) return;
+
+    try {
+      final picker = ImagePicker();
+
+      final image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 82,
+      );
+
+      if (image == null) {
+        return;
+      }
+
+      final bytes = await image.readAsBytes();
+
+      const maxSize = 2 * 1024 * 1024;
+
+      if (bytes.length > maxSize) {
+        showMessage('Ảnh đại diện tối đa 2MB');
+        return;
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        isUploadingAvatar = true;
+      });
+
+      await ApiService.updateAvatar(
+        bytes: bytes,
+        fileName: image.name.isNotEmpty ? image.name : 'avatar.jpg',
+      );
+
+      final refreshedProfile = await ApiService.getProfile();
+
+      if (!mounted) return;
+
+      setState(() {
+        profile = refreshedProfile;
+      });
+
+      showMessage('Đã cập nhật ảnh đại diện');
+    } catch (e) {
+      if (!mounted) return;
+
+      final message = e.toString().trim().isNotEmpty
+          ? e.toString()
+          : 'Không thể cập nhật ảnh đại diện';
+
+      showMessage(message);
+    } finally {
+      if (mounted) {
+        setState(() {
+          isUploadingAvatar = false;
+        });
+      }
+    }
   }
 
   Future<void> logout() async {
@@ -309,20 +374,79 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return StatefulBuilder(
           builder: (sheetContext, setSheetState) {
             Future<void> saveProfile() async {
+              if (isSaving) return;
+
+              final fullName = fullNameController.text.trim();
+              final phoneNumber = phoneController.text.trim();
+              final bankName = bankNameController.text.trim();
+              final bankAccountNumber =
+                  bankAccountNumberController.text.trim();
+              final bankAccountHolder =
+                  bankAccountHolderController.text.trim();
+
+              void showSheetMessage(String message) {
+                if (!mounted) return;
+
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
+                    SnackBar(
+                      content: Text(message),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+              }
+
+              if (fullName.isEmpty) {
+                showSheetMessage('Vui lòng nhập họ và tên');
+                return;
+              }
+
+              if (fullName.length < 2) {
+                showSheetMessage('Họ và tên tối thiểu 2 ký tự');
+                return;
+              }
+
+              if (phoneNumber.isNotEmpty &&
+                  !RegExp(r'^\+?[0-9]{9,15}$').hasMatch(phoneNumber)) {
+                showSheetMessage('Số điện thoại không hợp lệ');
+                return;
+              }
+
+              final hasAnyBankInfo = bankName.isNotEmpty ||
+                  bankAccountNumber.isNotEmpty ||
+                  bankAccountHolder.isNotEmpty;
+
+              final hasAllBankInfo = bankName.isNotEmpty &&
+                  bankAccountNumber.isNotEmpty &&
+                  bankAccountHolder.isNotEmpty;
+
+              if (hasAnyBankInfo && !hasAllBankInfo) {
+                showSheetMessage(
+                  'Vui lòng nhập đầy đủ tên ngân hàng, số tài khoản và chủ tài khoản',
+                );
+                return;
+              }
+
+              if (bankAccountNumber.isNotEmpty &&
+                  !RegExp(r'^[0-9]{4,30}$').hasMatch(bankAccountNumber)) {
+                showSheetMessage(
+                  'Số tài khoản chỉ được chứa chữ số, từ 4 đến 30 ký tự',
+                );
+                return;
+              }
+
               setSheetState(() {
                 isSaving = true;
               });
 
               try {
-                final updated =
-                    await ApiService.updateProfile(
-                  fullName: fullNameController.text.trim(),
-                  phoneNumber: phoneController.text.trim(),
-                  bankName: bankNameController.text.trim(),
-                  bankAccountNumber:
-                      bankAccountNumberController.text.trim(),
-                  bankAccountHolder:
-                      bankAccountHolderController.text.trim(),
+                final updated = await ApiService.updateProfile(
+                  fullName: fullName,
+                  phoneNumber: phoneNumber,
+                  bankName: bankName,
+                  bankAccountNumber: bankAccountNumber,
+                  bankAccountHolder: bankAccountHolder,
                 );
 
                 if (!mounted || !sheetContext.mounted) {
@@ -335,11 +459,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 Navigator.pop(sheetContext);
                 showMessage('Đã cập nhật hồ sơ');
-              } catch (_) {
+              } catch (e) {
                 if (!mounted) return;
-                showMessage('Cập nhật thất bại');
+
+                final message = e.toString().trim().isNotEmpty
+                    ? e.toString()
+                    : 'Cập nhật thất bại';
+
+                showMessage(message);
               } finally {
-                if (mounted) {
+                if (sheetContext.mounted) {
                   setSheetState(() {
                     isSaving = false;
                   });
@@ -610,6 +739,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget buildHeader() {
     final fullName = valueOf('full_name');
     final email = valueOf('email');
+    final rawAvatarUrl = [
+      profile['avatar_url'],
+      profile['avatar'],
+      profile['user_avatar'],
+    ]
+        .map((value) => value?.toString().trim() ?? '')
+        .firstWhere(
+          (value) => value.isNotEmpty,
+          orElse: () => '',
+        );
+
+    final avatarUrl = ApiService.resolveMediaUrl(rawAvatarUrl);
 
     return Container(
       padding: const EdgeInsets.all(28),
@@ -626,18 +767,76 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       child: Column(
         children: [
-          Container(
-            width: 92,
-            height: 92,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.person_rounded,
-              size: 52,
-              color: Colors.white,
-            ),
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 96,
+                height: 96,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.18),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.55),
+                    width: 2,
+                  ),
+                ),
+                child: ClipOval(
+                  child: avatarUrl.isNotEmpty
+                      ? Image.network(
+                          avatarUrl,
+                          key: ValueKey(avatarUrl),
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) {
+                            return const Icon(
+                              Icons.person_rounded,
+                              size: 52,
+                              color: Colors.white,
+                            );
+                          },
+                        )
+                      : const Icon(
+                          Icons.person_rounded,
+                          size: 52,
+                          color: Colors.white,
+                        ),
+                ),
+              ),
+              Positioned(
+                right: -2,
+                bottom: -2,
+                child: GestureDetector(
+                  onTap: isUploadingAvatar ? null : uploadAvatar,
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.16),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: isUploadingAvatar
+                        ? const Padding(
+                            padding: EdgeInsets.all(8),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.2,
+                            ),
+                          )
+                        : const Icon(
+                            Icons.camera_alt_rounded,
+                            size: 18,
+                            color: AppColors.primary,
+                          ),
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 20),
           Text(

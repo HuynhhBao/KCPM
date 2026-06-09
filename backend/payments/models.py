@@ -15,7 +15,9 @@ class Payment(BaseModel):
     debt = models.ForeignKey(
         Debt,
         on_delete=models.CASCADE,
-        related_name='payments'
+        related_name='payments',
+        null=True,
+        blank=True
     )
 
     household = models.ForeignKey(
@@ -39,6 +41,17 @@ class Payment(BaseModel):
     amount = models.DecimalField(
         max_digits=12,
         decimal_places=0
+    )
+
+    is_pair_payment = models.BooleanField(
+        default=False
+    )
+
+    remaining_after_confirm = models.DecimalField(
+        max_digits=12,
+        decimal_places=0,
+        null=True,
+        blank=True
     )
 
     status = models.CharField(
@@ -66,9 +79,21 @@ class Payment(BaseModel):
         constraints = [
             models.UniqueConstraint(
                 fields=['debt'],
-                condition=models.Q(status='pending'),
+                condition=(
+                    models.Q(status='pending') &
+                    models.Q(debt__isnull=False)
+                ),
                 name='unique_pending_payment_per_debt'
-            )
+            ),
+            models.UniqueConstraint(
+                fields=[
+                    'household',
+                    'payer',
+                    'receiver',
+                ],
+                condition=models.Q(status='pending'),
+                name='unique_pending_payment_per_pair'
+            ),
         ]
 
     def __str__(self):

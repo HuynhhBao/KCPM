@@ -100,38 +100,89 @@ class Expense {
   factory Expense.fromJson(
     Map<String, dynamic> json,
   ) {
+    String readText(List<dynamic> values) {
+      for (final value in values) {
+        final text = value?.toString().trim() ?? '';
+
+        if (text.isNotEmpty && text != 'null') {
+          return text;
+        }
+      }
+
+      return '';
+    }
+
+    int readIntValue(dynamic value) {
+      if (value == null) return 0;
+
+      if (value is int) return value;
+
+      return int.tryParse(value.toString()) ?? 0;
+    }
+
+    bool readBoolValue(dynamic value) {
+      if (value == null) return false;
+
+      if (value is bool) return value;
+
+      final text = value.toString().trim().toLowerCase();
+
+      return text == 'true' || text == '1';
+    }
+
+    Map<String, dynamic>? payerMap;
+
+    final rawPayer = json['payer'];
+
+    if (rawPayer is Map) {
+      payerMap = Map<String, dynamic>.from(rawPayer);
+    }
+
     return Expense(
       id: json['id']?.toString() ?? '',
 
-      household:
-          json['household']?.toString() ?? '',
+      household: json['household']?.toString() ?? '',
 
-      title:
-          json['title']?.toString() ?? '',
+      title: json['title']?.toString() ?? '',
 
       amount: double.tryParse(
             json['amount']?.toString() ?? '0',
           ) ??
           0,
 
-      payerId: int.tryParse(
-            json['payer_id']?.toString() ??
-                json['payer']?.toString() ??
-                '',
-          ) ??
-          0,
+      payerId: readIntValue(
+        json['payer_id'] ??
+            json['payer_user_id'] ??
+            payerMap?['id'] ??
+            json['payer'],
+      ),
 
-      payerName:
-          json['payer_name']?.toString() ?? '',
+      payerName: readText([
+        json['payer_name'],
+        json['payer_full_name'],
+        json['payer_user_name'],
+        payerMap?['full_name'],
+        payerMap?['name'],
+        payerMap?['username'],
+      ]),
 
-      payerEmail:
-          json['payer_email']?.toString() ?? '',
+      payerEmail: readText([
+        json['payer_email'],
+        json['payer_user_email'],
+        payerMap?['email'],
+      ]),
 
-      payerAvatar:
-          json['payer_avatar']?.toString() ?? '',
+      payerAvatar: readText([
+        json['payer_avatar'],
+        json['payer_avatar_url'],
+        json['payer_user_avatar'],
+        json['payer_user_avatar_url'],
+        payerMap?['avatar_url'],
+        payerMap?['user_avatar'],
+        payerMap?['avatar'],
+      ]),
 
-      splitType:
-          json['split_type']?.toString() ?? 'equal',
+      splitType: json['split_type']?.toString() ?? 'equal',
 
       participants: (json['participants'] as List? ?? [])
           .map(
@@ -141,20 +192,15 @@ class Expense {
           )
           .toList(),
 
-      expenseDate:
-          json['expense_date']?.toString() ?? '',
+      expenseDate: json['expense_date']?.toString() ?? '',
 
-      note:
-          json['note']?.toString() ?? '',
+      note: json['note']?.toString() ?? '',
 
-      canManage:
-          json['can_manage'] == true,
+      canManage: readBoolValue(json['can_manage']),
 
-      createdAt:
-          json['created_at']?.toString() ?? '',
+      createdAt: json['created_at']?.toString() ?? '',
 
-      updatedAt:
-          json['updated_at']?.toString() ?? '',
+      updatedAt: json['updated_at']?.toString() ?? '',
     );
   }
 

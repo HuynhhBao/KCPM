@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from payments.models import Payment
+from decimal import Decimal
 
 
 VIRTUAL_MEMBER_EMAIL_DOMAIN = '@virtual.chungvi.local'
@@ -25,10 +26,67 @@ class PaymentActionSerializer(serializers.Serializer):
         max_length=500
     )
 
+class PairPaymentCreateSerializer(serializers.Serializer):
+    receiver_id = serializers.IntegerField()
+
+    amount = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=0
+    )
+
+    note = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=500
+    )
+
+    def validate_amount(self, value):
+        if value <= Decimal('0'):
+            raise serializers.ValidationError(
+                'Số tiền thanh toán phải lớn hơn 0.'
+            )
+
+        return value
+
+class VirtualReceiptCreateSerializer(serializers.Serializer):
+    virtual_user_id = serializers.IntegerField()
+
+    amount = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=0
+    )
+
+    note = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=500
+    )
+
+    def validate_amount(self, value):
+        if value <= Decimal('0'):
+            raise serializers.ValidationError(
+                'Số tiền nhận phải lớn hơn 0.'
+            )
+
+        return value
 
 class PaymentSerializer(serializers.ModelSerializer):
-    debt_id = serializers.UUIDField(
-        source='debt.id',
+    debt_id = serializers.SerializerMethodField()
+    expense_id = serializers.SerializerMethodField()
+    expense_title = serializers.SerializerMethodField()
+
+    receiver_bank_name = serializers.CharField(
+        source='receiver.bank_name',
+        read_only=True
+    )
+
+    receiver_bank_account_number = serializers.CharField(
+        source='receiver.bank_account_number',
+        read_only=True
+    )
+
+    receiver_bank_account_holder = serializers.CharField(
+        source='receiver.bank_account_holder',
         read_only=True
     )
 
@@ -39,16 +97,6 @@ class PaymentSerializer(serializers.ModelSerializer):
 
     household_name = serializers.CharField(
         source='household.name',
-        read_only=True
-    )
-
-    expense_id = serializers.UUIDField(
-        source='debt.expense.id',
-        read_only=True
-    )
-
-    expense_title = serializers.CharField(
-        source='debt.expense.title',
         read_only=True
     )
 
@@ -105,6 +153,11 @@ class PaymentSerializer(serializers.ModelSerializer):
             'rejected_at',
             'created_at',
             'updated_at',
+            'is_pair_payment',
+            'remaining_after_confirm',
+            'receiver_bank_name',
+            'receiver_bank_account_number',
+            'receiver_bank_account_holder',
         ]
 
     def get_payer_name(self, obj):
@@ -112,3 +165,23 @@ class PaymentSerializer(serializers.ModelSerializer):
 
     def get_receiver_name(self, obj):
         return get_user_display_name(obj.receiver)
+    
+    def get_debt_id(self, obj):
+        if obj.debt_id:
+            return str(obj.debt_id)
+
+        return None
+
+
+    def get_expense_id(self, obj):
+        if obj.debt and obj.debt.expense_id:
+            return str(obj.debt.expense_id)
+
+        return None
+
+
+    def get_expense_title(self, obj):
+        if obj.debt and obj.debt.expense:
+            return obj.debt.expense.title
+
+        return ''

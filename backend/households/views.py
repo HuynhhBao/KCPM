@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.db import transaction
 from django.db.models import Q
+from accounts.avatar_utils import build_user_avatar_url
 
 from rest_framework import generics
 from rest_framework.pagination import PageNumberPagination
@@ -17,6 +18,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from expenses.models import Debt
+from payments.models import Payment
+from payments.serializers import PaymentSerializer
 
 from households.models import (
     Activity,
@@ -64,13 +67,23 @@ def money_to_int(amount):
 
     return int(amount)
 
+def debt_remaining_to_int(debt):
+    paid_amount = getattr(debt, 'paid_amount', 0) or 0
+    remaining = debt.amount - paid_amount
+
+    if remaining <= 0:
+        return 0
+
+    return int(remaining)
+
 
 def serialize_debt_user(user, request=None):
     avatar_url = ''
 
-    if getattr(user, 'avatar', None) and request:
-        avatar_url = request.build_absolute_uri(
-            user.avatar.url
+    if not is_virtual_user(user):
+        avatar_url = build_user_avatar_url(
+            user,
+            request,
         )
 
     return {
@@ -80,6 +93,123 @@ def serialize_debt_user(user, request=None):
         'other_avatar': avatar_url,
         'is_virtual': is_virtual_user(user),
     }
+
+def serialize_debt_payer(user, request=None):
+    if not user:
+        return {
+            'payer_id': None,
+            'payer_name': 'Không rõ người chi',
+            'payer_email': '',
+            'payer_avatar': '',
+            'payer_is_virtual': False,
+        }
+
+    avatar_url = ''
+
+    if not is_virtual_user(user):
+        avatar_url = build_user_avatar_url(
+            user,
+            request,
+        )
+
+    return {
+        'payer_id': user.id,
+        'payer_name': get_user_display_name(user),
+        'payer_email': user.email,
+        'payer_avatar': avatar_url,
+        'payer_is_virtual': is_virtual_user(user),
+    }
+
+def serialize_bank_info(user):
+    return {
+        'bank_name': getattr(user, 'bank_name', '') or '',
+        'bank_account_number': getattr(
+            user,
+            'bank_account_number',
+            '',
+        ) or '',
+        'bank_account_holder': getattr(
+            user,
+            'bank_account_holder',
+            '',
+        ) or '',
+    }
+
+
+def get_pending_pair_payment(
+    *,
+    household,
+    payer,
+    receiver,
+):
+    return Payment.objects.filter(
+        household=household,
+        payer=payer,
+        receiver=receiver,
+        status=Payment.Status.PENDING,
+    ).select_related(
+        'household',
+        'payer',
+        'receiver',
+        'debt',
+        'debt__expense',
+    ).order_by(
+        '-created_at',
+    ).first()
+
+
+def get_pair_payment_timeline(
+    *,
+    household,
+    user_a,
+    user_b,
+    request,
+):
+    payments = Payment.objects.filter(
+        household=household,
+    ).filter(
+        Q(payer=user_a, receiver=user_b) |
+        Q(payer=user_b, receiver=user_a)
+    ).select_related(
+        'household',
+        'payer',
+        'receiver',
+        'debt',
+        'debt__expense',
+    ).order_by(
+        '-created_at',
+    )[:20]
+
+    timeline = []
+
+    for payment in payments:
+        timeline.append(
+            {
+                'type': f'payment_{payment.status}',
+                'payment_id': str(payment.id),
+                'payer_id': payment.payer_id,
+                'payer_name': get_user_display_name(payment.payer),
+                'receiver_id': payment.receiver_id,
+                'receiver_name': get_user_display_name(payment.receiver),
+                'amount': money_to_int(payment.amount),
+                'status': payment.status,
+                'is_pair_payment': payment.is_pair_payment,
+                'remaining_after_confirm': money_to_int(
+                    payment.remaining_after_confirm
+                ),
+                'created_at': payment.created_at.isoformat()
+                if payment.created_at
+                else '',
+                'confirmed_at': payment.confirmed_at.isoformat()
+                if payment.confirmed_at
+                else '',
+                'rejected_at': payment.rejected_at.isoformat()
+                if payment.rejected_at
+                else '',
+            }
+        )
+
+    return timeline
 
 def get_owner_household_or_response(request, household_id):
     household = Household.objects.filter(
@@ -108,6 +238,45 @@ def get_owner_household_or_response(request, household_id):
             {
                 'detail':
                 'Chỉ chủ nhóm mới được xem công nợ của thành viên ảo.'
+            },
+            status=status.HTTP_403_FORBIDDEN,
+        )
+
+    return household, None
+
+def get_virtual_pair_household_or_response(
+    request,
+    household_id,
+    other_user_id,
+):
+    household = Household.objects.filter(
+        id=household_id,
+        is_active=True,
+        members__user=request.user,
+    ).distinct().first()
+
+    if not household:
+        return None, Response(
+            {
+                'detail':
+                'Không tìm thấy nhóm hoặc bạn không thuộc nhóm này.'
+            },
+            status=status.HTTP_404_NOT_FOUND,
+        )
+
+    is_owner = HouseholdMember.objects.filter(
+        household=household,
+        user=request.user,
+        role=HouseholdMember.Role.OWNER,
+    ).exists()
+
+    is_involved_user = request.user.id == other_user_id
+
+    if not is_owner and not is_involved_user:
+        return None, Response(
+            {
+                'detail':
+                'Bạn chỉ được xem công nợ thành viên ảo khi là chủ nhóm hoặc là người liên quan trực tiếp.'
             },
             status=status.HTTP_403_FORBIDDEN,
         )
@@ -999,7 +1168,10 @@ class MyDebtSummaryView(APIView):
                     'expense_ids': set(),
                 }
 
-            amount = money_to_int(debt.amount)
+            amount = debt_remaining_to_int(debt)
+
+            if amount <= 0:
+                continue
 
             if direction == 'i_owe':
                 pair_map[other_user.id]['i_owe_amount'] += amount
@@ -1129,7 +1301,10 @@ class MyDebtDetailView(APIView):
         items = []
 
         for debt in debts:
-            amount = money_to_int(debt.amount)
+            amount = debt_remaining_to_int(debt)
+
+            if amount <= 0:
+                continue
 
             if debt.from_user_id == current_user.id:
                 direction = 'i_owe'
@@ -1148,8 +1323,9 @@ class MyDebtDetailView(APIView):
                         if debt.expense.expense_date
                         else ''
                     ),
-                    'payer_name': get_user_display_name(
-                        debt.expense.payer
+                    **serialize_debt_payer(
+                        debt.expense.payer,
+                        request,
                     ),
                     'from_user_name': get_user_display_name(
                         debt.from_user
@@ -1159,6 +1335,10 @@ class MyDebtDetailView(APIView):
                     ),
                     'direction': direction,
                     'amount': amount,
+                    'original_amount': money_to_int(debt.amount),
+                    'paid_amount': money_to_int(
+                        getattr(debt, 'paid_amount', 0)
+                    ),
                 }
             )
 
@@ -1176,6 +1356,46 @@ class MyDebtDetailView(APIView):
             request,
         )
 
+        pending_payment = None
+        receiver_bank_info = None
+        can_pay_now = False
+
+        if net_direction == 'i_owe':
+            pending_payment = get_pending_pair_payment(
+                household=household,
+                payer=current_user,
+                receiver=other_user,
+            )
+
+            receiver_bank_info = serialize_bank_info(
+                other_user
+            )
+
+            can_pay_now = (
+                abs(net_amount) > 0 and
+                pending_payment is None and
+                not is_virtual_user(current_user) and
+                not is_virtual_user(other_user)
+            )
+
+        elif net_direction == 'owed_to_me':
+            pending_payment = get_pending_pair_payment(
+                household=household,
+                payer=other_user,
+                receiver=current_user,
+            )
+
+            receiver_bank_info = serialize_bank_info(
+                current_user
+            )
+
+        payment_timeline = get_pair_payment_timeline(
+            household=household,
+            user_a=current_user,
+            user_b=other_user,
+            request=request,
+        )
+
         return Response(
             {
                 'household_id': str(household.id),
@@ -1189,6 +1409,17 @@ class MyDebtDetailView(APIView):
                 'net_amount': abs(net_amount),
                 'total_i_owe': total_i_owe,
                 'total_owed_to_me': total_owed_to_me,
+                'pending_payment': (
+                    PaymentSerializer(
+                        pending_payment,
+                        context={'request': request},
+                    ).data
+                    if pending_payment
+                    else None
+                ),
+                'receiver_bank_info': receiver_bank_info,
+                'can_pay_now': can_pay_now,
+                'payment_timeline': payment_timeline,
                 'items': items,
             },
             status=status.HTTP_200_OK,
@@ -1253,7 +1484,10 @@ class VirtualMemberDebtSummaryView(APIView):
                     'expense_ids': set(),
                 }
 
-            amount = money_to_int(debt.amount)
+            amount = debt_remaining_to_int(debt)
+
+            if amount <= 0:
+                continue
 
             if direction == 'virtual_owes':
                 pair_map[other_user.id][
@@ -1337,9 +1571,10 @@ class VirtualMemberDebtDetailView(APIView):
         virtual_user_id,
         other_user_id,
     ):
-        household, error_response = get_owner_household_or_response(
+        household, error_response = get_virtual_pair_household_or_response(
             request,
             household_id,
+            other_user_id,
         )
 
         if error_response:
@@ -1396,7 +1631,10 @@ class VirtualMemberDebtDetailView(APIView):
         items = []
 
         for debt in debts:
-            amount = money_to_int(debt.amount)
+            amount = debt_remaining_to_int(debt)
+
+            if amount <= 0:
+                continue
 
             if debt.from_user_id == virtual_user.id:
                 direction = 'virtual_owes'
@@ -1415,8 +1653,9 @@ class VirtualMemberDebtDetailView(APIView):
                         if debt.expense.expense_date
                         else ''
                     ),
-                    'payer_name': get_user_display_name(
-                        debt.expense.payer
+                    **serialize_debt_payer(
+                        debt.expense.payer,
+                        request,
                     ),
                     'from_user_name': get_user_display_name(
                         debt.from_user
@@ -1426,6 +1665,10 @@ class VirtualMemberDebtDetailView(APIView):
                     ),
                     'direction': direction,
                     'amount': amount,
+                    'original_amount': money_to_int(debt.amount),
+                    'paid_amount': money_to_int(
+                        getattr(debt, 'paid_amount', 0)
+                    ),
                 }
             )
 
@@ -1459,7 +1702,13 @@ class VirtualMemberDebtDetailView(APIView):
                 'net_amount': abs(net_amount),
                 'total_virtual_owes': total_virtual_owes,
                 'total_owed_to_virtual': total_owed_to_virtual,
+                'pending_payment': None,
+                'receiver_bank_info': None,
+                'can_pay_now': False,
+                'can_settle_virtual': abs(net_amount) > 0,
+                'payment_timeline': [],
                 'items': items,
+
             },
             status=status.HTTP_200_OK,
         )
@@ -1476,9 +1725,10 @@ class SettleVirtualMemberDebtPairView(APIView):
         virtual_user_id,
         other_user_id,
     ):
-        household, error_response = get_owner_household_or_response(
+        household, error_response = get_virtual_pair_household_or_response(
             request,
             household_id,
+            other_user_id,
         )
 
         if error_response:
@@ -1537,9 +1787,15 @@ class SettleVirtualMemberDebtPairView(APIView):
         settled_total_amount = 0
 
         for debt in debts:
-            settled_total_amount += money_to_int(debt.amount)
-            debt.is_paid = True
-            debt.save(update_fields=['is_paid'])
+            settled_total_amount += debt_remaining_to_int(debt)
+            debt.mark_fully_paid()
+            debt.save(
+                update_fields=[
+                    'paid_amount',
+                    'is_paid',
+                    'updated_at',
+                ]
+            )
 
         return Response(
             {

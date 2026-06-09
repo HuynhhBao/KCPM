@@ -30,6 +30,64 @@ class ApiService {
     return 'https://chungvi-production.up.railway.app/api';
   }
 
+  static String _backendOrigin() {
+    final apiUri = Uri.parse(baseUrl);
+
+    return '${apiUri.scheme}://${apiUri.host}'
+        '${apiUri.hasPort ? ':${apiUri.port}' : ''}';
+  }
+
+  static String resolveMediaUrl(String? rawUrl) {
+    final value = rawUrl?.trim() ?? '';
+
+    if (value.isEmpty) {
+      return '';
+    }
+
+    final apiUri = Uri.parse(baseUrl);
+
+    if (value.startsWith('http://') ||
+        value.startsWith('https://')) {
+      final uri = Uri.tryParse(value);
+
+      if (uri == null) {
+        return value;
+      }
+
+      final isLocalUrl =
+          uri.host == '127.0.0.1' ||
+          uri.host == 'localhost';
+
+      final isLocalApi =
+          apiUri.host == '127.0.0.1' ||
+          apiUri.host == 'localhost';
+
+      if (isLocalUrl || isLocalApi) {
+        return value;
+      }
+
+      if (value.startsWith('http://')) {
+        return value.replaceFirst('http://', 'https://');
+      }
+
+      return value;
+    }
+
+    if (value.startsWith('/')) {
+      return '${_backendOrigin()}$value';
+    }
+
+    return '${_backendOrigin()}/$value';
+  }
+
+  static String userAvatarUrl(int userId) {
+    if (userId <= 0) {
+      return '';
+    }
+
+    return '${_backendOrigin()}/api/auth/users/$userId/avatar/';
+  }
+
   static final Dio dio = Dio(
     BaseOptions(
       baseUrl: baseUrl,
@@ -523,9 +581,14 @@ class ApiService {
   static Future<Map<String, dynamic>> getHouseholdExpenses(
     String householdId, {
     int page = 1,
+    int pageSize = 20,
   }) async {
     final response = await dio.get(
-      '/expenses/household/$householdId/?page=$page',
+      '/expenses/household/$householdId/',
+      queryParameters: {
+        'page': page,
+        'page_size': pageSize,
+      },
     );
 
     return {
@@ -598,7 +661,7 @@ class ApiService {
     required String householdId,
     required String title,
     required double amount,
-    required int payer,
+    required String expenseDate,
     required List<int> participants,
     String note = '',
   }) async {
@@ -609,7 +672,7 @@ class ApiService {
           'household': householdId,
           'title': title,
           'amount': amount.toInt(),
-          'payer': payer,
+          'expense_date': expenseDate,
           'participants': participants
               .map(
                 (userId) => {
@@ -654,7 +717,7 @@ class ApiService {
     required String expenseId,
     required String title,
     required double amount,
-    required int payer,
+    required String expenseDate,
     required List<int> participants,
     String note = '',
   }) async {
@@ -664,7 +727,7 @@ class ApiService {
         data: {
           'title': title,
           'amount': amount.toInt(),
-          'payer': payer,
+          'expense_date': expenseDate,
           'participants': participants
               .map(
                 (userId) => {
@@ -757,18 +820,52 @@ class ApiService {
     required String bankAccountNumber,
     required String bankAccountHolder,
   }) async {
-    final response = await dio.patch(
-      '/auth/profile/',
-      data: {
-        'full_name': fullName,
-        'phone_number': phoneNumber,
-        'bank_name': bankName,
-        'bank_account_number': bankAccountNumber,
-        'bank_account_holder': bankAccountHolder,
-      },
-    );
+    try {
+      final response = await dio.patch(
+        '/auth/profile/',
+        data: {
+          'full_name': fullName,
+          'phone_number': phoneNumber,
+          'bank_name': bankName,
+          'bank_account_number': bankAccountNumber,
+          'bank_account_holder': bankAccountHolder,
+        },
+      );
 
-    return Map<String, dynamic>.from(response.data);
+      return Map<String, dynamic>.from(response.data);
+    } on DioException catch (e) {
+      throw parseDioException(e);
+    } catch (_) {
+      throw 'Không thể cập nhật hồ sơ';
+    }
+  }
+
+  static Future<Map<String, dynamic>> updateAvatar({
+    required List<int> bytes,
+    required String fileName,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'avatar': MultipartFile.fromBytes(
+          bytes,
+          filename: fileName,
+        ),
+      });
+
+      final response = await dio.patch(
+        '/auth/profile/',
+        data: formData,
+        options: Options(
+          contentType: 'multipart/form-data',
+        ),
+      );
+
+      return Map<String, dynamic>.from(response.data);
+    } on DioException catch (e) {
+      throw parseDioException(e);
+    } catch (_) {
+      throw 'Không thể cập nhật ảnh đại diện';
+    }
   }
 
   static Future<void> loginWithGoogle() async {
@@ -830,6 +927,29 @@ class ApiService {
     );
   }
 
+  static Future<Map<String, dynamic>> createPairPayment({
+    required String householdId,
+    required int receiverId,
+    required int amount,
+    String note = '',
+  }) async {
+    try {
+      final response = await dio.post(
+        '/payments/households/$householdId/pair-payments/',
+        data: {
+          'receiver_id': receiverId,
+          'amount': amount,
+          'note': note,
+        },
+      );
+
+      return Map<String, dynamic>.from(response.data);
+    } on DioException catch (e) {
+      throw parseDioException(e);
+    } catch (_) {
+      throw 'Không thể gửi yêu cầu thanh toán';
+    }
+  }
 
   static Future<Map<String, dynamic>> markDebtPaid(
     String debtId, {
@@ -1177,6 +1297,30 @@ class ApiService {
       throw parseDioException(e);
     } catch (_) {
       throw 'Không thể đánh dấu xử lý công nợ';
+    }
+  }
+
+  static Future<Map<String, dynamic>> recordVirtualReceipt({
+    required String householdId,
+    required int virtualUserId,
+    required int amount,
+    String note = '',
+  }) async {
+    try {
+      final response = await dio.post(
+        '/payments/households/$householdId/virtual-receipts/',
+        data: {
+          'virtual_user_id': virtualUserId,
+          'amount': amount,
+          'note': note,
+        },
+      );
+
+      return Map<String, dynamic>.from(response.data);
+    } on DioException catch (e) {
+      throw parseDioException(e);
+    } catch (_) {
+      throw 'Không thể ghi nhận tiền đã nhận';
     }
   }
 }

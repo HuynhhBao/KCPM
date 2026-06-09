@@ -26,7 +26,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   final amountController = TextEditingController();
   final noteController = TextEditingController();
 
-  dynamic selectedPayer;
+  DateTime selectedExpenseDate = DateTime.now();
   final List<dynamic> selectedParticipants = [];
 
   bool isLoading = false;
@@ -44,9 +44,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       );
       noteController.text = widget.expense!.note;
 
-      selectedPayer = findMemberByUserId(
-        widget.expense!.payerId,
+      final parsedExpenseDate = DateTime.tryParse(
+        widget.expense!.expenseDate,
       );
+
+      if (parsedExpenseDate != null) {
+        selectedExpenseDate = parsedExpenseDate;
+      }
 
       final participantUserIds = widget.expense!.participants
           .map((participant) => participant.userId)
@@ -60,11 +64,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           ),
         ),
       );
-    }
-
-    if (selectedPayer == null &&
-        widget.household.members.isNotEmpty) {
-      selectedPayer = widget.household.members.first;
     }
 
     if (selectedParticipants.isEmpty &&
@@ -94,6 +93,45 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           RegExp(r'\B(?=(\d{3})+(?!\d))'),
           (match) => '.',
         );
+  }
+
+  String formatApiDate(DateTime date) {
+    final year = date.year.toString().padLeft(4, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+
+    return '$year-$month-$day';
+  }
+
+  String formatDisplayDate(DateTime date) {
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+
+    return '$day/$month/${date.year}';
+  }
+
+  Future<void> pickExpenseDate() async {
+    if (isLoading) return;
+
+    final now = DateTime.now();
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: selectedExpenseDate.isAfter(now)
+          ? now
+          : selectedExpenseDate,
+      firstDate: DateTime(2000),
+      lastDate: now,
+      helpText: 'Chọn ngày chi',
+      cancelText: 'Hủy',
+      confirmText: 'Chọn',
+    );
+
+    if (picked == null || !mounted) return;
+
+    setState(() {
+      selectedExpenseDate = picked;
+    });
   }
 
   dynamic findMemberByUserId(int userId) {
@@ -176,6 +214,98 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     return 0;
   }
 
+  String getMemberAvatar(dynamic member) {
+    String rawAvatar = '';
+
+    try {
+      rawAvatar = member.userAvatar?.toString().trim() ?? '';
+    } catch (_) {}
+
+    if (rawAvatar.isEmpty) {
+      try {
+        rawAvatar = member.avatarUrl?.toString().trim() ?? '';
+      } catch (_) {}
+    }
+
+    if (rawAvatar.isEmpty) {
+      try {
+        rawAvatar = member.avatar_url?.toString().trim() ?? '';
+      } catch (_) {}
+    }
+
+    if (rawAvatar.isEmpty) {
+      try {
+        rawAvatar = member.avatar?.toString().trim() ?? '';
+      } catch (_) {}
+    }
+
+    if (rawAvatar.isNotEmpty) {
+      return ApiService.resolveMediaUrl(rawAvatar);
+    }
+
+    final userId = getMemberId(member);
+
+    if (userId <= 0 || getMemberIsVirtual(member)) {
+      return '';
+    }
+
+    return ApiService.userAvatarUrl(userId);
+  }
+
+  Widget buildMemberAvatar({
+    required String name,
+    required String avatarUrl,
+    required bool isVirtual,
+    required bool isSelected,
+  }) {
+    final firstLetter = name.trim().isNotEmpty
+        ? name.trim()[0].toUpperCase()
+        : '?';
+
+    Widget fallbackAvatar() {
+      return CircleAvatar(
+        radius: 20,
+        backgroundColor: isVirtual
+            ? const Color(0xFFE0F2FE)
+            : isSelected
+                ? AppColors.primary
+                : AppColors.primary.withValues(alpha: 0.12),
+        child: isVirtual
+            ? const Icon(
+                Icons.person_outline_rounded,
+                color: Color(0xFF0284C7),
+                size: 21,
+              )
+            : Text(
+                firstLetter,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : AppColors.primary,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+      );
+    }
+
+    if (isVirtual || avatarUrl.trim().isEmpty) {
+      return fallbackAvatar();
+    }
+
+    return ClipOval(
+      child: SizedBox(
+        width: 40,
+        height: 40,
+        child: Image.network(
+          avatarUrl,
+          key: ValueKey(avatarUrl),
+          fit: BoxFit.cover,
+          errorBuilder: (_, _, _) {
+            return fallbackAvatar();
+          },
+        ),
+      ),
+    );
+  }
+
   double? parseAmount(String value) {
     final cleaned = value
         .replaceAll('.', '')
@@ -219,27 +349,23 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       return;
     }
 
-    if (selectedPayer == null) {
-      showMessage('Chọn người trả');
-      return;
-    }
-
     if (selectedParticipants.isEmpty) {
       showMessage('Chọn người tham gia');
       return;
     }
 
-    final payerId = getMemberId(selectedPayer);
     final participantIds = selectedParticipants
         .map<int>((member) => getMemberId(member))
         .where((id) => id != 0)
         .toSet()
         .toList();
 
-    if (payerId == 0 || participantIds.isEmpty) {
+    if (participantIds.isEmpty) {
       showMessage('Dữ liệu thành viên không hợp lệ');
       return;
     }
+
+    final expenseDate = formatApiDate(selectedExpenseDate);
 
     try {
       setState(() => isLoading = true);
@@ -249,7 +375,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           expenseId: widget.expense!.id,
           title: title,
           amount: amount,
-          payer: payerId,
+          expenseDate: expenseDate,
           participants: participantIds,
           note: noteController.text.trim(),
         );
@@ -258,7 +384,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           householdId: widget.household.id,
           title: title,
           amount: amount,
-          payer: payerId,
+          expenseDate: expenseDate,
           participants: participantIds,
           note: noteController.text.trim(),
         );
@@ -441,6 +567,67 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     );
   }
 
+  Widget buildExpenseDateCard() {
+    return InkWell(
+      onTap: pickExpenseDate,
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(
+                Icons.event_rounded,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Ngày chi',
+                    style: TextStyle(
+                      color: AppColors.textLight,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    formatDisplayDate(selectedExpenseDate),
+                    style: const TextStyle(
+                      color: AppColors.textDark,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: AppColors.textLight,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget buildSplitTypeCard() {
     return Container(
       width: double.infinity,
@@ -474,127 +661,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     );
   }
 
-  Widget buildPayerSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        buildSectionTitle('Người trả'),
-        const SizedBox(height: 14),
-        ...widget.household.members.map(buildPayerTile),
-      ],
-    );
-  }
-
-  Widget buildPayerTile(dynamic member) {
-    final isSelected = selectedPayer == member;
-    final name = getMemberName(member);
-    final email = getMemberEmail(member);
-    final isVirtual = getMemberIsVirtual(member);
-    final firstLetter = name.isNotEmpty ? name[0].toUpperCase() : '?';
-
-    return GestureDetector(
-      onTap: isLoading
-          ? null
-          : () {
-              setState(() {
-                selectedPayer = member;
-              });
-            },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: isSelected ? AppColors.primary : AppColors.border,
-            width: isSelected ? 1.4 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: isSelected
-                  ? AppColors.primary
-                  : AppColors.primary.withValues(alpha: 0.12),
-              child: Text(
-                firstLetter,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : AppColors.primary,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          isVirtual ? name : (email.isNotEmpty ? email : name),
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: AppColors.textDark,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 15,
-                          ),
-                        ),
-                      ),
-                      if (isVirtual) ...[
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.blue.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: const Text(
-                            'Ảo',
-                            style: TextStyle(
-                              color: Colors.blue,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  if (isVirtual)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 3),
-                      child: Text(
-                        'Không dùng app',
-                        style: TextStyle(
-                          color: AppColors.textLight,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Icon(
-              isSelected
-                  ? Icons.check_circle_rounded
-                  : Icons.radio_button_unchecked_rounded,
-              color: isSelected ? AppColors.primary : AppColors.textLight,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget buildParticipantSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -611,7 +677,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
     final name = getMemberName(member);
     final email = getMemberEmail(member);
     final isVirtual = getMemberIsVirtual(member);
-    final firstLetter = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    final avatarUrl = getMemberAvatar(member);
 
     return GestureDetector(
       onTap: isLoading
@@ -639,18 +705,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         ),
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: isSelected
-                  ? AppColors.primary
-                  : AppColors.primary.withValues(alpha: 0.12),
-              child: Text(
-                firstLetter,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : AppColors.primary,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
+            buildMemberAvatar(
+              name: name,
+              avatarUrl: avatarUrl,
+              isVirtual: isVirtual,
+              isSelected: isSelected,
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -775,6 +834,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                             icon: Icons.receipt_long_rounded,
                           ),
                           const SizedBox(height: 16),
+                          buildExpenseDateCard(),
+                          const SizedBox(height: 16),
                           buildInput(
                             controller: noteController,
                             hint: 'Ghi chú',
@@ -783,8 +844,6 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                           ),
                           const SizedBox(height: 20),
                           buildSplitTypeCard(),
-                          const SizedBox(height: 28),
-                          buildPayerSection(),
                           const SizedBox(height: 28),
                           buildParticipantSection(),
                           const SizedBox(height: 24),

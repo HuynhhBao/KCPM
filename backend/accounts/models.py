@@ -23,6 +23,40 @@ class User(AbstractUser):
         null=True
     )
 
+    avatar_url = models.URLField(
+        max_length=1000,
+        blank=True,
+        default=''
+    )
+
+    avatar_storage_path = models.CharField(
+        max_length=500,
+        blank=True,
+        default=''
+    )
+
+    avatar_data = models.BinaryField(
+        blank=True,
+        null=True
+    )
+
+    avatar_content_type = models.CharField(
+        max_length=100,
+        blank=True,
+        default=''
+    )
+
+    avatar_file_name = models.CharField(
+        max_length=255,
+        blank=True,
+        default=''
+    )
+
+    avatar_updated_at = models.DateTimeField(
+        blank=True,
+        null=True
+    )
+
     bank_name = models.CharField(
         max_length=100,
         blank=True,

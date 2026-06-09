@@ -7,6 +7,7 @@ from accounts.views import (
     RegisterView,
     SaveFCMTokenView,
     UserProfileView,
+    UserAvatarView,
     ChangePasswordView,
     ForgotPasswordRequestView,
     ResetPasswordView,
@@ -46,6 +47,12 @@ urlpatterns = [
     path(
         'profile/',
         UserProfileView.as_view(),
+    ),
+
+    path(
+        'users/<int:user_id>/avatar/',
+        UserAvatarView.as_view(),
+        name='user-avatar',
     ),
 
     path(

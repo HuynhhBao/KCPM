@@ -75,11 +75,6 @@ urlpatterns = [
     ),
 
     path(
-        '<uuid:household_id>/my-debts/<int:other_user_id>/',
-        MyDebtDetailView.as_view(),
-    ),
-
-    path(
         '<uuid:household_id>/virtual-members/<int:virtual_user_id>/debts/',
         VirtualMemberDebtSummaryView.as_view(),
     ),

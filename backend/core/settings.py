@@ -174,6 +174,10 @@ CSRF_TRUSTED_ORIGINS = config(
     default='https://*.railway.app,https://*.web.app,https://*.firebaseapp.com'
 ).split(',')
 
+# Railway / reverse proxy HTTPS
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+
 
 # REST FRAMEWORK
 REST_FRAMEWORK = {

@@ -1,10 +1,8 @@
 from decimal import Decimal
-import html
 
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import serializers
-
-from accounts.models import User
 from expenses.models import Debt, Expense, ExpenseParticipant
 from households.models import Activity, HouseholdMember
 
@@ -30,21 +28,8 @@ def get_user_display_name(user):
 def format_money(amount):
     return f'{amount:,.0f}đ'.replace(',', '.')
 
-
-def is_household_owner(user, household):
-    return HouseholdMember.objects.filter(
-        household=household,
-        user=user,
-        role=HouseholdMember.Role.OWNER,
-    ).exists()
-
-
 def is_user_expense_manager(user, expense):
-    return (
-        expense.payer_id == user.id or
-        is_household_owner(user, expense.household)
-    )
-
+    return expense.payer_id == user.id
 
 class ExpenseParticipantInputSerializer(serializers.Serializer):
     user_id = serializers.IntegerField()
@@ -100,31 +85,6 @@ class ExpenseParticipantSerializer(serializers.ModelSerializer):
 
 
 class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
-    title = serializers.CharField(
-        max_length=255,
-        error_messages={
-            'max_length': 'Tên khoản chi không được vượt quá 255 ký tự.',
-        }
-    )
-
-    amount = serializers.DecimalField(
-        max_digits=12,
-        decimal_places=0,
-        error_messages={
-            'max_digits': 'Số tiền quá lớn, hệ thống chỉ hỗ trợ tối đa 12 chữ số.',
-            'max_whole_digits': 'Số tiền vượt mức cho phép.',
-            'invalid': 'Số tiền không hợp lệ.'
-        }
-    )
-
-    payer = serializers.PrimaryKeyRelatedField(
-        queryset=User.objects.all(),
-        required=False,
-        error_messages={
-            'does_not_exist': 'Người trả tiền không tồn tại trong hệ thống.'
-        }
-    )
-
     participants = ExpenseParticipantInputSerializer(
         many=True,
         write_only=True,
@@ -138,7 +98,6 @@ class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
             'household',
             'title',
             'amount',
-            'payer',
             'split_type',
             'note',
             'participants',
@@ -148,7 +107,6 @@ class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             'id',
-            'expense_date',
             'created_at',
             'updated_at',
         ]
@@ -170,12 +128,20 @@ class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
                 'Tên khoản chi không được để trống.'
             )
 
-        return html.escape(value)
+        return value
 
     def validate_amount(self, value):
         if value <= 0:
             raise serializers.ValidationError(
                 'Số tiền phải lớn hơn 0.'
+            )
+
+        return value
+
+    def validate_expense_date(self, value):
+        if value > timezone.localdate():
+            raise serializers.ValidationError(
+                'Ngày chi không được lớn hơn hôm nay.'
             )
 
         return value
@@ -225,17 +191,19 @@ class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
                     'Không thể sửa khoản chi đang chờ xác nhận thanh toán.'
                 )
 
-        payer = attrs.get(
-            'payer',
-            instance.payer if instance else request.user
-        )
+        payer = instance.payer if instance else request.user
+
+        if is_virtual_user(payer):
+            raise serializers.ValidationError(
+                'Thành viên ảo không thể là người thanh toán khoản chi.'
+            )
 
         if not HouseholdMember.objects.filter(
             household=household,
             user=payer
         ).exists():
             raise serializers.ValidationError(
-                'Người trả tiền không thuộc nhóm này.'
+                'Người tạo khoản chi không thuộc nhóm này.'
             )
 
         amount = attrs.get(
@@ -491,15 +459,6 @@ class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
         )
 
         return instance
-        
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        data['participants'] = ExpenseParticipantSerializer(
-            instance.participants.all(),
-            many=True,
-            context=self.context
-        ).data
-        return data
 
 
 class ExpenseListSerializer(serializers.ModelSerializer):
@@ -563,10 +522,7 @@ class ExpenseListSerializer(serializers.ModelSerializer):
         if not request:
             return False
 
-        return is_user_expense_manager(
-            request.user,
-            obj
-        )
+        return obj.payer_id == request.user.id
 
 
 class ExpenseDetailSerializer(ExpenseListSerializer):
@@ -625,6 +581,10 @@ class DebtSerializer(serializers.ModelSerializer):
     pending_payment_status = serializers.SerializerMethodField()
     can_mark_paid = serializers.SerializerMethodField()
     can_confirm_payment = serializers.SerializerMethodField()
+    amount = serializers.SerializerMethodField()
+    original_amount = serializers.SerializerMethodField()
+    paid_amount = serializers.SerializerMethodField()
+    remaining_amount = serializers.SerializerMethodField()
 
     class Meta:
         model = Debt
@@ -654,6 +614,9 @@ class DebtSerializer(serializers.ModelSerializer):
             'pending_payment_status',
             'can_mark_paid',
             'can_confirm_payment',
+            'original_amount',
+            'paid_amount',
+            'remaining_amount',
         ]
 
     def get_from_user_name(self, obj):
@@ -675,8 +638,20 @@ class DebtSerializer(serializers.ModelSerializer):
         )
 
     def get_pending_payment(self, obj):
-        return obj.payments.filter(
+        payment = obj.payments.filter(
             status='pending'
+        ).order_by('-created_at').first()
+
+        if payment:
+            return payment
+
+        from payments.models import Payment
+
+        return Payment.objects.filter(
+            household=obj.household,
+            payer=obj.from_user,
+            receiver=obj.to_user,
+            status='pending',
         ).order_by('-created_at').first()
 
     def get_pending_payment_id(self, obj):
@@ -713,10 +688,7 @@ class DebtSerializer(serializers.ModelSerializer):
             if obj.to_user_id == request.user.id:
                 return True
 
-            return is_household_owner(
-                request.user,
-                obj.household
-            )
+            return False
 
         return obj.from_user_id == request.user.id
 
@@ -753,3 +725,18 @@ class DebtSerializer(serializers.ModelSerializer):
             )
 
         return ''
+    
+    def get_amount(self, obj):
+        return int(obj.remaining_amount)
+
+
+    def get_original_amount(self, obj):
+        return int(obj.amount)
+
+
+    def get_paid_amount(self, obj):
+        return int(obj.paid_amount or 0)
+
+
+    def get_remaining_amount(self, obj):
+        return int(obj.remaining_amount)

@@ -3,6 +3,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError
+from rest_framework.parsers import JSONParser, MultiPartParser, FormParser
 
 from notifications.models import FCMDevice
 
@@ -38,6 +39,7 @@ from rest_framework_simplejwt.serializers import (
 
 import requests as pyrequests
 from django.core.mail import EmailMultiAlternatives
+from django.http import HttpResponse
 
 User = get_user_model()
 
@@ -359,9 +361,54 @@ class CustomTokenObtainPairView(
 class UserProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
     permission_classes = [IsAuthenticated]
+    parser_classes = [
+        JSONParser,
+        MultiPartParser,
+        FormParser,
+    ]
 
     def get_object(self):
         return self.request.user
+    
+class UserAvatarView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request, user_id):
+        user = User.objects.filter(
+            id=user_id
+        ).only(
+            'avatar_data',
+            'avatar_content_type',
+            'avatar_updated_at',
+        ).first()
+
+        if not user or not user.avatar_data:
+            return Response(
+                {
+                    'detail': 'Không tìm thấy ảnh đại diện'
+                },
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        content_type = (
+            user.avatar_content_type or
+            'application/octet-stream'
+        )
+
+        response = HttpResponse(
+            bytes(user.avatar_data),
+            content_type=content_type,
+        )
+
+        if request.GET.get('v'):
+            response['Cache-Control'] = 'public, max-age=31536000, immutable'
+        else:
+            response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+            response['Pragma'] = 'no-cache'
+            response['Expires'] = '0'
+
+        return response
 
 
 class SaveFCMTokenView(APIView):

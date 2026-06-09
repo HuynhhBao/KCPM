@@ -240,6 +240,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget buildSummaryCard() {
     final netBalance = totalReceive - totalOwe;
+    final netAmount = netBalance.abs();
+
+    String netTitle = 'Đã cân bằng';
+    IconData netIcon = Icons.check_circle_rounded;
+
+    if (netBalance > 0) {
+      netTitle = 'Bạn sẽ nhận thêm';
+      netIcon = Icons.arrow_downward_rounded;
+    } else if (netBalance < 0) {
+      netTitle = 'Bạn cần trả thêm';
+      netIcon = Icons.arrow_upward_rounded;
+    }
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -257,17 +269,27 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            'Tổng công nợ',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-            ),
+          Row(
+            children: [
+              Icon(
+                netIcon,
+                color: Colors.white70,
+                size: 18,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                netTitle,
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 10),
           Text(
-            '${formatMoney(netBalance)}đ',
+            '${formatMoney(netAmount)}đ',
             style: const TextStyle(
               color: Colors.white,
               fontSize: 38,
@@ -453,11 +475,11 @@ class _HomeScreenState extends State<HomeScreen> {
     IconData statusIcon = Icons.check_circle_rounded;
 
     if (groupOwe > 0) {
-      statusText = 'Bạn đang nợ ${formatMoney(groupOwe)}đ';
+      statusText = 'Sau tất toán, bạn trả ${formatMoney(groupOwe)}đ';
       statusColor = AppColors.danger;
       statusIcon = Icons.arrow_upward_rounded;
     } else if (groupReceive > 0) {
-      statusText = 'Bạn sẽ nhận ${formatMoney(groupReceive)}đ';
+      statusText = 'Sau tất toán, bạn nhận ${formatMoney(groupReceive)}đ';
       statusColor = AppColors.success;
       statusIcon = Icons.arrow_downward_rounded;
     }

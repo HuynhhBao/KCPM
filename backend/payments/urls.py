@@ -2,16 +2,28 @@ from django.urls import path
 
 from payments.views import (
     ConfirmPaymentView,
+    CreatePairPaymentView,
     MarkDebtPaidView,
     MyPaymentListView,
     PendingPaymentListView,
     RejectPaymentView,
+    RecordVirtualReceiptView,
 )
 
 urlpatterns = [
     path(
         'debts/<uuid:debt_id>/mark-paid/',
         MarkDebtPaidView.as_view(),
+    ),
+
+    path(
+        'households/<uuid:household_id>/pair-payments/',
+        CreatePairPaymentView.as_view(),
+    ),
+
+    path(
+        'households/<uuid:household_id>/virtual-receipts/',
+        RecordVirtualReceiptView.as_view(),
     ),
 
     path(

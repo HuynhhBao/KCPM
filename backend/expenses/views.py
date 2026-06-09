@@ -52,7 +52,7 @@ class ExpenseListView(generics.ListAPIView):
             'payer',
         ).prefetch_related(
             'participants__user',
-        ).order_by('-created_at')
+        ).order_by('-expense_date', '-created_at')
 
 
 class ExpenseDetailView(generics.RetrieveUpdateDestroyAPIView):
