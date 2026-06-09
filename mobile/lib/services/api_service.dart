@@ -931,16 +931,25 @@ class ApiService {
     required String householdId,
     required int receiverId,
     required int amount,
+    String paymentMode = 'custom_amount',
+    List<String> debtIds = const [],
     String note = '',
   }) async {
     try {
+      final data = <String, dynamic>{
+        'receiver_id': receiverId,
+        'payment_mode': paymentMode,
+        'amount': amount,
+        'note': note,
+      };
+
+      if (debtIds.isNotEmpty) {
+        data['debt_ids'] = debtIds;
+      }
+
       final response = await dio.post(
         '/payments/households/$householdId/pair-payments/',
-        data: {
-          'receiver_id': receiverId,
-          'amount': amount,
-          'note': note,
-        },
+        data: data,
       );
 
       return Map<String, dynamic>.from(response.data);

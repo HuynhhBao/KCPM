@@ -201,6 +201,9 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
         householdId: widget.householdId,
         receiverId: widget.otherUserId,
         amount: amount,
+        paymentMode: amount == currentDebt
+            ? 'full'
+            : 'custom_amount',
         note: amount == currentDebt
             ? 'Thanh toán toàn bộ công nợ'
             : 'Thanh toán trước công nợ',
@@ -404,8 +407,8 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     final canPayNow = detail['can_pay_now'] == true;
     final isOtherVirtual =
       detail['is_virtual'] == true || widget.isVirtualMode;
-    final items = readMapList(detail['items']);
-    final timeline = readMapList(detail['payment_timeline']);
+    final unpaidItems = readMapList(detail['unpaid_items']);
+    final paidItems = readMapList(detail['paid_items']);
 
     final isIOwe =
         netDirection == 'i_owe' || netDirection == 'virtual_owes';
@@ -462,7 +465,10 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
                             isOtherVirtual: isOtherVirtual,
                           ),
                           const SizedBox(height: 14),
-                          buildTimelineCard(timeline, items),
+                          buildDebtSectionsCard(
+                            unpaidItems: unpaidItems,
+                            paidItems: paidItems,
+                          ),
                         ],
                       ),
                     ),
@@ -548,10 +554,10 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     final titleName = name.isEmpty ? 'thành viên này' : name;
 
     final headline = widget.isVirtualMode
-        ? 'Công nợ với $titleName'
-        : isIOwe
-            ? 'Bạn đang nợ $titleName'
-            : '$titleName đang nợ bạn';
+      ? 'Công nợ với $titleName'
+      : isIOwe
+          ? 'Bạn còn nợ $titleName'
+          : '$titleName còn nợ bạn';
 
     final amountLabel = widget.isVirtualMode
         ? 'Số tiền cần xử lý'
@@ -1107,6 +1113,198 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
         ],
       ),
     );
+  }
+
+  Widget buildDebtSectionsCard({
+    required List<Map<String, dynamic>> unpaidItems,
+    required List<Map<String, dynamic>> paidItems,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          buildDebtSection(
+            title: 'Chưa thanh toán',
+            emptyText: 'Không còn khoản chưa thanh toán.',
+            items: unpaidItems,
+            isPaidSection: false,
+          ),
+          const SizedBox(height: 24),
+          buildDebtSection(
+            title: 'Đã thanh toán',
+            emptyText: 'Chưa có khoản nào đã thanh toán ở chiều công nợ này.',
+            items: paidItems,
+            isPaidSection: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget buildDebtSection({
+    required String title,
+    required String emptyText,
+    required List<Map<String, dynamic>> items,
+    required bool isPaidSection,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+                color: AppColors.textDark,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 9,
+                vertical: 4,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                items.length.toString(),
+                style: const TextStyle(
+                  color: AppColors.textLight,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        if (items.isEmpty)
+          Text(
+            emptyText,
+            style: const TextStyle(
+              color: AppColors.textLight,
+              fontWeight: FontWeight.w600,
+            ),
+          )
+        else
+          ...items.asMap().entries.map((entry) {
+            final index = entry.key;
+            final item = entry.value;
+            final isLast = index == items.length - 1;
+
+            return buildDebtItemRow(
+              item,
+              isLast: isLast,
+              isPaidSection: isPaidSection,
+            );
+          }),
+      ],
+    );
+  }
+
+  Widget buildDebtItemRow(
+    Map<String, dynamic> item, {
+    required bool isLast,
+    required bool isPaidSection,
+  }) {
+    final title = readText(item['expense_title']);
+    final payerName = readText(item['payer_name']);
+    final payerAvatar = readText(item['payer_avatar']);
+    final isPayerVirtual = item['payer_is_virtual'] == true;
+
+    final originalAmount = readInt(item['original_amount']);
+    final paidAmount = readInt(item['paid_amount']);
+    final pendingAmount = readInt(item['pending_amount']);
+    final remainingAmount = readInt(item['remaining_amount']);
+    final status = readText(item['status']);
+    final paidAt = readText(item['paid_at']);
+    final expenseDate = readText(item['expense_date']);
+
+    final displayDate = isPaidSection
+        ? formatDate(paidAt.isNotEmpty ? paidAt : item['updated_at'])
+        : formatDate(expenseDate);
+
+    final subtitle = buildDebtItemSubtitle(
+      originalAmount: originalAmount,
+      paidAmount: paidAmount,
+      pendingAmount: pendingAmount,
+      remainingAmount: remainingAmount,
+      status: status,
+      date: displayDate,
+      isPaidSection: isPaidSection,
+    );
+
+    final initialSource = payerName.isNotEmpty ? payerName : title;
+
+    final initial = initialSource.isNotEmpty
+        ? initialSource.characters.first.toUpperCase()
+        : 'N';
+
+    final amountText = isPaidSection
+        ? '${formatMoney(originalAmount)}đ'
+        : '${formatMoney(remainingAmount)}đ';
+
+    return buildHistoryRow(
+      initial: initial,
+      avatarUrl: payerAvatar,
+      isVirtual: isPayerVirtual,
+      title: title.isEmpty ? 'Khoản chi' : title,
+      subtitle: subtitle,
+      amountText: amountText,
+      isLast: isLast,
+    );
+  }
+
+  String buildDebtItemSubtitle({
+    required int originalAmount,
+    required int paidAmount,
+    required int pendingAmount,
+    required int remainingAmount,
+    required String status,
+    required String date,
+    required bool isPaidSection,
+  }) {
+    if (isPaidSection) {
+      final parts = <String>[
+        'Tổng nợ: ${formatMoney(originalAmount)}đ',
+        'Đã thanh toán đủ',
+        if (date.isNotEmpty) date,
+      ];
+
+      return parts.join(' · ');
+    }
+
+    final parts = <String>[
+      'Tổng nợ: ${formatMoney(originalAmount)}đ',
+    ];
+
+    if (paidAmount > 0) {
+      parts.add('Đã trả trước: ${formatMoney(paidAmount)}đ');
+    }
+
+    if (pendingAmount > 0) {
+      parts.add('Đang chờ xác nhận: ${formatMoney(pendingAmount)}đ');
+    }
+
+    if (remainingAmount > 0 && status != 'pending') {
+      parts.add('Còn lại: ${formatMoney(remainingAmount)}đ');
+    }
+
+    if (date.isNotEmpty) {
+      parts.add(date);
+    }
+
+    return parts.join(' · ');
   }
 
   Widget buildTimelineCard(
