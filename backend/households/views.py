@@ -76,6 +76,116 @@ def debt_remaining_to_int(debt):
 
     return int(remaining)
 
+def debt_pending_amount_to_int(debt):
+    total = 0
+
+    for payment in debt.payments.all():
+        if payment.status == Payment.Status.PENDING:
+            total += money_to_int(payment.amount)
+
+    if hasattr(debt, 'payment_allocations'):
+        for allocation in debt.payment_allocations.all():
+            payment = getattr(allocation, 'payment', None)
+
+            if payment and payment.status == Payment.Status.PENDING:
+                total += money_to_int(allocation.allocated_amount)
+
+    return total
+
+
+def get_debt_item_status(debt, pending_amount):
+    remaining_amount = debt_remaining_to_int(debt)
+    paid_amount = money_to_int(getattr(debt, 'paid_amount', 0))
+
+    if debt.is_paid or remaining_amount <= 0:
+        return 'paid'
+
+    if pending_amount > 0 and paid_amount > 0:
+        return 'partial_paid_pending'
+
+    if pending_amount > 0:
+        return 'pending'
+
+    if paid_amount > 0:
+        return 'partial_paid'
+
+    return 'unpaid'
+
+
+def serialize_debt_detail_item(
+    *,
+    debt,
+    direction,
+    request,
+):
+    pending_amount = debt_pending_amount_to_int(debt)
+    remaining_amount = debt_remaining_to_int(debt)
+    paid_amount = money_to_int(getattr(debt, 'paid_amount', 0))
+    original_amount = money_to_int(debt.amount)
+
+    status_value = get_debt_item_status(
+        debt,
+        pending_amount,
+    )
+
+    payable_amount = remaining_amount - pending_amount
+
+    if payable_amount < 0:
+        payable_amount = 0
+
+    return {
+        'debt_id': str(debt.id),
+        'expense_id': str(debt.expense_id),
+        'expense_title': debt.expense.title,
+        'expense_date': (
+            debt.expense.expense_date.isoformat()
+            if debt.expense.expense_date
+            else ''
+        ),
+        **serialize_debt_payer(
+            debt.expense.payer,
+            request,
+        ),
+        'from_user_id': debt.from_user_id,
+        'from_user_name': get_user_display_name(
+            debt.from_user
+        ),
+        'to_user_id': debt.to_user_id,
+        'to_user_name': get_user_display_name(
+            debt.to_user
+        ),
+        'direction': direction,
+
+        # Giữ tương thích với frontend cũ:
+        'amount': remaining_amount,
+
+        # Field mới cho màn Chưa thanh toán / Đã thanh toán:
+        'original_amount': original_amount,
+        'paid_amount': paid_amount,
+        'pending_amount': pending_amount,
+        'remaining_amount': remaining_amount,
+        'payable_amount': payable_amount,
+        'remaining_after_pending': payable_amount,
+        'status': status_value,
+
+        'is_paid': debt.is_paid,
+        'created_at': (
+            debt.created_at.isoformat()
+            if debt.created_at
+            else ''
+        ),
+        'updated_at': (
+            debt.updated_at.isoformat()
+            if debt.updated_at
+            else ''
+        ),
+        'paid_at': (
+            debt.updated_at.isoformat()
+            if debt.is_paid and debt.updated_at
+            else ''
+        ),
+    }
+
 
 def serialize_debt_user(user, request=None):
     avatar_url = ''
@@ -153,6 +263,10 @@ def get_pending_pair_payment(
         'receiver',
         'debt',
         'debt__expense',
+    ).prefetch_related(
+        'allocations',
+        'allocations__debt',
+        'allocations__debt__expense',
     ).order_by(
         '-created_at',
     ).first()
@@ -1277,7 +1391,6 @@ class MyDebtDetailView(APIView):
 
         debts = Debt.objects.filter(
             household=household,
-            is_paid=False,
         ).filter(
             Q(
                 from_user=current_user,
@@ -1292,55 +1405,49 @@ class MyDebtDetailView(APIView):
             'to_user',
             'expense',
             'expense__payer',
+        ).prefetch_related(
+            'payments',
+            'payment_allocations',
+            'payment_allocations__payment',
         ).order_by(
-            '-created_at',
+            'expense__expense_date',
+            'created_at',
         )
 
         total_i_owe = 0
         total_owed_to_me = 0
-        items = []
+
+        unpaid_items = []
+        paid_items = []
 
         for debt in debts:
-            amount = debt_remaining_to_int(debt)
-
-            if amount <= 0:
-                continue
-
             if debt.from_user_id == current_user.id:
                 direction = 'i_owe'
-                total_i_owe += amount
             else:
                 direction = 'owed_to_me'
-                total_owed_to_me += amount
 
-            items.append(
-                {
-                    'debt_id': str(debt.id),
-                    'expense_id': str(debt.expense_id),
-                    'expense_title': debt.expense.title,
-                    'expense_date': (
-                        debt.expense.expense_date.isoformat()
-                        if debt.expense.expense_date
-                        else ''
-                    ),
-                    **serialize_debt_payer(
-                        debt.expense.payer,
-                        request,
-                    ),
-                    'from_user_name': get_user_display_name(
-                        debt.from_user
-                    ),
-                    'to_user_name': get_user_display_name(
-                        debt.to_user
-                    ),
-                    'direction': direction,
-                    'amount': amount,
-                    'original_amount': money_to_int(debt.amount),
-                    'paid_amount': money_to_int(
-                        getattr(debt, 'paid_amount', 0)
-                    ),
-                }
+            item = serialize_debt_detail_item(
+                debt=debt,
+                direction=direction,
+                request=request,
             )
+
+            remaining_amount = item['remaining_amount']
+
+            if item['status'] == 'paid':
+                paid_items.append(item)
+                continue
+
+            if remaining_amount <= 0:
+                paid_items.append(item)
+                continue
+
+            if direction == 'i_owe':
+                total_i_owe += remaining_amount
+            else:
+                total_owed_to_me += remaining_amount
+
+            unpaid_items.append(item)
 
         net_amount = total_i_owe - total_owed_to_me
 
@@ -1356,9 +1463,19 @@ class MyDebtDetailView(APIView):
             request,
         )
 
+        other_name = other_user_data['other_name']
+
+        if net_direction == 'i_owe':
+            summary_display_text = f'Bạn còn nợ {other_name}'
+        elif net_direction == 'owed_to_me':
+            summary_display_text = f'{other_name} còn nợ bạn'
+        else:
+            summary_display_text = 'Hai bên đã thanh toán xong'
+
         pending_payment = None
         receiver_bank_info = None
         can_pay_now = False
+        can_confirm_payment = False
 
         if net_direction == 'i_owe':
             pending_payment = get_pending_pair_payment(
@@ -1389,6 +1506,11 @@ class MyDebtDetailView(APIView):
                 current_user
             )
 
+            can_confirm_payment = (
+                pending_payment is not None and
+                pending_payment.receiver_id == current_user.id
+            )
+
         payment_timeline = get_pair_payment_timeline(
             household=household,
             user_a=current_user,
@@ -1396,19 +1518,49 @@ class MyDebtDetailView(APIView):
             request=request,
         )
 
+        if net_direction in ['i_owe', 'owed_to_me']:
+            unpaid_items = [
+                item
+                for item in unpaid_items
+                if item['direction'] == net_direction
+            ]
+
+            paid_items = [
+                item
+                for item in paid_items
+                if item['direction'] == net_direction
+            ]
+
+        net_remaining_amount = abs(net_amount)
+
         return Response(
             {
                 'household_id': str(household.id),
                 'current_user_id': current_user.id,
+
                 'other_user_id': other_user.id,
                 'other_name': other_user_data['other_name'],
                 'other_email': other_user_data['other_email'],
                 'other_avatar': other_user_data['other_avatar'],
                 'is_virtual': other_user_data['is_virtual'],
+
                 'net_direction': net_direction,
-                'net_amount': abs(net_amount),
+                'net_amount': net_remaining_amount,
                 'total_i_owe': total_i_owe,
                 'total_owed_to_me': total_owed_to_me,
+
+                'summary': {
+                    'direction': net_direction,
+                    'display_text': summary_display_text,
+                    'remaining_amount': net_remaining_amount,
+                },
+
+                'unpaid_items': unpaid_items,
+                'paid_items': paid_items,
+
+                # Giữ lại field cũ để frontend chưa sửa vẫn không vỡ:
+                'items': unpaid_items,
+
                 'pending_payment': (
                     PaymentSerializer(
                         pending_payment,
@@ -1417,10 +1569,20 @@ class MyDebtDetailView(APIView):
                     if pending_payment
                     else None
                 ),
+
                 'receiver_bank_info': receiver_bank_info,
+
                 'can_pay_now': can_pay_now,
+
+                'permissions': {
+                    'can_pay_now': can_pay_now,
+                    'can_confirm_payment': can_confirm_payment,
+                    'can_select_items_to_pay': can_pay_now,
+                    'can_pay_custom_amount': can_pay_now,
+                    'can_pay_full': can_pay_now,
+                },
+
                 'payment_timeline': payment_timeline,
-                'items': items,
             },
             status=status.HTTP_200_OK,
         )

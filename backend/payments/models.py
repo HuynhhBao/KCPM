@@ -12,6 +12,11 @@ class Payment(BaseModel):
         CONFIRMED = 'confirmed', 'Đã xác nhận'
         REJECTED = 'rejected', 'Đã từ chối'
 
+    class Mode(models.TextChoices):
+        FULL = 'full', 'Thanh toán toàn bộ'
+        SELECTED_ITEMS = 'selected_items', 'Chọn khoản thanh toán'
+        CUSTOM_AMOUNT = 'custom_amount', 'Thanh toán trước một khoản'
+
     debt = models.ForeignKey(
         Debt,
         on_delete=models.CASCADE,
@@ -41,6 +46,13 @@ class Payment(BaseModel):
     amount = models.DecimalField(
         max_digits=12,
         decimal_places=0
+    )
+
+    payment_mode = models.CharField(
+        max_length=30,
+        choices=Mode.choices,
+        default=Mode.CUSTOM_AMOUNT,
+        db_index=True,
     )
 
     is_pair_payment = models.BooleanField(
@@ -100,4 +112,37 @@ class Payment(BaseModel):
         return (
             f'{self.payer.email} -> {self.receiver.email} '
             f'{self.amount} ({self.status})'
+        )
+
+class PaymentAllocation(BaseModel):
+    payment = models.ForeignKey(
+        Payment,
+        on_delete=models.CASCADE,
+        related_name='allocations',
+    )
+
+    debt = models.ForeignKey(
+        Debt,
+        on_delete=models.CASCADE,
+        related_name='payment_allocations',
+    )
+
+    allocated_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=0,
+    )
+
+    class Meta:
+        ordering = ['created_at']
+        constraints = [
+            models.UniqueConstraint(
+                fields=['payment', 'debt'],
+                name='unique_payment_allocation_per_debt',
+            ),
+        ]
+
+    def __str__(self):
+        return (
+            f'{self.payment_id} -> {self.debt_id}: '
+            f'{self.allocated_amount}'
         )

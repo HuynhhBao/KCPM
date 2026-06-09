@@ -17,7 +17,7 @@ from households.models import (
 )
 from notifications.models import Notification
 from notifications.services import create_notification
-from payments.models import Payment
+from payments.models import Payment, PaymentAllocation
 from payments.serializers import (
     PairPaymentCreateSerializer,
     PaymentActionSerializer,
@@ -53,6 +53,191 @@ def debt_remaining_amount(debt):
         return Decimal('0')
 
     return remaining
+
+def get_pending_amount_for_debt(debt):
+    total = Decimal('0')
+
+    for allocation in debt.payment_allocations.filter(
+        payment__status=Payment.Status.PENDING,
+    ):
+        total += allocation.allocated_amount
+
+    return total
+
+
+def get_debt_payable_amount(debt):
+    remaining = debt_remaining_amount(debt)
+    pending = get_pending_amount_for_debt(debt)
+
+    payable = remaining - pending
+
+    if payable <= 0:
+        return Decimal('0')
+
+    return payable
+
+
+def get_forward_debts_queryset(
+    *,
+    household,
+    payer,
+    receiver,
+    lock=False,
+):
+    queryset = Debt.objects.filter(
+        household=household,
+        from_user=payer,
+        to_user=receiver,
+        is_paid=False,
+    ).select_related(
+        'household',
+        'expense',
+        'from_user',
+        'to_user',
+    ).prefetch_related(
+        'payment_allocations',
+        'payment_allocations__payment',
+    ).order_by(
+        'expense__expense_date',
+        'created_at',
+    )
+
+    if lock:
+        queryset = queryset.select_for_update()
+
+    return queryset
+
+
+def build_allocations_for_payment_mode(
+    *,
+    household,
+    payer,
+    receiver,
+    payment_mode,
+    amount=None,
+    debt_ids=None,
+    lock=False,
+):
+    debts = list(
+        get_forward_debts_queryset(
+            household=household,
+            payer=payer,
+            receiver=receiver,
+            lock=lock,
+        )
+    )
+
+    payable_items = []
+
+    for debt in debts:
+        payable_amount = get_debt_payable_amount(debt)
+
+        if payable_amount <= 0:
+            continue
+
+        payable_items.append(
+            {
+                'debt': debt,
+                'payable_amount': payable_amount,
+            }
+        )
+
+    total_payable = sum(
+        item['payable_amount']
+        for item in payable_items
+    ) or Decimal('0')
+
+    if total_payable <= 0:
+        raise ValueError('Không còn khoản nào có thể thanh toán.')
+
+    allocations = []
+
+    if payment_mode == Payment.Mode.FULL:
+        for item in payable_items:
+            allocations.append(
+                {
+                    'debt': item['debt'],
+                    'allocated_amount': item['payable_amount'],
+                }
+            )
+
+        return total_payable, allocations
+
+    if payment_mode == Payment.Mode.SELECTED_ITEMS:
+        selected_ids = {
+            str(item)
+            for item in (debt_ids or [])
+        }
+
+        if not selected_ids:
+            raise ValueError('Vui lòng chọn ít nhất một khoản cần thanh toán.')
+
+        valid_ids = {
+            str(item['debt'].id)
+            for item in payable_items
+        }
+
+        invalid_ids = selected_ids - valid_ids
+
+        if invalid_ids:
+            raise ValueError(
+                'Có khoản thanh toán không hợp lệ hoặc đã được thanh toán.'
+            )
+
+        total_selected = Decimal('0')
+
+        for item in payable_items:
+            if str(item['debt'].id) not in selected_ids:
+                continue
+
+            total_selected += item['payable_amount']
+
+            allocations.append(
+                {
+                    'debt': item['debt'],
+                    'allocated_amount': item['payable_amount'],
+                }
+            )
+
+        if total_selected <= 0:
+            raise ValueError('Không có khoản nào được chọn để thanh toán.')
+
+        return total_selected, allocations
+
+    if payment_mode == Payment.Mode.CUSTOM_AMOUNT:
+        amount = Decimal(amount or 0)
+
+        if amount <= 0:
+            raise ValueError('Số tiền thanh toán phải lớn hơn 0.')
+
+        if amount > total_payable:
+            raise ValueError(
+                'Số tiền thanh toán không được lớn hơn số nợ hiện tại.'
+            )
+
+        remaining_amount = amount
+
+        for item in payable_items:
+            if remaining_amount <= 0:
+                break
+
+            allocated_amount = min(
+                item['payable_amount'],
+                remaining_amount,
+            )
+
+            allocations.append(
+                {
+                    'debt': item['debt'],
+                    'allocated_amount': allocated_amount,
+                }
+            )
+
+            remaining_amount -= allocated_amount
+
+        return amount, allocations
+
+    raise ValueError('Hình thức thanh toán không hợp lệ.')
 
 
 def get_pair_debt_state(
@@ -347,7 +532,14 @@ class CreatePairPaymentView(APIView):
         serializer.is_valid(raise_exception=True)
 
         receiver_id = serializer.validated_data['receiver_id']
-        amount = serializer.validated_data['amount']
+
+        payment_mode = serializer.validated_data.get(
+            'payment_mode',
+            Payment.Mode.CUSTOM_AMOUNT,
+        )
+
+        amount = serializer.validated_data.get('amount')
+        debt_ids = serializer.validated_data.get('debt_ids', [])
         note = serializer.validated_data.get('note', '')
 
         household = Household.objects.filter(
@@ -420,15 +612,6 @@ class CreatePairPaymentView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        if amount > net_amount:
-            return Response(
-                {
-                    'detail':
-                    'Số tiền thanh toán không được lớn hơn số nợ hiện tại.'
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
         existing_pending_payment = Payment.objects.filter(
             household=household,
             payer=payer,
@@ -446,10 +629,45 @@ class CreatePairPaymentView(APIView):
                     'message':
                     'Bạn đang có yêu cầu thanh toán chờ xác nhận với người này.',
                     'payment': PaymentSerializer(
-                        existing_pending_payment
+                        existing_pending_payment,
+                        context={'request': request},
                     ).data,
                 },
                 status=status.HTTP_200_OK,
+            )
+
+        allocation_mode = payment_mode
+        allocation_amount = amount
+
+        if payment_mode == Payment.Mode.FULL:
+            allocation_mode = Payment.Mode.CUSTOM_AMOUNT
+            allocation_amount = net_amount
+
+        try:
+            payment_amount, allocations = build_allocations_for_payment_mode(
+                household=household,
+                payer=payer,
+                receiver=receiver,
+                payment_mode=allocation_mode,
+                amount=allocation_amount,
+                debt_ids=debt_ids,
+                lock=True,
+            )
+        except ValueError as exc:
+            return Response(
+                {
+                    'detail': str(exc)
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if payment_amount > net_amount:
+            return Response(
+                {
+                    'detail':
+                    'Số tiền thanh toán không được lớn hơn số nợ hiện tại.'
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         payment = Payment.objects.create(
@@ -457,24 +675,47 @@ class CreatePairPaymentView(APIView):
             household=household,
             payer=payer,
             receiver=receiver,
-            amount=amount,
+            amount=payment_amount,
+            payment_mode=payment_mode,
             is_pair_payment=True,
             payer_note=note,
         )
 
-        payer_name = get_user_display_name(payer)
-        remaining_after_request = net_amount - amount
+        for item in allocations:
+            PaymentAllocation.objects.create(
+                payment=payment,
+                debt=item['debt'],
+                allocated_amount=item['allocated_amount'],
+            )
 
-        if remaining_after_request > 0:
-            message = (
-                f'Đã gửi yêu cầu xác nhận thanh toán trước '
-                f'{format_money(amount)}. '
-                f'Còn nợ {format_money(remaining_after_request)}.'
-            )
+        payer_name = get_user_display_name(payer)
+        remaining_after_request = net_amount - payment_amount
+
+        if payment_mode == Payment.Mode.FULL:
+            message = 'Đã gửi yêu cầu xác nhận thanh toán toàn bộ.'
+
+        elif payment_mode == Payment.Mode.SELECTED_ITEMS:
+            if remaining_after_request > 0:
+                message = (
+                    f'Đã gửi yêu cầu xác nhận thanh toán '
+                    f'{len(allocations)} khoản. '
+                    f'Còn nợ {format_money(remaining_after_request)}.'
+                )
+            else:
+                message = (
+                    f'Đã gửi yêu cầu xác nhận thanh toán '
+                    f'{len(allocations)} khoản.'
+                )
+
         else:
-            message = (
-                'Đã gửi yêu cầu xác nhận thanh toán toàn bộ.'
-            )
+            if remaining_after_request > 0:
+                message = (
+                    f'Đã gửi yêu cầu xác nhận thanh toán trước '
+                    f'{format_money(payment_amount)}. '
+                    f'Còn nợ {format_money(remaining_after_request)}.'
+                )
+            else:
+                message = 'Đã gửi yêu cầu xác nhận thanh toán toàn bộ.'
 
         create_notification(
             recipient=receiver,
@@ -484,9 +725,9 @@ class CreatePairPaymentView(APIView):
             level=Notification.Level.PUSH,
             title=(
                 f'{payer_name} báo đã thanh toán '
-                f'{format_money(amount)}. Vui lòng xác nhận.'
+                f'{format_money(payment_amount)}. Vui lòng xác nhận.'
             ),
-            amount=amount,
+            amount=payment_amount,
             metadata={
                 'payment_id': str(payment.id),
                 'household_id': str(household.id),
@@ -494,11 +735,13 @@ class CreatePairPaymentView(APIView):
                 'receiver_id': receiver.id,
                 'status': payment.status,
                 'is_pair_payment': True,
+                'payment_mode': payment.payment_mode,
+                'allocation_count': len(allocations),
             },
             push_title='Xác nhận thanh toán',
             push_body=(
                 f'{payer_name} báo đã thanh toán '
-                f'{format_money(amount)}'
+                f'{format_money(payment_amount)}'
             ),
         )
 
@@ -506,7 +749,10 @@ class CreatePairPaymentView(APIView):
             {
                 'message': message,
                 'remaining_after_request': int(remaining_after_request),
-                'payment': PaymentSerializer(payment).data,
+                'payment': PaymentSerializer(
+                    payment,
+                    context={'request': request},
+                ).data,
             },
             status=status.HTTP_201_CREATED,
         )
@@ -729,40 +975,53 @@ class ConfirmPaymentView(APIView):
             )
 
         if payment.is_pair_payment or payment.debt_id is None:
-            state = get_pair_debt_state(
-                household=payment.household,
-                payer=payment.payer,
-                receiver=payment.receiver,
-                lock=True,
+            allocations = list(
+                payment.allocations.select_related(
+                    'debt',
+                    'debt__expense',
+                    'debt__household',
+                    'debt__from_user',
+                    'debt__to_user',
+                )
             )
 
-            net_amount = state['net_amount']
-
-            if net_amount <= 0:
+            if not allocations:
                 return Response(
                     {
                         'detail':
-                        'Công nợ hiện tại đã được xử lý.'
+                        'Yêu cầu thanh toán này chưa có phân bổ công nợ.'
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
-            if payment.amount > net_amount:
-                return Response(
-                    {
-                        'detail':
-                        'Số tiền thanh toán lớn hơn công nợ hiện tại.'
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
+            for allocation in allocations:
+                debt = allocation.debt
+                remaining_amount = debt_remaining_amount(debt)
+
+                if remaining_amount <= 0:
+                    continue
+
+                if allocation.allocated_amount > remaining_amount:
+                    return Response(
+                        {
+                            'detail':
+                            f'Khoản "{debt.expense.title}" có số tiền thanh toán lớn hơn số còn nợ.'
+                        },
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
+                debt.apply_payment(allocation.allocated_amount)
+                debt.save(
+                    update_fields=[
+                        'paid_amount',
+                        'is_paid',
+                        'updated_at',
+                    ]
                 )
 
-            apply_pair_payment_to_debts(
-                state=state,
-                amount=payment.amount,
-            )
-
-            payment.remaining_after_confirm = (
-                net_amount - payment.amount
+            payment.remaining_after_confirm = sum(
+                debt_remaining_amount(allocation.debt)
+                for allocation in allocations
             )
         else:
             remaining_amount = debt_remaining_amount(payment.debt)
@@ -794,9 +1053,7 @@ class ConfirmPaymentView(APIView):
                 ]
             )
 
-            payment.remaining_after_confirm = (
-                payment.debt.remaining_amount
-            )
+            payment.remaining_after_confirm = payment.debt.remaining_amount
 
         payment.status = Payment.Status.CONFIRMED
         payment.receiver_note = action_serializer.validated_data.get(
