@@ -10,16 +10,13 @@ class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
 
   @override
-  State<RegisterScreen> createState() =>
-      _RegisterScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState
-    extends State<RegisterScreen> {
+class _RegisterScreenState extends State<RegisterScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-  final confirmPasswordController =
-      TextEditingController();
+  final confirmPasswordController = TextEditingController();
 
   bool isLoading = false;
   bool hidePassword = true;
@@ -34,25 +31,16 @@ class _RegisterScreenState
   }
 
   bool isValidEmail(String email) {
-    return RegExp(
-      r'^[\w\.-]+@([\w-]+\.)+[\w-]{2,4}$',
-    ).hasMatch(email);
+    return RegExp(r'^[\w\.-]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
 
   Future<void> register() async {
-    final email =
-        emailController.text.trim().toLowerCase();
-    final password =
-        passwordController.text.trim();
-    final confirmPassword =
-        confirmPasswordController.text.trim();
+    final email = emailController.text.trim().toLowerCase();
+    final password = passwordController.text.trim();
+    final confirmPassword = confirmPasswordController.text.trim();
 
-    if (email.isEmpty ||
-      password.isEmpty ||
-      confirmPassword.isEmpty) {
-      showMessage(
-        'Vui lòng nhập đầy đủ thông tin',
-      );
+    if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
+      showMessage('Vui lòng nhập đầy đủ thông tin');
       return;
     }
 
@@ -62,16 +50,12 @@ class _RegisterScreenState
     }
 
     if (password.length < 8) {
-      showMessage(
-        'Mật khẩu phải có ít nhất 8 ký tự',
-      );
+      showMessage('Mật khẩu phải có ít nhất 8 ký tự');
       return;
     }
 
     if (password != confirmPassword) {
-      showMessage(
-        'Mật khẩu xác nhận không khớp',
-      );
+      showMessage('Mật khẩu xác nhận không khớp');
       return;
     }
 
@@ -88,48 +72,34 @@ class _RegisterScreenState
 
       if (!mounted) return;
 
-      showMessage(
-        'Đăng ký thành công. Vui lòng nhập OTP.',
-      );
+      showMessage('Đăng ký thành công. Vui lòng nhập OTP.');
 
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
-          builder: (_) => VerifyRegisterOTPScreen(
-            email: email,
-          ),
+          builder: (_) => VerifyRegisterOTPScreen(email: email),
         ),
       );
     } on DioException catch (e) {
-      debugPrint(
-        'REGISTER ERROR: ${e.response?.data}',
-      );
+      debugPrint('REGISTER ERROR: ${e.response?.data}');
 
       final data = e.response?.data;
 
       if (data is Map) {
         if (data['detail'] != null) {
-          showMessage(
-            data['detail'].toString(),
-          );
+          showMessage(data['detail'].toString());
         } else if (data['email'] != null) {
           final emailError = data['email'];
 
-          if (emailError is List &&
-              emailError.isNotEmpty) {
-            showMessage(
-              emailError.first.toString(),
-            );
+          if (emailError is List && emailError.isNotEmpty) {
+            showMessage(emailError.first.toString());
           } else {
-            showMessage(
-              emailError.toString(),
-            );
+            showMessage(emailError.toString());
           }
         } else {
-          final firstError =
-              data.values.isNotEmpty
-                  ? data.values.first.toString()
-                  : 'Đăng ký thất bại';
+          final firstError = data.values.isNotEmpty
+              ? data.values.first.toString()
+              : 'Đăng ký thất bại';
 
           showMessage(firstError);
         }
@@ -139,9 +109,7 @@ class _RegisterScreenState
     } catch (e) {
       debugPrint('REGISTER ERROR: $e');
 
-      showMessage(
-        'Không thể kết nối máy chủ',
-      );
+      showMessage('Không thể kết nối máy chủ');
     } finally {
       if (mounted) {
         setState(() {
@@ -157,10 +125,7 @@ class _RegisterScreenState
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-        ),
+        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
       );
   }
 
@@ -176,8 +141,7 @@ class _RegisterScreenState
     void Function(String)? onSubmitted,
   }) {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
@@ -205,34 +169,22 @@ class _RegisterScreenState
               hintText: hint,
               filled: true,
               fillColor: const Color(0xFFF7FAFA),
-              prefixIcon: Icon(
-                icon,
-                color: AppColors.textLight,
-                size: 21,
-              ),
+              prefixIcon: Icon(icon, color: AppColors.textLight, size: 21),
               suffixIcon: suffixIcon,
-              contentPadding:
-                  const EdgeInsets.symmetric(
+              contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
                 vertical: 14,
               ),
               border: OutlineInputBorder(
-                borderRadius:
-                    BorderRadius.circular(19),
-                borderSide: const BorderSide(
-                  color: Color(0xFFDDE7EA),
-                ),
+                borderRadius: BorderRadius.circular(19),
+                borderSide: const BorderSide(color: Color(0xFFDDE7EA)),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius:
-                    BorderRadius.circular(19),
-                borderSide: const BorderSide(
-                  color: Color(0xFFDDE7EA),
-                ),
+                borderRadius: BorderRadius.circular(19),
+                borderSide: const BorderSide(color: Color(0xFFDDE7EA)),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius:
-                    BorderRadius.circular(19),
+                borderRadius: BorderRadius.circular(19),
                 borderSide: const BorderSide(
                   color: AppColors.primary,
                   width: 1.5,
@@ -255,13 +207,9 @@ class _RegisterScreenState
           elevation: 0,
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          disabledBackgroundColor:
-              AppColors.primary.withValues(
-            alpha: 0.35,
-          ),
+          disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.35),
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(20),
           ),
         ),
         child: isLoading
@@ -275,10 +223,7 @@ class _RegisterScreenState
               )
             : const Text(
                 'Tạo tài khoản',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w900,
-                ),
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
               ),
       ),
     );
@@ -286,8 +231,7 @@ class _RegisterScreenState
 
   Widget buildBottomText() {
     return Row(
-      mainAxisAlignment:
-          MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const Text(
           'Đã có tài khoản?',
@@ -300,10 +244,7 @@ class _RegisterScreenState
           onPressed: () {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(
-                builder: (_) =>
-                    const LoginScreen(),
-              ),
+              MaterialPageRoute(builder: (_) => const LoginScreen()),
             );
           },
           child: const Text(
@@ -322,32 +263,24 @@ class _RegisterScreenState
     final logoSize = compact ? 70.0 : 84.0;
 
     return Column(
-      mainAxisAlignment:
-          MainAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Container(
           width: logoSize,
           height: logoSize,
           decoration: BoxDecoration(
-            borderRadius:
-                BorderRadius.circular(26),
+            borderRadius: BorderRadius.circular(26),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(
-                  alpha: 0.20,
-                ),
+                color: Colors.black.withValues(alpha: 0.20),
                 blurRadius: 30,
                 offset: const Offset(0, 14),
               ),
             ],
           ),
           child: ClipRRect(
-            borderRadius:
-                BorderRadius.circular(26),
-            child: Image.asset(
-              'assets/images/logo.jpg',
-              fit: BoxFit.cover,
-            ),
+            borderRadius: BorderRadius.circular(26),
+            child: Image.asset('assets/images/logo.jpg', fit: BoxFit.cover),
           ),
         ),
         SizedBox(height: compact ? 12 : 16),
@@ -364,9 +297,7 @@ class _RegisterScreenState
         Text(
           'Chia tiền nhóm dễ dàng hơn',
           style: TextStyle(
-            color: Colors.white.withValues(
-              alpha: 0.76,
-            ),
+            color: Colors.white.withValues(alpha: 0.76),
             fontSize: 15,
             fontWeight: FontWeight.w600,
           ),
@@ -378,26 +309,16 @@ class _RegisterScreenState
   Widget buildRegisterCard(bool compact) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(
-        24,
-        compact ? 24 : 30,
-        24,
-        18,
-      ),
+      padding: EdgeInsets.fromLTRB(24, compact ? 24 : 30, 24, 18),
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(34),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(34)),
       ),
       child: SingleChildScrollView(
-        physics:
-            const BouncingScrollPhysics(),
+        physics: const BouncingScrollPhysics(),
         child: Column(
           children: [
-            SizedBox(
-              height: compact ? 12 : 16,
-            ),
+            SizedBox(height: compact ? 12 : 16),
             const Text(
               'Tạo tài khoản',
               style: TextStyle(
@@ -407,84 +328,63 @@ class _RegisterScreenState
                 letterSpacing: -0.5,
               ),
             ),
-            SizedBox(
-              height: compact ? 12 : 16,
-            ),
+            SizedBox(height: compact ? 12 : 16),
             buildInput(
               label: 'Email',
               hint: 'Nhập email của bạn',
               icon: Icons.mail_outline_rounded,
               controller: emailController,
-              keyboardType:
-                  TextInputType.emailAddress,
-              textInputAction:
-                  TextInputAction.next,
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
             ),
-            SizedBox(
-              height: compact ? 12 : 16,
-            ),
+            SizedBox(height: compact ? 12 : 16),
             buildInput(
               label: 'Mật khẩu',
               hint: 'Nhập mật khẩu',
               icon: Icons.lock_outline_rounded,
               controller: passwordController,
               obscure: hidePassword,
-              textInputAction:
-                  TextInputAction.next,
+              textInputAction: TextInputAction.next,
               suffixIcon: IconButton(
                 onPressed: () {
                   setState(() {
-                    hidePassword =
-                        !hidePassword;
+                    hidePassword = !hidePassword;
                   });
                 },
                 icon: Icon(
                   hidePassword
-                      ? Icons
-                          .visibility_off_outlined
-                      : Icons
-                          .visibility_outlined,
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
                   color: AppColors.textLight,
                 ),
               ),
             ),
-            SizedBox(
-              height: compact ? 12 : 16,
-            ),
+            SizedBox(height: compact ? 12 : 16),
             buildInput(
               label: 'Xác nhận mật khẩu',
               hint: 'Nhập lại mật khẩu',
               icon: Icons.lock_reset_rounded,
-              controller:
-                  confirmPasswordController,
+              controller: confirmPasswordController,
               obscure: hideConfirmPassword,
-              textInputAction:
-                  TextInputAction.done,
+              textInputAction: TextInputAction.done,
               onSubmitted: (_) => register(),
               suffixIcon: IconButton(
                 onPressed: () {
                   setState(() {
-                    hideConfirmPassword =
-                        !hideConfirmPassword;
+                    hideConfirmPassword = !hideConfirmPassword;
                   });
                 },
                 icon: Icon(
                   hideConfirmPassword
-                      ? Icons
-                          .visibility_off_outlined
-                      : Icons
-                          .visibility_outlined,
+                      ? Icons.visibility_off_outlined
+                      : Icons.visibility_outlined,
                   color: AppColors.textLight,
                 ),
               ),
             ),
-            SizedBox(
-              height: compact ? 22 : 28,
-            ),
+            SizedBox(height: compact ? 22 : 28),
             buildRegisterButton(),
-            SizedBox(
-              height: compact ? 16 : 20,
-            ),
+            SizedBox(height: compact ? 16 : 20),
             buildBottomText(),
           ],
         ),
@@ -494,15 +394,13 @@ class _RegisterScreenState
 
   @override
   Widget build(BuildContext context) {
-    final isMobile =
-        MediaQuery.of(context).size.width < 600;
+    final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
       backgroundColor: AppColors.primaryDark,
       body: GestureDetector(
-        onTap: () =>
-            FocusScope.of(context).unfocus(),
+        onTap: () => FocusScope.of(context).unfocus(),
         child: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
@@ -519,38 +417,26 @@ class _RegisterScreenState
             bottom: false,
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final compact =
-                    constraints.maxHeight < 760;
+                final compact = constraints.maxHeight < 760;
 
                 return AnimatedPadding(
-                  duration:
-                      const Duration(milliseconds: 250),
+                  duration: const Duration(milliseconds: 250),
                   curve: Curves.easeOut,
                   padding: EdgeInsets.only(
-                    bottom: MediaQuery.of(context)
-                            .viewInsets
-                            .bottom *
-                        0.45,
+                    bottom: MediaQuery.of(context).viewInsets.bottom * 0.45,
                   ),
                   child: Center(
                     child: ConstrainedBox(
-                      constraints:
-                          const BoxConstraints(
-                        maxWidth: 520,
-                      ),
+                      constraints: const BoxConstraints(maxWidth: 520),
                       child: Column(
                         children: [
                           Expanded(
-                            flex:
-                                compact ? 30 : 34,
-                            child:
-                                buildLogoHeader(compact),
+                            flex: compact ? 30 : 34,
+                            child: buildLogoHeader(compact),
                           ),
                           Expanded(
                             flex: compact ? 70 : 66,
-                            child: buildRegisterCard(
-                              isMobile,
-                            ),
+                            child: buildRegisterCard(isMobile),
                           ),
                         ],
                       ),

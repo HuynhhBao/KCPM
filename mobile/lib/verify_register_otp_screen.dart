@@ -11,23 +11,18 @@ import 'services/api_service.dart';
 class VerifyRegisterOTPScreen extends StatefulWidget {
   final String email;
 
-  const VerifyRegisterOTPScreen({
-    super.key,
-    required this.email,
-  });
+  const VerifyRegisterOTPScreen({super.key, required this.email});
 
   @override
   State<VerifyRegisterOTPScreen> createState() =>
       _VerifyRegisterOTPScreenState();
 }
 
-class _VerifyRegisterOTPScreenState
-    extends State<VerifyRegisterOTPScreen> {
+class _VerifyRegisterOTPScreenState extends State<VerifyRegisterOTPScreen> {
   static const otpLength = 6;
   static const resendCooldownSeconds = 60;
 
-  final List<TextEditingController> otpControllers =
-      List.generate(
+  final List<TextEditingController> otpControllers = List.generate(
     otpLength,
     (_) => TextEditingController(),
   );
@@ -78,30 +73,25 @@ class _VerifyRegisterOTPScreenState
       resendSeconds = resendCooldownSeconds;
     });
 
-    resendTimer = Timer.periodic(
-      const Duration(seconds: 1),
-      (timer) {
-        if (!mounted) return;
+    resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
 
-        if (resendSeconds <= 1) {
-          timer.cancel();
+      if (resendSeconds <= 1) {
+        timer.cancel();
 
-          setState(() {
-            resendSeconds = 0;
-          });
-        } else {
-          setState(() {
-            resendSeconds--;
-          });
-        }
-      },
-    );
+        setState(() {
+          resendSeconds = 0;
+        });
+      } else {
+        setState(() {
+          resendSeconds--;
+        });
+      }
+    });
   }
 
   String getOTP() {
-    return otpControllers
-        .map((controller) => controller.text.trim())
-        .join();
+    return otpControllers.map((controller) => controller.text.trim()).join();
   }
 
   void clearOTP() {
@@ -127,10 +117,7 @@ class _VerifyRegisterOTPScreenState
         isLoading = true;
       });
 
-      await ApiService.verifyRegisterOTP(
-        email: widget.email,
-        otp: otp,
-      );
+      await ApiService.verifyRegisterOTP(email: widget.email, otp: otp);
 
       if (!mounted) return;
 
@@ -140,17 +127,13 @@ class _VerifyRegisterOTPScreenState
 
       showMessage('Xác thực email thành công');
 
-      await Future.delayed(
-        const Duration(milliseconds: 900),
-      );
+      await Future.delayed(const Duration(milliseconds: 900));
 
       if (!mounted) return;
 
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (_) => const LoginScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
         (route) => false,
       );
     } on DioException catch (e) {
@@ -175,11 +158,7 @@ class _VerifyRegisterOTPScreenState
   }
 
   Future<void> resendOTP() async {
-    if (
-      isResending ||
-      isLoading ||
-      resendSeconds > 0
-    ) {
+    if (isResending || isLoading || resendSeconds > 0) {
       return;
     }
 
@@ -188,9 +167,7 @@ class _VerifyRegisterOTPScreenState
         isResending = true;
       });
 
-      await ApiService.resendRegisterOTP(
-        email: widget.email,
-      );
+      await ApiService.resendRegisterOTP(email: widget.email);
 
       if (!mounted) return;
 
@@ -223,10 +200,7 @@ class _VerifyRegisterOTPScreenState
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-        ),
+        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
       );
   }
 
@@ -237,13 +211,10 @@ class _VerifyRegisterOTPScreenState
       child: KeyboardListener(
         focusNode: FocusNode(),
         onKeyEvent: (event) {
-          if (
-            event is KeyDownEvent &&
-            event.logicalKey ==
-                LogicalKeyboardKey.backspace &&
-            otpControllers[index].text.isEmpty &&
-            index > 0
-          ) {
+          if (event is KeyDownEvent &&
+              event.logicalKey == LogicalKeyboardKey.backspace &&
+              otpControllers[index].text.isEmpty &&
+              index > 0) {
             otpFocusNodes[index - 1].requestFocus();
             otpControllers[index - 1].clear();
           }
@@ -255,9 +226,7 @@ class _VerifyRegisterOTPScreenState
           textAlign: TextAlign.center,
           keyboardType: TextInputType.number,
           maxLength: 1,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-          ],
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w900,
@@ -270,15 +239,11 @@ class _VerifyRegisterOTPScreenState
             contentPadding: EdgeInsets.zero,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: Color(0xFFDDE7EA),
-              ),
+              borderSide: const BorderSide(color: Color(0xFFDDE7EA)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
-              borderSide: const BorderSide(
-                color: Color(0xFFDDE7EA),
-              ),
+              borderSide: const BorderSide(color: Color(0xFFDDE7EA)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
@@ -308,62 +273,47 @@ class _VerifyRegisterOTPScreenState
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed:
-            isLoading || isVerified ? null : verifyOTP,
+        onPressed: isLoading || isVerified ? null : verifyOTP,
         style: ElevatedButton.styleFrom(
           elevation: 0,
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
-          disabledBackgroundColor:
-              AppColors.primary.withValues(
-            alpha: 0.45,
-          ),
+          disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.45),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
         ),
         child: isVerified
             ? const Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.check_circle_rounded,
-                    color: Colors.white,
-                  ),
+                  Icon(Icons.check_circle_rounded, color: Colors.white),
                   SizedBox(width: 8),
                   Text(
                     'Xác thực thành công',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900,
-                    ),
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
                   ),
                 ],
               )
             : isLoading
-                ? const SizedBox(
-                    width: 22,
-                    height: 22,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: Colors.white,
-                    ),
-                  )
-                : const Text(
-                    'Xác thực',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
+            ? const SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: Colors.white,
+                ),
+              )
+            : const Text(
+                'Xác thực',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w900),
+              ),
       ),
     );
   }
 
   Widget buildResendButton() {
-    final canResend =
-        resendSeconds == 0 && !isResending && !isLoading;
+    final canResend = resendSeconds == 0 && !isResending && !isLoading;
 
     return TextButton(
       onPressed: canResend ? resendOTP : null,
@@ -371,13 +321,11 @@ class _VerifyRegisterOTPScreenState
         isResending
             ? 'Đang gửi lại...'
             : resendSeconds > 0
-                ? 'Gửi lại OTP sau ${resendSeconds}s'
-                : 'Gửi lại OTP',
+            ? 'Gửi lại OTP sau ${resendSeconds}s'
+            : 'Gửi lại OTP',
         style: TextStyle(
           fontWeight: FontWeight.w900,
-          color: canResend
-              ? AppColors.primary
-              : AppColors.textLight,
+          color: canResend ? AppColors.primary : AppColors.textLight,
         ),
       ),
     );
@@ -393,9 +341,7 @@ class _VerifyRegisterOTPScreenState
             padding: const EdgeInsets.all(24),
             child: Container(
               width: double.infinity,
-              constraints: const BoxConstraints(
-                maxWidth: 520,
-              ),
+              constraints: const BoxConstraints(maxWidth: 520),
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -405,9 +351,7 @@ class _VerifyRegisterOTPScreenState
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   AnimatedSwitcher(
-                    duration: const Duration(
-                      milliseconds: 250,
-                    ),
+                    duration: const Duration(milliseconds: 250),
                     child: isVerified
                         ? const Icon(
                             Icons.verified_rounded,
@@ -443,12 +387,8 @@ class _VerifyRegisterOTPScreenState
                   ),
                   const SizedBox(height: 26),
                   Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.spaceBetween,
-                    children: List.generate(
-                      otpLength,
-                      buildOTPBox,
-                    ),
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: List.generate(otpLength, buildOTPBox),
                   ),
                   const SizedBox(height: 22),
                   buildVerifyButton(),

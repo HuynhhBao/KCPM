@@ -9,12 +9,10 @@ class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
 
   @override
-  State<ForgotPasswordScreen> createState() =>
-      _ForgotPasswordScreenState();
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
 }
 
-class _ForgotPasswordScreenState
-    extends State<ForgotPasswordScreen> {
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final emailController = TextEditingController();
 
   bool isLoading = false;
@@ -26,16 +24,13 @@ class _ForgotPasswordScreenState
   }
 
   bool isValidEmail(String email) {
-    return RegExp(
-      r'^[\w\.-]+@([\w-]+\.)+[\w-]{2,4}$',
-    ).hasMatch(email);
+    return RegExp(r'^[\w\.-]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
 
   Future<void> submit() async {
     if (isLoading) return;
 
-    final email =
-        emailController.text.trim().toLowerCase();
+    final email = emailController.text.trim().toLowerCase();
 
     if (email.isEmpty) {
       showMessage('Vui lòng nhập email');
@@ -52,19 +47,13 @@ class _ForgotPasswordScreenState
         isLoading = true;
       });
 
-      await ApiService.forgotPassword(
-        email: email,
-      );
+      await ApiService.forgotPassword(email: email);
 
       if (!mounted) return;
 
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (_) => ResetPasswordScreen(
-            email: email,
-          ),
-        ),
+        MaterialPageRoute(builder: (_) => ResetPasswordScreen(email: email)),
       );
     } on DioException catch (e) {
       final data = e.response?.data;
@@ -91,10 +80,7 @@ class _ForgotPasswordScreenState
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-        ),
+        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
       );
   }
 
@@ -108,9 +94,7 @@ class _ForgotPasswordScreenState
             padding: const EdgeInsets.all(24),
             child: Container(
               width: double.infinity,
-              constraints: const BoxConstraints(
-                maxWidth: 520,
-              ),
+              constraints: const BoxConstraints(maxWidth: 520),
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -151,9 +135,7 @@ class _ForgotPasswordScreenState
                     onSubmitted: (_) => submit(),
                     decoration: InputDecoration(
                       hintText: 'Nhập email',
-                      prefixIcon: const Icon(
-                        Icons.mail_outline_rounded,
-                      ),
+                      prefixIcon: const Icon(Icons.mail_outline_rounded),
                       filled: true,
                       fillColor: const Color(0xFFF7FAFA),
                       border: OutlineInputBorder(
@@ -171,8 +153,7 @@ class _ForgotPasswordScreenState
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(20),
                         ),
                       ),
                       child: isLoading
@@ -200,9 +181,7 @@ class _ForgotPasswordScreenState
                     },
                     child: const Text(
                       'Quay lại đăng nhập',
-                      style: TextStyle(
-                        fontWeight: FontWeight.w900,
-                      ),
+                      style: TextStyle(fontWeight: FontWeight.w900),
                     ),
                   ),
                 ],

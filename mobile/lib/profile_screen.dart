@@ -13,8 +13,7 @@ class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() =>
-      _ProfileScreenState();
+  State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
@@ -34,10 +33,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final fullNameController = TextEditingController();
   final phoneController = TextEditingController();
   final bankNameController = TextEditingController();
-  final bankAccountNumberController =
-      TextEditingController();
-  final bankAccountHolderController =
-      TextEditingController();
+  final bankAccountNumberController = TextEditingController();
+  final bankAccountHolderController = TextEditingController();
 
   @override
   void initState() {
@@ -80,8 +77,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       setState(() {
         isLoading = false;
-        errorMessage =
-            'Không thể tải thông tin tài khoản';
+        errorMessage = 'Không thể tải thông tin tài khoản';
       });
     }
   }
@@ -167,9 +163,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (_) => const LoginScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
         (route) => false,
       );
     } catch (_) {
@@ -198,8 +192,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Future<void> submit() async {
               final oldPassword = oldPasswordController.text.trim();
               final newPassword = newPasswordController.text.trim();
-              final confirmPassword =
-                  confirmPasswordController.text.trim();
+              final confirmPassword = confirmPasswordController.text.trim();
 
               void showDialogMessage(String message) {
                 ScaffoldMessenger.of(dialogContext)
@@ -230,9 +223,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               }
 
               if (oldPassword == newPassword) {
-                showDialogMessage(
-                  'Mật khẩu mới phải khác mật khẩu hiện tại',
-                );
+                showDialogMessage('Mật khẩu mới phải khác mật khẩu hiện tại');
                 return;
               }
 
@@ -257,8 +248,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 if (data is Map && data['detail'] != null) {
                   message = data['detail'].toString();
-                } else if (data is Map &&
-                    data['confirm_password'] != null) {
+                } else if (data is Map && data['confirm_password'] != null) {
                   message = data['confirm_password'].toString();
                 }
 
@@ -355,12 +345,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> openEditProfile() async {
-    fullNameController.text =
-        profile['full_name']?.toString() ?? '';
-    phoneController.text =
-        profile['phone_number']?.toString() ?? '';
-    bankNameController.text =
-        profile['bank_name']?.toString() ?? '';
+    fullNameController.text = profile['full_name']?.toString() ?? '';
+    phoneController.text = profile['phone_number']?.toString() ?? '';
+    bankNameController.text = profile['bank_name']?.toString() ?? '';
     bankAccountNumberController.text =
         profile['bank_account_number']?.toString() ?? '';
     bankAccountHolderController.text =
@@ -379,10 +366,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               final fullName = fullNameController.text.trim();
               final phoneNumber = phoneController.text.trim();
               final bankName = bankNameController.text.trim();
-              final bankAccountNumber =
-                  bankAccountNumberController.text.trim();
-              final bankAccountHolder =
-                  bankAccountHolderController.text.trim();
+              final bankAccountNumber = bankAccountNumberController.text.trim();
+              final bankAccountHolder = bankAccountHolderController.text.trim();
 
               void showSheetMessage(String message) {
                 if (!mounted) return;
@@ -413,11 +398,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 return;
               }
 
-              final hasAnyBankInfo = bankName.isNotEmpty ||
+              final hasAnyBankInfo =
+                  bankName.isNotEmpty ||
                   bankAccountNumber.isNotEmpty ||
                   bankAccountHolder.isNotEmpty;
 
-              final hasAllBankInfo = bankName.isNotEmpty &&
+              final hasAllBankInfo =
+                  bankName.isNotEmpty &&
                   bankAccountNumber.isNotEmpty &&
                   bankAccountHolder.isNotEmpty;
 
@@ -481,15 +468,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 left: 20,
                 right: 20,
                 top: 20,
-                bottom:
-                    MediaQuery.of(sheetContext).viewInsets.bottom +
-                        20,
+                bottom: MediaQuery.of(sheetContext).viewInsets.bottom + 20,
               ),
               decoration: const BoxDecoration(
                 color: AppColors.background,
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(32),
-                ),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -500,8 +483,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       height: 5,
                       decoration: BoxDecoration(
                         color: AppColors.border,
-                        borderRadius:
-                            BorderRadius.circular(999),
+                        borderRadius: BorderRadius.circular(999),
                       ),
                     ),
                     const SizedBox(height: 22),
@@ -546,8 +528,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       height: 56,
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed:
-                            isSaving ? null : saveProfile,
+                        onPressed: isSaving ? null : saveProfile,
                         child: isSaving
                             ? const SizedBox(
                                 width: 22,
@@ -581,10 +562,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: Icon(icon),
-        ),
+        decoration: InputDecoration(labelText: label, prefixIcon: Icon(icon)),
       ),
     );
   }
@@ -598,10 +576,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
-          SnackBar(
-            content: Text(message),
-            behavior: SnackBarBehavior.floating,
-          ),
+          SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
         );
     });
   }
@@ -638,6 +613,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryDark.withValues(alpha: 0.03),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -645,20 +628,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             width: 50,
             height: 50,
             decoration: BoxDecoration(
-              color:
-                  AppColors.primary.withValues(alpha: 0.10),
+              color: AppColors.primary.withValues(alpha: 0.10),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(
-              icon,
-              color: AppColors.primary,
-            ),
+            child: Icon(icon, color: AppColors.primary),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
@@ -695,13 +673,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border),
       ),
       child: ListTile(
         onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 18,
-          vertical: 8,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
         leading: Container(
           width: 48,
           height: 48,
@@ -709,10 +685,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             color: AppColors.primary.withValues(alpha: 0.10),
             borderRadius: BorderRadius.circular(16),
           ),
-          child: Icon(
-            icon,
-            color: AppColors.primary,
-          ),
+          child: Icon(icon, color: AppColors.primary),
         ),
         title: Text(
           title,
@@ -739,16 +712,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget buildHeader() {
     final fullName = valueOf('full_name');
     final email = valueOf('email');
-    final rawAvatarUrl = [
-      profile['avatar_url'],
-      profile['avatar'],
-      profile['user_avatar'],
-    ]
-        .map((value) => value?.toString().trim() ?? '')
-        .firstWhere(
-          (value) => value.isNotEmpty,
-          orElse: () => '',
-        );
+    final rawAvatarUrl =
+        [profile['avatar_url'], profile['avatar'], profile['user_avatar']]
+            .map((value) => value?.toString().trim() ?? '')
+            .firstWhere((value) => value.isNotEmpty, orElse: () => '');
 
     final avatarUrl = ApiService.resolveMediaUrl(rawAvatarUrl);
 
@@ -757,6 +724,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [
+            AppColors.primaryDark,
             AppColors.primary,
             AppColors.secondary,
           ],
@@ -764,6 +732,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.18),
+            blurRadius: 28,
+            offset: const Offset(0, 16),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -824,9 +799,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: isUploadingAvatar
                         ? const Padding(
                             padding: EdgeInsets.all(8),
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.2,
-                            ),
+                            child: CircularProgressIndicator(strokeWidth: 2.2),
                           )
                         : const Icon(
                             Icons.camera_alt_rounded,
@@ -840,9 +813,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           const SizedBox(height: 20),
           Text(
-            fullName == 'Chưa cập nhật'
-                ? 'Người dùng Chung Ví'
-                : fullName,
+            fullName == 'Chưa cập nhật' ? 'Người dùng Chung Ví' : fullName,
             textAlign: TextAlign.center,
             style: const TextStyle(
               color: Colors.white,
@@ -869,9 +840,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               label: const Text('Chỉnh sửa hồ sơ'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: Colors.white,
-                side: const BorderSide(
-                  color: Colors.white70,
-                ),
+                side: const BorderSide(color: Colors.white70),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(18),
                 ),
@@ -900,12 +869,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               )
             : const Text(
                 'Đăng xuất',
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
-                ),
+                style: TextStyle(fontWeight: FontWeight.w800),
               ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.red,
+          backgroundColor: AppColors.danger,
           foregroundColor: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(
@@ -921,19 +888,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (isLoading) {
       return const Scaffold(
         backgroundColor: AppColors.background,
-        body: AppLoadingState(
-          message: 'Đang tải hồ sơ...',
-        ),
+        body: AppLoadingState(message: 'Đang tải hồ sơ...'),
       );
     }
 
     if (errorMessage != null) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        body: AppErrorState(
-          message: errorMessage!,
-          onRetry: loadProfile,
-        ),
+        body: AppErrorState(message: errorMessage!, onRetry: loadProfile),
       );
     }
 
@@ -943,18 +905,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         body: RefreshIndicator(
           onRefresh: refreshProfile,
           child: ListView(
-            physics:
-                const AlwaysScrollableScrollPhysics(),
+            physics: const AlwaysScrollableScrollPhysics(),
             children: [
               SizedBox(
-                height:
-                    MediaQuery.of(context).size.height *
-                    0.72,
+                height: MediaQuery.of(context).size.height * 0.72,
                 child: const AppEmptyState(
                   icon: Icons.person_off_rounded,
                   title: 'Không có dữ liệu hồ sơ',
-                  message:
-                      'Thông tin tài khoản hiện chưa khả dụng.',
+                  message: 'Thông tin tài khoản hiện chưa khả dụng.',
                 ),
               ),
             ],
@@ -965,15 +923,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        titleSpacing: 20,
-        title: const Text('Cá nhân'),
-      ),
+      appBar: AppBar(titleSpacing: 20, title: const Text('Cá nhân')),
       body: RefreshIndicator(
         onRefresh: refreshProfile,
         child: ListView(
-          physics:
-              const AlwaysScrollableScrollPhysics(),
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(20),
           children: [
             buildHeader(),
@@ -1021,8 +975,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               buildActionTile(
                 icon: Icons.lock_reset_rounded,
                 title: 'Đổi mật khẩu',
-                subtitle:
-                    'Cập nhật mật khẩu đăng nhập tài khoản',
+                subtitle: 'Cập nhật mật khẩu đăng nhập tài khoản',
                 onTap: openChangePasswordDialog,
               ),
             ],

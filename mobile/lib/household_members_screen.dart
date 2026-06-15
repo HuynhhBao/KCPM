@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'app_theme.dart';
 import 'services/api_service.dart';
 import 'models/household.dart';
 
@@ -16,12 +17,10 @@ class HouseholdMembersScreen extends StatefulWidget {
   });
 
   @override
-  State<HouseholdMembersScreen> createState() =>
-      _HouseholdMembersScreenState();
+  State<HouseholdMembersScreen> createState() => _HouseholdMembersScreenState();
 }
 
-class _HouseholdMembersScreenState
-    extends State<HouseholdMembersScreen> {
+class _HouseholdMembersScreenState extends State<HouseholdMembersScreen> {
   late dynamic household;
 
   bool isAddingMember = false;
@@ -123,8 +122,7 @@ class _HouseholdMembersScreenState
 
   bool get isCurrentUserOwner {
     for (final member in household.members) {
-      if (getMemberEmail(member) ==
-              widget.currentUserEmail.toLowerCase() &&
+      if (getMemberEmail(member) == widget.currentUserEmail.toLowerCase() &&
           getMemberRole(member) == 'owner') {
         return true;
       }
@@ -137,8 +135,7 @@ class _HouseholdMembersScreenState
     if (!isCurrentUserOwner) return false;
 
     if (!getMemberIsVirtual(member) &&
-        getMemberEmail(member) ==
-            widget.currentUserEmail.toLowerCase()) {
+        getMemberEmail(member) == widget.currentUserEmail.toLowerCase()) {
       return false;
     }
 
@@ -222,8 +219,7 @@ class _HouseholdMembersScreenState
             ),
             ElevatedButton(
               onPressed: () {
-                final value =
-                    emailController.text.trim().toLowerCase();
+                final value = emailController.text.trim().toLowerCase();
 
                 if (value.isEmpty || !value.contains('@')) {
                   return;
@@ -245,8 +241,7 @@ class _HouseholdMembersScreenState
     });
 
     try {
-      final response =
-          await ApiService.addMemberToHousehold(
+      final response = await ApiService.addMemberToHousehold(
         householdId: household.id,
         email: email,
       );
@@ -255,19 +250,15 @@ class _HouseholdMembersScreenState
 
       handleUpdatedHousehold(response);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đã thêm thành viên'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đã thêm thành viên')));
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -361,19 +352,15 @@ class _HouseholdMembersScreenState
 
       handleUpdatedHousehold(response);
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đã tạo thành viên ảo'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đã tạo thành viên ảo')));
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -387,9 +374,7 @@ class _HouseholdMembersScreenState
     if (response['household'] == null) return;
 
     final updatedHousehold = Household.fromJson(
-      Map<String, dynamic>.from(
-        response['household'],
-      ),
+      Map<String, dynamic>.from(response['household']),
     );
 
     setState(() {
@@ -411,11 +396,7 @@ class _HouseholdMembersScreenState
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(
-            isVirtual
-                ? 'Xóa thành viên ảo?'
-                : 'Xóa thành viên?',
-          ),
+          title: Text(isVirtual ? 'Xóa thành viên ảo?' : 'Xóa thành viên?'),
           content: Text(
             isVirtual
                 ? 'Bạn có chắc muốn xóa $memberName khỏi nhóm?\n\nNếu thành viên ảo còn công nợ chưa thanh toán, hệ thống sẽ không cho xóa.'
@@ -429,9 +410,7 @@ class _HouseholdMembersScreenState
               child: const Text('Hủy'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () {
                 Navigator.pop(context, true);
               },
@@ -450,8 +429,7 @@ class _HouseholdMembersScreenState
     });
 
     try {
-      final response =
-          await ApiService.kickMemberFromHousehold(
+      final response = await ApiService.kickMemberFromHousehold(
         householdId: household.id,
         memberId: memberId,
       );
@@ -463,20 +441,16 @@ class _HouseholdMembersScreenState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            isVirtual
-                ? 'Đã xóa thành viên ảo'
-                : 'Đã xóa thành viên khỏi nhóm',
+            isVirtual ? 'Đã xóa thành viên ảo' : 'Đã xóa thành viên khỏi nhóm',
           ),
         ),
       );
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -489,10 +463,7 @@ class _HouseholdMembersScreenState
 
   Widget buildRoleBadge(String label, Color color) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 5,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(999),
@@ -534,18 +505,16 @@ class _HouseholdMembersScreenState
         return 1;
       }
 
-      return getMemberName(a).compareTo(
-        getMemberName(b),
-      );
+      return getMemberName(a).compareTo(getMemberName(b));
     });
 
     final isAdding = isAddingMember || isAddingVirtualMember;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F6FA),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Thành viên'),
-        backgroundColor: const Color(0xFFF4F6FA),
+        backgroundColor: AppColors.background,
         elevation: 0,
         actions: [
           if (isCurrentUserOwner)
@@ -556,16 +525,12 @@ class _HouseholdMembersScreenState
                       child: SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2),
                       ),
                     ),
                   )
                 : PopupMenuButton<String>(
-                    icon: const Icon(
-                      Icons.person_add_alt_1_rounded,
-                    ),
+                    icon: const Icon(Icons.person_add_alt_1_rounded),
                     onSelected: (value) {
                       if (value == 'real') {
                         showAddMemberDialog();
@@ -611,17 +576,12 @@ class _HouseholdMembersScreenState
               isKickingMember && kickingMemberId == memberId;
 
           return Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 14,
-              vertical: 12,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: isVirtual
-                    ? const Color(0xFFBAE6FD)
-                    : Colors.transparent,
+                color: isVirtual ? const Color(0xFFBAE6FD) : AppColors.border,
               ),
             ),
             child: Row(
@@ -630,8 +590,7 @@ class _HouseholdMembersScreenState
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         getMemberName(member),
@@ -659,17 +618,10 @@ class _HouseholdMembersScreenState
                     ],
                   ),
                 ),
-                if (isVirtual)
-                  buildRoleBadge(
-                    'Ảo',
-                    const Color(0xFF0284C7),
-                  ),
+                if (isVirtual) buildRoleBadge('Ảo', const Color(0xFF0284C7)),
                 if (role == 'owner') ...[
                   const SizedBox(width: 8),
-                  buildRoleBadge(
-                    'Owner',
-                    Colors.amber,
-                  ),
+                  buildRoleBadge('Owner', Colors.amber),
                 ],
                 if (canKickMember(member))
                   isCurrentKicking
@@ -678,15 +630,11 @@ class _HouseholdMembersScreenState
                           child: SizedBox(
                             width: 18,
                             height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                            ),
+                            child: CircularProgressIndicator(strokeWidth: 2),
                           ),
                         )
                       : PopupMenuButton<String>(
-                          icon: const Icon(
-                            Icons.more_horiz_rounded,
-                          ),
+                          icon: const Icon(Icons.more_horiz_rounded),
                           onSelected: (value) {
                             if (value == 'kick') {
                               confirmKickMember(member);

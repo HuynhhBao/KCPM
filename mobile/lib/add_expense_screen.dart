@@ -11,11 +11,7 @@ class AddExpenseScreen extends StatefulWidget {
   final Household household;
   final Expense? expense;
 
-  const AddExpenseScreen({
-    super.key,
-    required this.household,
-    this.expense,
-  });
+  const AddExpenseScreen({super.key, required this.household, this.expense});
 
   @override
   State<AddExpenseScreen> createState() => _AddExpenseScreenState();
@@ -39,14 +35,10 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
     if (isEditMode) {
       titleController.text = widget.expense!.title;
-      amountController.text = formatInputAmount(
-        widget.expense!.amount,
-      );
+      amountController.text = formatInputAmount(widget.expense!.amount);
       noteController.text = widget.expense!.note;
 
-      final parsedExpenseDate = DateTime.tryParse(
-        widget.expense!.expenseDate,
-      );
+      final parsedExpenseDate = DateTime.tryParse(widget.expense!.expenseDate);
 
       if (parsedExpenseDate != null) {
         selectedExpenseDate = parsedExpenseDate;
@@ -59,18 +51,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
       selectedParticipants.addAll(
         widget.household.members.where(
-          (member) => participantUserIds.contains(
-            getMemberId(member),
-          ),
+          (member) => participantUserIds.contains(getMemberId(member)),
         ),
       );
     }
 
-    if (selectedParticipants.isEmpty &&
-        widget.household.members.isNotEmpty) {
-      selectedParticipants.addAll(
-        widget.household.members,
-      );
+    if (selectedParticipants.isEmpty && widget.household.members.isNotEmpty) {
+      selectedParticipants.addAll(widget.household.members);
     }
   }
 
@@ -89,10 +76,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   }
 
   String formatMoney(double amount) {
-    return amount.toStringAsFixed(0).replaceAllMapped(
-          RegExp(r'\B(?=(\d{3})+(?!\d))'),
-          (match) => '.',
-        );
+    return amount
+        .toStringAsFixed(0)
+        .replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (match) => '.');
   }
 
   String formatApiDate(DateTime date) {
@@ -117,9 +103,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
     final picked = await showDatePicker(
       context: context,
-      initialDate: selectedExpenseDate.isAfter(now)
-          ? now
-          : selectedExpenseDate,
+      initialDate: selectedExpenseDate.isAfter(now) ? now : selectedExpenseDate,
       firstDate: DateTime(2000),
       lastDate: now,
       helpText: 'Chọn ngày chi',
@@ -268,8 +252,8 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         backgroundColor: isVirtual
             ? const Color(0xFFE0F2FE)
             : isSelected
-                ? AppColors.primary
-                : AppColors.primary.withValues(alpha: 0.12),
+            ? AppColors.primary
+            : AppColors.primary.withValues(alpha: 0.12),
         child: isVirtual
             ? const Icon(
                 Icons.person_outline_rounded,
@@ -319,9 +303,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   double get sharePreview {
     final amount = parseAmount(amountController.text);
 
-    if (amount == null ||
-        amount <= 0 ||
-        selectedParticipants.isEmpty) {
+    if (amount == null || amount <= 0 || selectedParticipants.isEmpty) {
       return 0;
     }
 
@@ -392,11 +374,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
       if (!mounted) return;
 
-      showMessage(
-        isEditMode
-            ? 'Đã cập nhật khoản chi'
-            : 'Đã thêm khoản chi',
-      );
+      showMessage(isEditMode ? 'Đã cập nhật khoản chi' : 'Đã thêm khoản chi');
 
       Navigator.pop(context, true);
     } catch (e) {
@@ -411,9 +389,9 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   }
 
   void showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Widget buildAmountCard() {
@@ -422,6 +400,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [
+            AppColors.primaryDark,
             AppColors.primary,
             AppColors.secondary,
           ],
@@ -429,6 +408,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.18),
+            blurRadius: 26,
+            offset: const Offset(0, 14),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -465,9 +451,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     controller: amountController,
                     enabled: !isLoading,
                     keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                    ],
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     onChanged: (_) => setState(() {}),
                     style: const TextStyle(
                       color: AppColors.textDark,
@@ -528,17 +512,14 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       ),
       decoration: InputDecoration(
         hintText: hint,
+        fillColor: Colors.white,
         prefixIcon: Padding(
           padding: EdgeInsets.only(
             left: 16,
             right: 12,
             top: isMultiline ? 18 : 0,
           ),
-          child: Icon(
-            icon,
-            color: AppColors.textLight,
-            size: 22,
-          ),
+          child: Icon(icon, color: AppColors.textLight, size: 22),
         ),
         prefixIconConstraints: BoxConstraints(
           minWidth: 50,
@@ -578,6 +559,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(22),
           border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryDark.withValues(alpha: 0.035),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -588,10 +576,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                 color: AppColors.primary.withValues(alpha: 0.10),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Icon(
-                Icons.event_rounded,
-                color: AppColors.primary,
-              ),
+              child: const Icon(Icons.event_rounded, color: AppColors.primary),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -635,16 +620,11 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       decoration: BoxDecoration(
         color: AppColors.primary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.16),
-        ),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.16)),
       ),
       child: const Row(
         children: [
-          Icon(
-            Icons.call_split_rounded,
-            color: AppColors.primary,
-          ),
+          Icon(Icons.call_split_rounded, color: AppColors.primary),
           SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -702,6 +682,15 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             color: isSelected ? AppColors.primary : AppColors.border,
             width: isSelected ? 1.4 : 1,
           ),
+          boxShadow: [
+            BoxShadow(
+              color: isSelected
+                  ? AppColors.primary.withValues(alpha: 0.08)
+                  : AppColors.primaryDark.withValues(alpha: 0.025),
+              blurRadius: 14,
+              offset: const Offset(0, 7),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -794,11 +783,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                   color: Colors.white,
                 ),
               )
-            : Text(
-                isEditMode
-                    ? 'Lưu thay đổi'
-                    : 'Lưu khoản chi',
-              ),
+            : Text(isEditMode ? 'Lưu thay đổi' : 'Lưu khoản chi'),
       ),
     );
   }
@@ -811,11 +796,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         titleSpacing: 20,
-        title: Text(
-          isEditMode
-              ? 'Sửa khoản chi'
-              : 'Thêm khoản chi',
-        ),
+        title: Text(isEditMode ? 'Sửa khoản chi' : 'Thêm khoản chi'),
       ),
       body: SafeArea(
         child: hasMembers
@@ -852,13 +833,12 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
                     ),
                   ),
                   Container(
-                    padding:
-                        const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
                     decoration: BoxDecoration(
-                      color: AppColors.background,
+                      color: Colors.white.withValues(alpha: 0.96),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.04),
+                          color: AppColors.primaryDark.withValues(alpha: 0.06),
                           blurRadius: 18,
                           offset: const Offset(0, -6),
                         ),
@@ -871,8 +851,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
             : const AppEmptyState(
                 icon: Icons.people_outline_rounded,
                 title: 'Chưa có thành viên',
-                message:
-                    'Nhóm cần có thành viên trước khi tạo khoản chi.',
+                message: 'Nhóm cần có thành viên trước khi tạo khoản chi.',
               ),
       ),
     );

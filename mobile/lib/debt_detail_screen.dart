@@ -82,9 +82,9 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
 
   String formatMoney(int amount) {
     return amount.toString().replaceAllMapped(
-          RegExp(r'\B(?=(\d{3})+(?!\d))'),
-          (_) => '.',
-        );
+      RegExp(r'\B(?=(\d{3})+(?!\d))'),
+      (_) => '.',
+    );
   }
 
   String formatDate(dynamic value) {
@@ -201,9 +201,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
         householdId: widget.householdId,
         receiverId: widget.otherUserId,
         amount: amount,
-        paymentMode: amount == currentDebt
-            ? 'full'
-            : 'custom_amount',
+        paymentMode: amount == currentDebt ? 'full' : 'custom_amount',
         note: amount == currentDebt
             ? 'Thanh toán toàn bộ công nợ'
             : 'Thanh toán trước công nợ',
@@ -212,9 +210,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
       if (!mounted) return false;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đã gửi yêu cầu xác nhận thanh toán.'),
-        ),
+        const SnackBar(content: Text('Đã gửi yêu cầu xác nhận thanh toán.')),
       );
 
       await reloadDetail();
@@ -222,9 +218,9 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     } catch (e) {
       if (!mounted) return false;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
 
       return false;
     } finally {
@@ -237,9 +233,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
   }
 
   Future<void> confirmPendingPayment() async {
-    final payment = Map<String, dynamic>.from(
-      detail['pending_payment'] ?? {},
-    );
+    final payment = Map<String, dynamic>.from(detail['pending_payment'] ?? {});
 
     final paymentId = readText(payment['id']);
     if (paymentId.isEmpty) return;
@@ -249,26 +243,21 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     });
 
     try {
-      await ApiService.confirmPayment(
-        paymentId,
-        note: 'Đã nhận tiền',
-      );
+      await ApiService.confirmPayment(paymentId, note: 'Đã nhận tiền');
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đã xác nhận nhận tiền.'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đã xác nhận nhận tiền.')));
 
       await reloadDetail();
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -299,9 +288,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
 
     if (virtualUserId == null || virtualUserId <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Không xác định được thành viên ảo.'),
-        ),
+        const SnackBar(content: Text('Không xác định được thành viên ảo.')),
       );
       return false;
     }
@@ -337,9 +324,9 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     } catch (e) {
       if (!mounted) return false;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
 
       return false;
     } finally {
@@ -368,18 +355,16 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đã đánh dấu xử lý ngoài đời.'),
-        ),
+        const SnackBar(content: Text('Đã đánh dấu xử lý ngoài đời.')),
       );
 
       await reloadDetail();
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -397,21 +382,17 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
 
     final avatarUrl = widget.isVirtualMode
         ? ''
-        : ApiService.resolveMediaUrl(
-            readText(detail['other_avatar']),
-          );
+        : ApiService.resolveMediaUrl(readText(detail['other_avatar']));
 
     final netAmount = readInt(detail['net_amount']);
     final netDirection = readText(detail['net_direction']);
     final pendingPayment = detail['pending_payment'];
     final canPayNow = detail['can_pay_now'] == true;
-    final isOtherVirtual =
-      detail['is_virtual'] == true || widget.isVirtualMode;
+    final isOtherVirtual = detail['is_virtual'] == true || widget.isVirtualMode;
     final unpaidItems = readMapList(detail['unpaid_items']);
     final paidItems = readMapList(detail['paid_items']);
 
-    final isIOwe =
-        netDirection == 'i_owe' || netDirection == 'virtual_owes';
+    final isIOwe = netDirection == 'i_owe' || netDirection == 'virtual_owes';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -419,59 +400,50 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
         backgroundColor: AppColors.background,
         elevation: 0,
         title: Text(
-          widget.isVirtualMode
-              ? 'Công nợ thành viên ảo'
-              : 'Chi tiết công nợ',
+          widget.isVirtualMode ? 'Công nợ thành viên ảo' : 'Chi tiết công nợ',
           style: const TextStyle(
             color: AppColors.textDark,
             fontWeight: FontWeight.w900,
           ),
         ),
-        iconTheme: const IconThemeData(
-          color: AppColors.textDark,
-        ),
+        iconTheme: const IconThemeData(color: AppColors.textDark),
       ),
       body: isLoading
-          ? const AppLoadingState(
-              message: 'Đang tải chi tiết công nợ...',
-            )
+          ? const AppLoadingState(message: 'Đang tải chi tiết công nợ...')
           : errorMessage.isNotEmpty
-              ? AppErrorState(
-                  message: errorMessage,
-                  onRetry: reloadDetail,
-                )
-              : netAmount <= 0
-                  ? AppEmptyState(
-                      icon: Icons.check_circle_rounded,
-                      title: 'Đã thanh toán xong',
-                      message:
-                          'Hiện không còn công nợ cần xử lý giữa hai thành viên này.',
-                      buttonText: 'Tải lại',
-                      onPressed: reloadDetail,
-                    )
-                  : RefreshIndicator(
-                      onRefresh: reloadDetail,
-                      color: AppColors.primary,
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                        children: [
-                          buildHeroCard(
-                            name: name,
-                            avatarUrl: avatarUrl,
-                            netAmount: netAmount,
-                            isIOwe: isIOwe,
-                            pendingPayment: pendingPayment,
-                            canPayNow: canPayNow,
-                            isOtherVirtual: isOtherVirtual,
-                          ),
-                          const SizedBox(height: 14),
-                          buildDebtSectionsCard(
-                            unpaidItems: unpaidItems,
-                            paidItems: paidItems,
-                          ),
-                        ],
-                      ),
-                    ),
+          ? AppErrorState(message: errorMessage, onRetry: reloadDetail)
+          : netAmount <= 0
+          ? AppEmptyState(
+              icon: Icons.check_circle_rounded,
+              title: 'Đã thanh toán xong',
+              message:
+                  'Hiện không còn công nợ cần xử lý giữa hai thành viên này.',
+              buttonText: 'Tải lại',
+              onPressed: reloadDetail,
+            )
+          : RefreshIndicator(
+              onRefresh: reloadDetail,
+              color: AppColors.primary,
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                children: [
+                  buildHeroCard(
+                    name: name,
+                    avatarUrl: avatarUrl,
+                    netAmount: netAmount,
+                    isIOwe: isIOwe,
+                    pendingPayment: pendingPayment,
+                    canPayNow: canPayNow,
+                    isOtherVirtual: isOtherVirtual,
+                  ),
+                  const SizedBox(height: 14),
+                  buildDebtSectionsCard(
+                    unpaidItems: unpaidItems,
+                    paidItems: paidItems,
+                  ),
+                ],
+              ),
+            ),
     );
   }
 
@@ -481,9 +453,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     required bool isVirtual,
     required bool isIOwe,
   }) {
-    final letter = name.trim().isNotEmpty
-        ? name.trim()[0].toUpperCase()
-        : '?';
+    final letter = name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : '?';
 
     Widget fallbackAvatar() {
       return Container(
@@ -493,8 +463,8 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
           color: isVirtual
               ? const Color(0xFFE0F2FE)
               : isIOwe
-                  ? Colors.redAccent.withValues(alpha: 0.10)
-                  : AppColors.primary.withValues(alpha: 0.10),
+              ? Colors.redAccent.withValues(alpha: 0.10)
+              : AppColors.primary.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(22),
         ),
         child: Center(
@@ -554,16 +524,16 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     final titleName = name.isEmpty ? 'thành viên này' : name;
 
     final headline = widget.isVirtualMode
-      ? 'Công nợ với $titleName'
-      : isIOwe
-          ? 'Bạn còn nợ $titleName'
-          : '$titleName còn nợ bạn';
+        ? 'Công nợ với $titleName'
+        : isIOwe
+        ? 'Bạn còn nợ $titleName'
+        : '$titleName còn nợ bạn';
 
     final amountLabel = widget.isVirtualMode
         ? 'Số tiền cần xử lý'
         : isIOwe
-            ? 'Số tiền còn nợ'
-            : 'Số tiền được nhận';
+        ? 'Số tiền còn nợ'
+        : 'Số tiền được nhận';
 
     String buttonText;
     VoidCallback? onPressed;
@@ -596,11 +566,15 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
               };
         buttonColor = AppColors.primary;
       } else {
-        buttonText =
-            hasPendingPayment ? 'Xác nhận đã nhận tiền' : 'Chưa có yêu cầu thanh toán';
-        onPressed =
-            (hasPendingPayment && !isSubmitting) ? confirmPendingPayment : null;
-        buttonColor = hasPendingPayment ? AppColors.primary : AppColors.textLight;
+        buttonText = hasPendingPayment
+            ? 'Xác nhận đã nhận tiền'
+            : 'Chưa có yêu cầu thanh toán';
+        onPressed = (hasPendingPayment && !isSubmitting)
+            ? confirmPendingPayment
+            : null;
+        buttonColor = hasPendingPayment
+            ? AppColors.primary
+            : AppColors.textLight;
       }
     }
 
@@ -612,9 +586,9 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
         border: Border.all(color: AppColors.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.035),
-            blurRadius: 22,
-            offset: const Offset(0, 10),
+            color: AppColors.primaryDark.withValues(alpha: 0.045),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
           ),
         ],
       ),
@@ -670,8 +644,9 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: buttonColor,
                 foregroundColor: Colors.white,
-                disabledBackgroundColor:
-                    AppColors.textLight.withValues(alpha: 0.28),
+                disabledBackgroundColor: AppColors.textLight.withValues(
+                  alpha: 0.28,
+                ),
                 disabledForegroundColor: Colors.white,
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -813,8 +788,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
                         onPressed: isSubmitting
                             ? null
                             : () async {
-                                final success =
-                                    await submitVirtualReceipt();
+                                final success = await submitVirtualReceipt();
 
                                 if (success && sheetContext.mounted) {
                                   Navigator.of(sheetContext).pop();
@@ -833,11 +807,9 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
                           isSubmitting
                               ? 'Đang ghi nhận...'
                               : isFullPayment
-                                  ? 'Ghi nhận đã nhận đủ'
-                                  : 'Ghi nhận nhận trước',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                          ),
+                              ? 'Ghi nhận đã nhận đủ'
+                              : 'Ghi nhận nhận trước',
+                          style: const TextStyle(fontWeight: FontWeight.w900),
                         ),
                       ),
                     ],
@@ -1066,11 +1038,9 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
                           isSubmitting
                               ? 'Đang gửi...'
                               : isFullPayment
-                                  ? 'Báo đã thanh toán toàn bộ'
-                                  : 'Báo đã thanh toán trước',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w900,
-                          ),
+                              ? 'Báo đã thanh toán toàn bộ'
+                              : 'Báo đã thanh toán trước',
+                          style: const TextStyle(fontWeight: FontWeight.w900),
                         ),
                       ),
                     ],
@@ -1104,11 +1074,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
           const SizedBox(height: 10),
           ClipRRect(
             borderRadius: BorderRadius.circular(18),
-            child: Image.network(
-              qrUrl,
-              height: 220,
-              fit: BoxFit.contain,
-            ),
+            child: Image.network(qrUrl, height: 220, fit: BoxFit.contain),
           ),
         ],
       ),
@@ -1125,6 +1091,13 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
         border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryDark.withValues(alpha: 0.03),
+            blurRadius: 18,
+            offset: const Offset(0, 9),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1168,10 +1141,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
             ),
             const SizedBox(width: 8),
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 9,
-                vertical: 4,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
               decoration: BoxDecoration(
                 color: AppColors.background,
                 borderRadius: BorderRadius.circular(999),
@@ -1284,9 +1254,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
       return parts.join(' · ');
     }
 
-    final parts = <String>[
-      'Tổng nợ: ${formatMoney(originalAmount)}đ',
-    ];
+    final parts = <String>['Tổng nợ: ${formatMoney(originalAmount)}đ'];
 
     if (paidAmount > 0) {
       parts.add('Đã trả trước: ${formatMoney(paidAmount)}đ');
@@ -1312,14 +1280,8 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     List<Map<String, dynamic>> items,
   ) {
     final historyItems = [
-      ...timeline.map((item) => {
-            ...item,
-            '_history_type': 'payment',
-          }),
-      ...items.map((item) => {
-            ...item,
-            '_history_type': 'debt',
-          }),
+      ...timeline.map((item) => {...item, '_history_type': 'payment'}),
+      ...items.map((item) => {...item, '_history_type': 'debt'}),
     ];
 
     return Container(
@@ -1356,16 +1318,10 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
               final isLast = index == historyItems.length - 1;
 
               if (item['_history_type'] == 'payment') {
-                return buildPaymentHistoryRow(
-                  item,
-                  isLast: isLast,
-                );
+                return buildPaymentHistoryRow(item, isLast: isLast);
               }
 
-              return buildDebtHistoryRow(
-                item,
-                isLast: isLast,
-              );
+              return buildDebtHistoryRow(item, isLast: isLast);
             }),
         ],
       ),
@@ -1383,8 +1339,8 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     final statusText = status == 'confirmed'
         ? 'Đã xác nhận'
         : status == 'pending'
-            ? 'Chờ xác nhận'
-            : 'Đã từ chối';
+        ? 'Chờ xác nhận'
+        : 'Đã từ chối';
 
     return buildHistoryRow(
       initial: 'T',
@@ -1549,15 +1505,8 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
         ),
         if (!isLast)
           const Padding(
-            padding: EdgeInsets.only(
-              left: 72,
-              top: 16,
-              bottom: 16,
-            ),
-            child: Divider(
-              height: 1,
-              color: AppColors.border,
-            ),
+            padding: EdgeInsets.only(left: 72, top: 16, bottom: 16),
+            child: Divider(height: 1, color: AppColors.border),
           ),
       ],
     );

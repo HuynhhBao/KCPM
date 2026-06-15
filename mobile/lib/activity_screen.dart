@@ -9,10 +9,7 @@ import 'widgets/app_loading_state.dart';
 class ActivityScreen extends StatefulWidget {
   final String? householdId;
 
-  const ActivityScreen({
-    super.key,
-    this.householdId,
-  });
+  const ActivityScreen({super.key, this.householdId});
 
   @override
   State<ActivityScreen> createState() => _ActivityScreenState();
@@ -43,11 +40,9 @@ class _ActivityScreenState extends State<ActivityScreen>
   List<dynamic> activities = [];
   List<dynamic> notifications = [];
 
-  final ScrollController activityScrollController =
-      ScrollController();
+  final ScrollController activityScrollController = ScrollController();
 
-  final ScrollController notificationScrollController =
-      ScrollController();
+  final ScrollController notificationScrollController = ScrollController();
 
   bool get isGroupOnly => widget.householdId != null;
 
@@ -55,10 +50,7 @@ class _ActivityScreenState extends State<ActivityScreen>
   void initState() {
     super.initState();
 
-    tabController = TabController(
-      length: isGroupOnly ? 1 : 2,
-      vsync: this,
-    );
+    tabController = TabController(length: isGroupOnly ? 1 : 2, vsync: this);
 
     activityScrollController.addListener(() {
       if (activityScrollController.position.pixels >=
@@ -103,17 +95,10 @@ class _ActivityScreenState extends State<ActivityScreen>
 
     try {
       final response = isGroupOnly
-          ? await ApiService.getActivities(
-              widget.householdId!,
-              page: 1,
-            )
-          : await ApiService.getAllActivities(
-              page: 1,
-            );
+          ? await ApiService.getActivities(widget.householdId!, page: 1)
+          : await ApiService.getAllActivities(page: 1);
 
-      final data = List<dynamic>.from(
-        response['results'],
-      );
+      final data = List<dynamic>.from(response['results']);
 
       if (!mounted) return;
 
@@ -152,17 +137,10 @@ class _ActivityScreenState extends State<ActivityScreen>
       final nextPage = activityPage + 1;
 
       final response = isGroupOnly
-          ? await ApiService.getActivities(
-              widget.householdId!,
-              page: nextPage,
-            )
-          : await ApiService.getAllActivities(
-              page: nextPage,
-            );
+          ? await ApiService.getActivities(widget.householdId!, page: nextPage)
+          : await ApiService.getAllActivities(page: nextPage);
 
-      final newItems = List<dynamic>.from(
-        response['results'],
-      );
+      final newItems = List<dynamic>.from(response['results']);
 
       if (!mounted) return;
 
@@ -197,13 +175,9 @@ class _ActivityScreenState extends State<ActivityScreen>
     });
 
     try {
-      final response = await ApiService.getNotifications(
-        page: 1,
-      );
+      final response = await ApiService.getNotifications(page: 1);
 
-      final data = List<dynamic>.from(
-        response['results'],
-      );
+      final data = List<dynamic>.from(response['results']);
 
       if (!mounted) return;
 
@@ -242,13 +216,9 @@ class _ActivityScreenState extends State<ActivityScreen>
     try {
       final nextPage = notificationPage + 1;
 
-      final response = await ApiService.getNotifications(
-        page: nextPage,
-      );
+      final response = await ApiService.getNotifications(page: nextPage);
 
-      final newItems = List<dynamic>.from(
-        response['results'],
-      );
+      final newItems = List<dynamic>.from(response['results']);
 
       if (!mounted) return;
 
@@ -315,27 +285,27 @@ class _ActivityScreenState extends State<ActivityScreen>
   Color getIconColor(String type) {
     switch (type) {
       case 'group_created':
-        return Colors.indigo;
+        return AppColors.info;
       case 'expense_created':
         return AppColors.primary;
       case 'expense_updated':
-        return Colors.amber.shade800;
+        return AppColors.warning;
       case 'expense_deleted':
-        return Colors.red;
+        return AppColors.danger;
       case 'member_joined':
       case 'added_to_group':
       case 'member_added_to_group':
-        return Colors.blue;
+        return AppColors.info;
       case 'debt_created':
-        return Colors.deepOrange;
+        return AppColors.warning;
       case 'payment_received':
       case 'payment_sent':
       case 'payment_created':
       case 'payment_confirmed':
-        return Colors.green;
+        return AppColors.success;
       case 'debt_reminder_received':
       case 'debt_reminder_sent':
-        return Colors.orange;
+        return AppColors.warning;
       default:
         return AppColors.textLight;
     }
@@ -346,10 +316,7 @@ class _ActivityScreenState extends State<ActivityScreen>
 
     final value = amount.toString().split('.').first;
 
-    return '${value.replaceAllMapped(
-      RegExp(r'\B(?=(\d{3})+(?!\d))'),
-      (match) => '.',
-    )}đ';
+    return '${value.replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (match) => '.')}đ';
   }
 
   String formatTime(dynamic value) {
@@ -441,16 +408,18 @@ class _ActivityScreenState extends State<ActivityScreen>
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: isUnread ? AppColors.primary.withValues(alpha: 0.05) : Colors.white,
+        color: isUnread
+            ? AppColors.primary.withValues(alpha: 0.05)
+            : Colors.white,
         borderRadius: BorderRadius.circular(24),
         border: Border.all(
           color: isUnread
               ? AppColors.primary.withValues(alpha: 0.22)
-              : Colors.transparent,
+              : AppColors.border,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
+            color: AppColors.primaryDark.withValues(alpha: 0.035),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -469,10 +438,7 @@ class _ActivityScreenState extends State<ActivityScreen>
                   color: iconColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(18),
                 ),
-                child: Icon(
-                  icon,
-                  color: iconColor,
-                ),
+                child: Icon(icon, color: iconColor),
               ),
               if (isUnread)
                 Positioned(
@@ -548,9 +514,7 @@ class _ActivityScreenState extends State<ActivityScreen>
                       const SizedBox(width: 8),
                       const Text(
                         '•',
-                        style: TextStyle(
-                          color: AppColors.textLight,
-                        ),
+                        style: TextStyle(color: AppColors.textLight),
                       ),
                       const SizedBox(width: 8),
                     ],
@@ -590,16 +554,11 @@ class _ActivityScreenState extends State<ActivityScreen>
     required VoidCallback onLoadMoreRetry,
   }) {
     if (isLoading) {
-      return const AppLoadingState(
-        message: 'Đang tải dữ liệu...',
-      );
+      return const AppLoadingState(message: 'Đang tải dữ liệu...');
     }
 
     if (errorMessage != null) {
-      return AppErrorState(
-        message: errorMessage,
-        onRetry: onRetry,
-      );
+      return AppErrorState(message: errorMessage, onRetry: onRetry);
     }
 
     if (items.isEmpty) {
@@ -607,13 +566,10 @@ class _ActivityScreenState extends State<ActivityScreen>
         onRefresh: refreshCurrent,
         child: ListView(
           controller: controller,
-          physics:
-              const AlwaysScrollableScrollPhysics(),
+          physics: const AlwaysScrollableScrollPhysics(),
           children: [
             SizedBox(
-              height:
-                  MediaQuery.of(context).size.height *
-                  0.62,
+              height: MediaQuery.of(context).size.height * 0.62,
               child: AppEmptyState(
                 icon: emptyIcon,
                 title: emptyTitle,
@@ -629,13 +585,10 @@ class _ActivityScreenState extends State<ActivityScreen>
       onRefresh: refreshCurrent,
       child: ListView.separated(
         controller: controller,
-        physics:
-            const AlwaysScrollableScrollPhysics(),
-        padding:
-            const EdgeInsets.fromLTRB(20, 18, 20, 110),
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 18, 20, 110),
         itemCount: items.length + 1,
-        separatorBuilder: (context, index) =>
-            const SizedBox(height: 14),
+        separatorBuilder: (context, index) => const SizedBox(height: 14),
         itemBuilder: (context, index) {
           if (index < items.length) {
             return builder(items[index]);
@@ -644,9 +597,7 @@ class _ActivityScreenState extends State<ActivityScreen>
           if (isLoadingMore) {
             return const Padding(
               padding: EdgeInsets.symmetric(vertical: 18),
-              child: Center(
-                child: CircularProgressIndicator(),
-              ),
+              child: Center(child: CircularProgressIndicator()),
             );
           }
 
@@ -742,21 +693,12 @@ class _ActivityScreenState extends State<ActivityScreen>
   @override
   Widget build(BuildContext context) {
     final tabs = isGroupOnly
-        ? const [
-            Tab(text: 'Hoạt động nhóm'),
-          ]
-        : const [
-            Tab(text: 'Hoạt động chung'),
-            Tab(text: 'Thông báo riêng'),
-          ];
+        ? const [Tab(text: 'Hoạt động nhóm')]
+        : const [Tab(text: 'Hoạt động chung'), Tab(text: 'Thông báo riêng')];
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: isGroupOnly
-          ? AppBar(
-              title: const Text('Hoạt động'),
-            )
-          : null,
+      appBar: isGroupOnly ? AppBar(title: const Text('Hoạt động')) : null,
       body: SafeArea(
         child: Column(
           children: [
@@ -790,7 +732,6 @@ class _ActivityScreenState extends State<ActivityScreen>
                 controller: tabController,
                 children: isGroupOnly
                     ? [
-                        
                         buildList(
                           isLoading: isLoadingActivities,
                           items: activities,
@@ -830,8 +771,7 @@ class _ActivityScreenState extends State<ActivityScreen>
                           items: notifications,
                           errorMessage: notificationError,
                           onRetry: loadNotifications,
-                          emptyIcon:
-                              Icons.notifications_none_rounded,
+                          emptyIcon: Icons.notifications_none_rounded,
                           controller: notificationScrollController,
                           isLoadingMore: isLoadingMoreNotifications,
                           hasMore: hasMoreNotifications,

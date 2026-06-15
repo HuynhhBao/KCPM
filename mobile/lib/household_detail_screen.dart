@@ -14,22 +14,15 @@ import 'package:flutter/services.dart';
 import 'household_members_screen.dart';
 import 'debt_detail_screen.dart';
 
-enum _DebtViewMode {
-  currentUser,
-  virtualMember,
-}
+enum _DebtViewMode { currentUser, virtualMember }
 
 class HouseholdDetailScreen extends StatefulWidget {
   final Household household;
 
-  const HouseholdDetailScreen({
-    super.key,
-    required this.household,
-  });
+  const HouseholdDetailScreen({super.key, required this.household});
 
   @override
-  State<HouseholdDetailScreen> createState() =>
-      _HouseholdDetailScreenState();
+  State<HouseholdDetailScreen> createState() => _HouseholdDetailScreenState();
 }
 
 class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
@@ -64,8 +57,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
 
   String currentUserEmail = '';
 
-  final ScrollController scrollController =
-      ScrollController();
+  final ScrollController scrollController = ScrollController();
 
   static const int expensePageSize = 5;
 
@@ -100,15 +92,12 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     return household.members.any(
       (member) =>
           member.role == 'owner' &&
-          member.userEmail.trim().toLowerCase() ==
-              currentUserEmail,
+          member.userEmail.trim().toLowerCase() == currentUserEmail,
     );
   }
 
   bool isVirtualMember(dynamic member) {
-    final email = getMemberEmail(member)
-        .trim()
-        .toLowerCase();
+    final email = getMemberEmail(member).trim().toLowerCase();
 
     return email.endsWith('@virtual.chungvi.local');
   }
@@ -153,9 +142,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     return null;
   }
 
-  Future<void> loadData({
-    bool showFullLoading = true,
-  }) async {
+  Future<void> loadData({bool showFullLoading = true}) async {
     if (!mounted) return;
 
     if (showFullLoading) {
@@ -179,42 +166,30 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
       } else {
         final profile = await ApiService.getProfile();
 
-        loadedEmail = profile['email']
-                ?.toString()
-                .trim()
-                .toLowerCase() ??
-            '';
+        loadedEmail = profile['email']?.toString().trim().toLowerCase() ?? '';
       }
 
       final responses = await Future.wait<Map<String, dynamic>>([
-        ApiService.getHouseholdDetail(
-          household.id,
-        ),
+        ApiService.getHouseholdDetail(household.id),
         ApiService.getHouseholdExpenses(
           household.id,
           page: 1,
           pageSize: expensePageSize,
         ),
-        ApiService.getHouseholdMyDebtSummary(
-          household.id,
-        ),
+        ApiService.getHouseholdMyDebtSummary(household.id),
       ]);
 
       final householdData = responses[0];
       final expenseResponse = responses[1];
       final debtSummary = responses[2];
 
-      final freshHousehold = Household.fromJson(
-        householdData,
-      );
+      final freshHousehold = Household.fromJson(householdData);
 
-      final loadedExpenses = List<dynamic>.from(
-        expenseResponse['results'],
-      ).map<Expense>(
-        (json) => Expense.fromJson(
-          Map<String, dynamic>.from(json),
-        ),
-      ).toList();
+      final loadedExpenses = List<dynamic>.from(expenseResponse['results'])
+          .map<Expense>(
+            (json) => Expense.fromJson(Map<String, dynamic>.from(json)),
+          )
+          .toList();
 
       double total = 0;
 
@@ -260,9 +235,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
   }
 
   Future<void> refreshData() async {
-    await loadData(
-      showFullLoading: expenses.isEmpty,
-    );
+    await loadData(showFullLoading: expenses.isEmpty);
   }
 
   Future<void> loadVirtualMemberDebtSummary() async {
@@ -279,8 +252,8 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
       return;
     }
 
-    int targetUserId = selectedVirtualUserId ??
-        getMemberUserId(virtualMembers.first);
+    int targetUserId =
+        selectedVirtualUserId ?? getMemberUserId(virtualMembers.first);
 
     final exists = virtualMembers.any(
       (member) => getMemberUserId(member) == targetUserId,
@@ -324,11 +297,9 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
         isLoadingVirtualDebt = false;
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     }
   }
 
@@ -348,20 +319,17 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     try {
       final nextPage = expensePage + 1;
 
-      final response =
-          await ApiService.getHouseholdExpenses(
+      final response = await ApiService.getHouseholdExpenses(
         household.id,
         page: nextPage,
         pageSize: expensePageSize,
       );
 
-      final newExpenses = List<dynamic>.from(
-        response['results'],
-      ).map<Expense>(
-        (json) => Expense.fromJson(
-          Map<String, dynamic>.from(json),
-        ),
-      ).toList();
+      final newExpenses = List<dynamic>.from(response['results'])
+          .map<Expense>(
+            (json) => Expense.fromJson(Map<String, dynamic>.from(json)),
+          )
+          .toList();
 
       double addedTotal = 0;
 
@@ -393,35 +361,22 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
   Future<void> openAddExpenseScreen() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => AddExpenseScreen(
-          household: household,
-        ),
-      ),
+      MaterialPageRoute(builder: (_) => AddExpenseScreen(household: household)),
     );
 
     if (result == true) {
-      await loadData(
-        showFullLoading: false,
-      );
+      await loadData(showFullLoading: false);
     }
   }
 
-  Future<void> openEditExpenseScreen(
-    Expense expense,
-  ) async {
-    if (editingExpenseId != null ||
-        deletingExpenseId != null) {
+  Future<void> openEditExpenseScreen(Expense expense) async {
+    if (editingExpenseId != null || deletingExpenseId != null) {
       return;
     }
 
     if (!expense.canManage) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Bạn không có quyền sửa khoản chi này',
-          ),
-        ),
+        const SnackBar(content: Text('Bạn không có quyền sửa khoản chi này')),
       );
       return;
     }
@@ -431,10 +386,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     });
 
     try {
-      final expenseData =
-          await ApiService.getExpenseDetail(
-        expense.id,
-      );
+      final expenseData = await ApiService.getExpenseDetail(expense.id);
 
       if (!mounted) return;
 
@@ -445,26 +397,20 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
       final result = await Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => AddExpenseScreen(
-            household: household,
-            expense: detailExpense,
-          ),
+          builder: (_) =>
+              AddExpenseScreen(household: household, expense: detailExpense),
         ),
       );
 
       if (result == true) {
-        await loadData(
-          showFullLoading: false,
-        );
+        await loadData(showFullLoading: false);
       }
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -474,21 +420,14 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     }
   }
 
-  Future<void> confirmDeleteExpense(
-    Expense expense,
-  ) async {
-    if (deletingExpenseId != null ||
-        editingExpenseId != null) {
+  Future<void> confirmDeleteExpense(Expense expense) async {
+    if (deletingExpenseId != null || editingExpenseId != null) {
       return;
     }
 
     if (!expense.canManage) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Bạn không có quyền xóa khoản chi này',
-          ),
-        ),
+        const SnackBar(content: Text('Bạn không có quyền xóa khoản chi này')),
       );
       return;
     }
@@ -511,9 +450,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
               child: const Text('Hủy'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () {
                 Navigator.pop(dialogContext, true);
               },
@@ -531,29 +468,21 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     });
 
     try {
-      await ApiService.deleteExpense(
-        expense.id,
-      );
+      await ApiService.deleteExpense(expense.id);
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đã xóa khoản chi'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đã xóa khoản chi')));
 
-      await loadData(
-        showFullLoading: false,
-      );
+      await loadData(showFullLoading: false);
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -566,9 +495,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
   Future<void> showAddMemberDialog() async {
     if (!isCurrentUserOwner) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Chỉ chủ nhóm mới được thêm thành viên'),
-        ),
+        const SnackBar(content: Text('Chỉ chủ nhóm mới được thêm thành viên')),
       );
       return;
     }
@@ -588,18 +515,14 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
 
               if (email.isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Nhập email thành viên'),
-                  ),
+                  const SnackBar(content: Text('Nhập email thành viên')),
                 );
                 return;
               }
 
               if (!email.contains('@')) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Email không hợp lệ'),
-                  ),
+                  const SnackBar(content: Text('Email không hợp lệ')),
                 );
                 return;
               }
@@ -617,22 +540,16 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                 Navigator.pop(dialogContext);
 
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Đã thêm thành viên'),
-                  ),
+                  const SnackBar(content: Text('Đã thêm thành viên')),
                 );
 
-                await loadData(
-                  showFullLoading: false,
-                );
+                await loadData(showFullLoading: false);
               } catch (e) {
                 if (!mounted) return;
 
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(e.toString()),
-                  ),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(SnackBar(content: Text(e.toString())));
               } finally {
                 if (mounted) {
                   setDialogState(() => isAddingMember = false);
@@ -648,9 +565,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.done,
                 onSubmitted: (_) => submit(),
-                decoration: const InputDecoration(
-                  hintText: 'Nhập email...',
-                ),
+                decoration: const InputDecoration(hintText: 'Nhập email...'),
               ),
               actions: [
                 TextButton(
@@ -700,9 +615,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
       ),
     );
 
-    await loadData(
-      showFullLoading: false,
-    );
+    await loadData(showFullLoading: false);
   }
 
   Future<void> confirmLeaveHousehold() async {
@@ -745,38 +658,32 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Bạn đã rời nhóm'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Bạn đã rời nhóm')));
 
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
-        if (mounted) {
-          setState(() {
-            isLeavingHousehold = false;
-          });
-        }
+      if (mounted) {
+        setState(() {
+          isLeavingHousehold = false;
+        });
       }
     }
+  }
 
   Future<void> confirmDeleteHousehold() async {
     if (isDeletingHousehold) return;
 
     if (!isCurrentUserOwner) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Chỉ chủ nhóm mới được xóa nhóm'),
-        ),
+        const SnackBar(content: Text('Chỉ chủ nhóm mới được xóa nhóm')),
       );
       return;
     }
@@ -824,21 +731,17 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đã xóa nhóm'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đã xóa nhóm')));
 
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -857,18 +760,14 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
 
     if (memberId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Không tìm thấy ID thành viên'),
-        ),
+        const SnackBar(content: Text('Không tìm thấy ID thành viên')),
       );
       return;
     }
 
     if (!canKickMember(member)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Không thể xóa thành viên này'),
-        ),
+        const SnackBar(content: Text('Không thể xóa thành viên này')),
       );
       return;
     }
@@ -892,9 +791,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
               child: const Text('Hủy'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-              ),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
               onPressed: () {
                 Navigator.pop(dialogContext, true);
               },
@@ -913,35 +810,28 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     });
 
     try {
-      final response =
-          await ApiService.kickMemberFromHousehold(
+      final response = await ApiService.kickMemberFromHousehold(
         householdId: household.id,
         memberId: memberId,
       );
 
       if (!mounted) return;
 
-      final householdData = Map<String, dynamic>.from(
-        response['household'],
-      );
+      final householdData = Map<String, dynamic>.from(response['household']);
 
       setState(() {
         household = Household.fromJson(householdData);
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đã xóa thành viên khỏi nhóm'),
-        ),
+        const SnackBar(content: Text('Đã xóa thành viên khỏi nhóm')),
       );
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -953,10 +843,9 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
   }
 
   String formatMoney(double amount) {
-    return amount.toStringAsFixed(0).replaceAllMapped(
-          RegExp(r'\B(?=(\d{3})+(?!\d))'),
-          (match) => '.',
-        );
+    return amount
+        .toStringAsFixed(0)
+        .replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (match) => '.');
   }
 
   double readDouble(dynamic value) {
@@ -986,10 +875,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
 
     final text = value.toString().trim().toLowerCase();
 
-    return text == 'true' ||
-        text == '1' ||
-        text == 'yes' ||
-        text == 'y';
+    return text == 'true' || text == '1' || text == 'yes' || text == 'y';
   }
 
   List<Map<String, dynamic>> readMapList(dynamic value) {
@@ -997,9 +883,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
 
     return value
         .whereType<Map>()
-        .map(
-          (item) => Map<String, dynamic>.from(item),
-        )
+        .map((item) => Map<String, dynamic>.from(item))
         .toList();
   }
 
@@ -1014,14 +898,10 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     return 'Thành viên';
   }
 
-  String displayUserName({
-    required String name,
-    required String email,
-  }) {
+  String displayUserName({required String name, required String email}) {
     final normalizedEmail = email.trim().toLowerCase();
 
-    if (normalizedEmail.isNotEmpty &&
-        normalizedEmail == currentUserEmail) {
+    if (normalizedEmail.isNotEmpty && normalizedEmail == currentUserEmail) {
       return 'Bạn';
     }
 
@@ -1066,23 +946,18 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
 
     for (final member in household.members) {
       final memberUserId = getMemberUserId(member);
-      final memberEmail = getMemberEmail(member)
-          .trim()
-          .toLowerCase();
+      final memberEmail = getMemberEmail(member).trim().toLowerCase();
 
-      final matchedById =
-          payerId > 0 && memberUserId == payerId;
+      final matchedById = payerId > 0 && memberUserId == payerId;
 
-      final matchedByEmail =
-          payerEmail.isNotEmpty && memberEmail == payerEmail;
+      final matchedByEmail = payerEmail.isNotEmpty && memberEmail == payerEmail;
 
       if (matchedById || matchedByEmail) {
         return resolveAvatarForMember(member);
       }
     }
 
-    if (payerId > 0 &&
-        !payerEmail.endsWith('@virtual.chungvi.local')) {
+    if (payerId > 0 && !payerEmail.endsWith('@virtual.chungvi.local')) {
       return ApiService.userAvatarUrl(payerId);
     }
 
@@ -1132,13 +1007,10 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
   }
 
   Future<void> openTransferQR(Debt debt) async {
-    if (debt.bankName.isEmpty ||
-        debt.bankAccountNumber.isEmpty) {
+    if (debt.bankName.isEmpty || debt.bankAccountNumber.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Người nhận chưa cập nhật tài khoản ngân hàng',
-          ),
+          content: Text('Người nhận chưa cập nhật tài khoản ngân hàng'),
         ),
       );
 
@@ -1147,13 +1019,9 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
 
     final amount = debt.amount.toInt();
 
-    final encodedMessage = Uri.encodeComponent(
-      'Thanh toan Chung Vi',
-    );
+    final encodedMessage = Uri.encodeComponent('Thanh toan Chung Vi');
 
-    final encodedAccountName = Uri.encodeComponent(
-      debt.bankAccountHolder,
-    );
+    final encodedAccountName = Uri.encodeComponent(debt.bankAccountHolder);
 
     final url =
         'https://img.vietqr.io/image/'
@@ -1172,23 +1040,15 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
 
       if (!launched && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Không thể mở QR chuyển khoản',
-            ),
-          ),
+          const SnackBar(content: Text('Không thể mở QR chuyển khoản')),
         );
       }
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Đã xảy ra lỗi khi mở QR',
-          ),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Đã xảy ra lỗi khi mở QR')));
     }
   }
 
@@ -1256,14 +1116,9 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
   bool canKickMember(dynamic member) {
     if (!isCurrentUserOwner) return false;
 
-    final email = getMemberEmail(member)
-        .trim()
-        .toLowerCase();
+    final email = getMemberEmail(member).trim().toLowerCase();
 
-    final role = member.role
-        .toString()
-        .trim()
-        .toLowerCase();
+    final role = member.role.toString().trim().toLowerCase();
 
     if (email == currentUserEmail) return false;
 
@@ -1278,6 +1133,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [
+            AppColors.primaryDark,
             AppColors.primary,
             AppColors.secondary,
           ],
@@ -1285,6 +1141,13 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.18),
+            blurRadius: 28,
+            offset: const Offset(0, 16),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1310,8 +1173,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      crossAxisAlignment:
-                          CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: Text(
@@ -1328,48 +1190,32 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                         const SizedBox(width: 12),
 
                         InkWell(
-                          borderRadius:
-                              BorderRadius.circular(999),
+                          borderRadius: BorderRadius.circular(999),
                           onTap: () async {
                             await Clipboard.setData(
-                              ClipboardData(
-                                text:
-                                    household.inviteCode,
-                              ),
+                              ClipboardData(text: household.inviteCode),
                             );
 
                             if (!mounted) return;
 
-                            ScaffoldMessenger.of(context)
-                                .showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Đã copy mã mời',
-                                ),
-                              ),
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Đã copy mã mời')),
                             );
                           },
                           child: Container(
-                            padding:
-                                const EdgeInsets.symmetric(
+                            padding: const EdgeInsets.symmetric(
                               horizontal: 12,
                               vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(
-                                alpha: 0.16,
-                              ),
-                              borderRadius:
-                                  BorderRadius.circular(999),
+                              color: Colors.white.withValues(alpha: 0.16),
+                              borderRadius: BorderRadius.circular(999),
                               border: Border.all(
-                                color: Colors.white.withValues(
-                                  alpha: 0.12,
-                                ),
+                                color: Colors.white.withValues(alpha: 0.12),
                               ),
                             ),
                             child: Row(
-                              mainAxisSize:
-                                  MainAxisSize.min,
+                              mainAxisSize: MainAxisSize.min,
                               children: [
                                 const Icon(
                                   Icons.key_rounded,
@@ -1384,8 +1230,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 13,
-                                    fontWeight:
-                                        FontWeight.w800,
+                                    fontWeight: FontWeight.w800,
                                     letterSpacing: 0.5,
                                   ),
                                 ),
@@ -1455,26 +1300,16 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     );
   }
 
-  Widget buildMiniInfo({
-    required IconData icon,
-    required String label,
-  }) {
+  Widget buildMiniInfo({required IconData icon, required String label}) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: 10,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.14),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         children: [
-          Icon(
-            icon,
-            color: Colors.white,
-            size: 18,
-          ),
+          Icon(icon, color: Colors.white, size: 18),
           const SizedBox(width: 8),
           Text(
             label,
@@ -1500,9 +1335,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
         return 1;
       }
 
-      return a.displayName.toString().compareTo(
-            b.displayName.toString(),
-          );
+      return a.displayName.toString().compareTo(b.displayName.toString());
     });
 
     return Container(
@@ -1510,6 +1343,14 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryDark.withValues(alpha: 0.035),
+            blurRadius: 18,
+            offset: const Offset(0, 9),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1544,8 +1385,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: members.length,
-                separatorBuilder: (_, _) =>
-                    const SizedBox(width: 16),
+                separatorBuilder: (_, _) => const SizedBox(width: 16),
                 itemBuilder: (_, index) {
                   final member = members[index];
 
@@ -1569,12 +1409,10 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                                   right: -4,
                                   bottom: -4,
                                   child: Container(
-                                    padding:
-                                        const EdgeInsets.all(4),
+                                    padding: const EdgeInsets.all(4),
                                     decoration: BoxDecoration(
                                       color: Colors.amber,
-                                      borderRadius:
-                                          BorderRadius.circular(999),
+                                      borderRadius: BorderRadius.circular(999),
                                       border: Border.all(
                                         color: Colors.white,
                                         width: 2,
@@ -1631,10 +1469,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     final firstLetter = name.isNotEmpty ? name[0].toUpperCase() : '?';
 
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 14,
-        vertical: 12,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
@@ -1655,9 +1490,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
           ),
           const SizedBox(width: 10),
           ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: 210,
-            ),
+            constraints: const BoxConstraints(maxWidth: 210),
             child: Text(
               email.isNotEmpty ? email : name,
               overflow: TextOverflow.ellipsis,
@@ -1672,12 +1505,8 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     );
   }
 
-  Future<void> openPairDebtDetail(
-    Map<String, dynamic> item,
-  ) async {
-    final otherUserId = readInt(
-      item['other_user_id'],
-    );
+  Future<void> openPairDebtDetail(Map<String, dynamic> item) async {
+    final otherUserId = readInt(item['other_user_id']);
 
     if (otherUserId <= 0 || isLoadingDebtDetail) {
       return;
@@ -1689,8 +1518,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     });
 
     try {
-      final response =
-          await ApiService.getHouseholdMyDebtDetail(
+      final response = await ApiService.getHouseholdMyDebtDetail(
         householdId: household.id,
         otherUserId: otherUserId,
       );
@@ -1714,11 +1542,9 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -1732,24 +1558,15 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
   Widget buildDebtSection() {
     final rawSummary = myDebtSummary ?? {};
 
-    final totalOwe = readDouble(
-      rawSummary['total_i_owe'],
-    );
+    final totalOwe = readDouble(rawSummary['total_i_owe']);
 
-    final totalReceive = readDouble(
-      rawSummary['total_owed_to_me'],
-    );
+    final totalReceive = readDouble(rawSummary['total_owed_to_me']);
 
-    final oweItems = readMapList(
-      rawSummary['i_owe'],
-    );
+    final oweItems = readMapList(rawSummary['i_owe']);
 
-    final receiveItems = readMapList(
-      rawSummary['owed_to_me'],
-    );
+    final receiveItems = readMapList(rawSummary['owed_to_me']);
 
-    final hasDebt =
-        oweItems.isNotEmpty || receiveItems.isNotEmpty;
+    final hasDebt = oweItems.isNotEmpty || receiveItems.isNotEmpty;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1814,12 +1631,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                 color: AppColors.danger,
               ),
               const SizedBox(height: 10),
-              ...oweItems.map(
-                (item) => buildPairDebtRow(
-                  item,
-                  isOwe: true,
-                ),
-              ),
+              ...oweItems.map((item) => buildPairDebtRow(item, isOwe: true)),
               const SizedBox(height: 16),
             ],
 
@@ -1831,10 +1643,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
               ),
               const SizedBox(height: 10),
               ...receiveItems.map(
-                (item) => buildPairDebtRow(
-                  item,
-                  isOwe: false,
-                ),
+                (item) => buildPairDebtRow(item, isOwe: false),
               ),
             ],
           ],
@@ -1851,8 +1660,8 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
 
     final selectedName = isViewingVirtual
         ? selectedVirtualMember == null
-            ? 'Thành viên ảo'
-            : getMemberName(selectedVirtualMember)
+              ? 'Thành viên ảo'
+              : getMemberName(selectedVirtualMember)
         : 'Bạn';
 
     return PopupMenuButton<int>(
@@ -1883,18 +1692,9 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
             value: currentUserMenuValue,
             child: Row(
               children: [
-                Icon(
-                  Icons.person_rounded,
-                  size: 20,
-                  color: AppColors.primary,
-                ),
+                Icon(Icons.person_rounded, size: 20, color: AppColors.primary),
                 SizedBox(width: 10),
-                Text(
-                  'Bạn',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
+                Text('Bạn', style: TextStyle(fontWeight: FontWeight.w800)),
               ],
             ),
           ),
@@ -1923,9 +1723,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                       getMemberName(member),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w800,
-                      ),
+                      style: const TextStyle(fontWeight: FontWeight.w800),
                     ),
                   ),
                 ],
@@ -1937,32 +1735,23 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
         return items;
       },
       child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 8,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
           color: AppColors.background,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: AppColors.border,
-          ),
+          border: Border.all(color: AppColors.border),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              isViewingVirtual
-                  ? Icons.badge_rounded
-                  : Icons.person_rounded,
+              isViewingVirtual ? Icons.badge_rounded : Icons.person_rounded,
               size: 18,
               color: AppColors.primary,
             ),
             const SizedBox(width: 8),
             ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 120,
-              ),
+              constraints: const BoxConstraints(maxWidth: 120),
               child: Text(
                 selectedName,
                 maxLines: 1,
@@ -1997,18 +1786,12 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: color.withValues(alpha: 0.16),
-        ),
+        border: Border.all(color: color.withValues(alpha: 0.16)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            color: color,
-            size: 22,
-          ),
+          Icon(icon, color: color, size: 22),
           const SizedBox(height: 10),
           Text(
             title,
@@ -2042,11 +1825,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
   }) {
     return Row(
       children: [
-        Icon(
-          icon,
-          color: color,
-          size: 18,
-        ),
+        Icon(icon, color: color, size: 18),
         const SizedBox(width: 8),
         Text(
           title,
@@ -2060,10 +1839,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     );
   }
 
-  Widget buildPairDebtRow(
-    Map<String, dynamic> item, {
-    required bool isOwe,
-  }) {
+  Widget buildPairDebtRow(Map<String, dynamic> item, {required bool isOwe}) {
     final name = readDebtUserName(item);
     final rawAvatar = item['other_avatar']?.toString().trim() ?? '';
     final otherUserId = readInt(item['other_user_id']);
@@ -2071,22 +1847,17 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     final avatar = rawAvatar.isNotEmpty
         ? ApiService.resolveMediaUrl(rawAvatar)
         : otherUserId > 0
-            ? ApiService.userAvatarUrl(otherUserId)
-            : '';
+        ? ApiService.userAvatarUrl(otherUserId)
+        : '';
     final amount = readDouble(item['amount']);
     final expenseCount = readInt(item['expense_count']);
     final isLoadingThis =
-        isLoadingDebtDetail &&
-        loadingDebtDetailUserId == otherUserId;
+        isLoadingDebtDetail && loadingDebtDetailUserId == otherUserId;
 
-    final color = isOwe
-        ? AppColors.danger
-        : AppColors.success;
+    final color = isOwe ? AppColors.danger : AppColors.success;
 
     return InkWell(
-      onTap: isLoadingDebtDetail
-          ? null
-          : () => openPairDebtDetail(item),
+      onTap: isLoadingDebtDetail ? null : () => openPairDebtDetail(item),
       borderRadius: BorderRadius.circular(20),
       child: Container(
         margin: const EdgeInsets.only(bottom: 10),
@@ -2097,16 +1868,11 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
         ),
         child: Row(
           children: [
-            buildAvatar(
-              imageUrl: avatar,
-              name: name,
-              radius: 22,
-            ),
+            buildAvatar(imageUrl: avatar, name: name, radius: 22),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
@@ -2130,11 +1896,8 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(
-                              alpha: 0.10,
-                            ),
-                            borderRadius:
-                                BorderRadius.circular(999),
+                            color: AppColors.primary.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(999),
                           ),
                           child: const Text(
                             'Ảo',
@@ -2169,9 +1932,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                   const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.2,
-                    ),
+                    child: CircularProgressIndicator(strokeWidth: 2.2),
                   )
                 else
                   Text(
@@ -2183,11 +1944,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                     ),
                   ),
                 const SizedBox(height: 4),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: color,
-                  size: 20,
-                ),
+                Icon(Icons.chevron_right_rounded, color: color, size: 20),
               ],
             ),
           ],
@@ -2196,22 +1953,14 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     );
   }
 
-  Widget buildPairDebtDetailSheet(
-    Map<String, dynamic> detail,
-  ) {
-    final otherName =
-        detail['other_name']?.toString() ?? 'Thành viên';
+  Widget buildPairDebtDetailSheet(Map<String, dynamic> detail) {
+    final otherName = detail['other_name']?.toString() ?? 'Thành viên';
 
-    final netDirection =
-        detail['net_direction']?.toString() ?? '';
+    final netDirection = detail['net_direction']?.toString() ?? '';
 
-    final netAmount = readDouble(
-      detail['net_amount'],
-    );
+    final netAmount = readDouble(detail['net_amount']);
 
-    final items = readMapList(
-      detail['items'],
-    );
+    final items = readMapList(detail['items']);
 
     final isIOwe = netDirection == 'i_owe';
     final isOwedToMe = netDirection == 'owed_to_me';
@@ -2219,29 +1968,19 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     String summaryText;
 
     if (isIOwe) {
-      summaryText =
-          'Bạn cần trả $otherName ${formatMoney(netAmount)}đ';
+      summaryText = 'Bạn cần trả $otherName ${formatMoney(netAmount)}đ';
     } else if (isOwedToMe) {
-      summaryText =
-          '$otherName cần trả bạn ${formatMoney(netAmount)}đ';
+      summaryText = '$otherName cần trả bạn ${formatMoney(netAmount)}đ';
     } else {
-      summaryText =
-          'Bạn và $otherName không còn chênh lệch công nợ.';
+      summaryText = 'Bạn và $otherName không còn chênh lệch công nợ.';
     }
 
-    final summaryColor = isIOwe
-      ? AppColors.danger
-      : AppColors.success;
+    final summaryColor = isIOwe ? AppColors.danger : AppColors.success;
 
     return SafeArea(
       child: Container(
         margin: const EdgeInsets.all(14),
-        padding: const EdgeInsets.fromLTRB(
-          18,
-          16,
-          18,
-          18,
-        ),
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(28),
@@ -2254,13 +1993,11 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
           ],
         ),
         constraints: BoxConstraints(
-          maxHeight:
-              MediaQuery.of(context).size.height * 0.82,
+          maxHeight: MediaQuery.of(context).size.height * 0.82,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
               child: Container(
@@ -2292,9 +2029,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
               decoration: BoxDecoration(
                 color: summaryColor.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(
-                  color: summaryColor.withValues(alpha: 0.16),
-                ),
+                border: Border.all(color: summaryColor.withValues(alpha: 0.16)),
               ),
               child: Text(
                 summaryText,
@@ -2338,13 +2073,9 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: items.length,
-                  separatorBuilder: (_, _) =>
-                      const SizedBox(height: 10),
+                  separatorBuilder: (_, _) => const SizedBox(height: 10),
                   itemBuilder: (_, index) {
-                    return buildPairDebtDetailItem(
-                      items[index],
-                      otherName,
-                    );
+                    return buildPairDebtDetailItem(items[index], otherName);
                   },
                 ),
               ),
@@ -2354,40 +2085,25 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     );
   }
 
-  Widget buildPairDebtDetailItem(
-    Map<String, dynamic> item,
-    String otherName,
-  ) {
-    final title =
-        item['expense_title']?.toString() ?? 'Khoản chi';
-    final date =
-        item['expense_date']?.toString() ?? '';
-    final payerName =
-        item['payer_name']?.toString() ?? '';
-    final direction =
-        item['direction']?.toString() ?? '';
-    final amount = readDouble(
-      item['amount'],
-    );
+  Widget buildPairDebtDetailItem(Map<String, dynamic> item, String otherName) {
+    final title = item['expense_title']?.toString() ?? 'Khoản chi';
+    final date = item['expense_date']?.toString() ?? '';
+    final payerName = item['payer_name']?.toString() ?? '';
+    final direction = item['direction']?.toString() ?? '';
+    final amount = readDouble(item['amount']);
 
     final isIOwe = direction == 'i_owe';
 
-    final label = isIOwe
-        ? 'Bạn nợ $otherName'
-        : '$otherName nợ bạn';
+    final label = isIOwe ? 'Bạn nợ $otherName' : '$otherName nợ bạn';
 
-    final color = isIOwe
-      ? AppColors.danger
-      : AppColors.success;
+    final color = isIOwe ? AppColors.danger : AppColors.success;
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.background,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: AppColors.border,
-        ),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
@@ -2399,9 +2115,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
               borderRadius: BorderRadius.circular(14),
             ),
             child: Icon(
-              isIOwe
-                  ? Icons.call_made_rounded
-                  : Icons.call_received_rounded,
+              isIOwe ? Icons.call_made_rounded : Icons.call_received_rounded,
               color: color,
               size: 22,
             ),
@@ -2409,8 +2123,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
@@ -2425,8 +2138,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                 const SizedBox(height: 4),
                 Text(
                   [
-                    if (payerName.isNotEmpty)
-                      'Người trả: $payerName',
+                    if (payerName.isNotEmpty) 'Người trả: $payerName',
                     if (date.isNotEmpty) date,
                   ].join(' • '),
                   maxLines: 1,
@@ -2475,8 +2187,8 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     final avatar = rawAvatar.isNotEmpty
         ? ApiService.resolveMediaUrl(rawAvatar)
         : (!isOtherVirtual && otherUserId > 0)
-            ? ApiService.userAvatarUrl(otherUserId)
-            : '';
+        ? ApiService.userAvatarUrl(otherUserId)
+        : '';
     final amount = readDouble(item['amount']);
     final expenseCount = readInt(item['expense_count']);
 
@@ -2484,9 +2196,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
         isLoadingVirtualDebtDetail &&
         loadingVirtualDebtDetailUserId == otherUserId;
 
-    final color = virtualOwes
-      ? AppColors.danger
-      : AppColors.success;
+    final color = virtualOwes ? AppColors.danger : AppColors.success;
 
     return InkWell(
       onTap: isLoadingVirtualDebtDetail
@@ -2502,16 +2212,11 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
         ),
         child: Row(
           children: [
-            buildAvatar(
-              imageUrl: avatar,
-              name: name,
-              radius: 22,
-            ),
+            buildAvatar(imageUrl: avatar, name: name, radius: 22),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
@@ -2535,11 +2240,8 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(
-                              alpha: 0.10,
-                            ),
-                            borderRadius:
-                                BorderRadius.circular(999),
+                            color: AppColors.primary.withValues(alpha: 0.10),
+                            borderRadius: BorderRadius.circular(999),
                           ),
                           child: const Text(
                             'Ảo',
@@ -2574,9 +2276,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                   const SizedBox(
                     width: 20,
                     height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.2,
-                    ),
+                    child: CircularProgressIndicator(strokeWidth: 2.2),
                   )
                 else
                   Text(
@@ -2588,11 +2288,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                     ),
                   ),
                 const SizedBox(height: 4),
-                Icon(
-                  Icons.chevron_right_rounded,
-                  color: color,
-                  size: 20,
-                ),
+                Icon(Icons.chevron_right_rounded, color: color, size: 20),
               ],
             ),
           ],
@@ -2601,9 +2297,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     );
   }
 
-  Future<void> openVirtualDebtDetail(
-    Map<String, dynamic> item,
-  ) async {
+  Future<void> openVirtualDebtDetail(Map<String, dynamic> item) async {
     final virtualUserId = selectedVirtualUserId;
     final otherUserId = readInt(item['other_user_id']);
 
@@ -2620,8 +2314,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     });
 
     try {
-      final response =
-          await ApiService.getVirtualMemberDebtDetail(
+      final response = await ApiService.getVirtualMemberDebtDetail(
         householdId: household.id,
         virtualUserId: virtualUserId,
         otherUserId: otherUserId,
@@ -2647,11 +2340,9 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -2662,28 +2353,18 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     }
   }
 
-  Widget buildVirtualDebtDetailSheet(
-    Map<String, dynamic> detail,
-  ) {
-    final virtualName =
-        detail['virtual_name']?.toString() ?? 'Thành viên ảo';
-    final otherName =
-        detail['other_name']?.toString() ?? 'Thành viên';
+  Widget buildVirtualDebtDetailSheet(Map<String, dynamic> detail) {
+    final virtualName = detail['virtual_name']?.toString() ?? 'Thành viên ảo';
+    final otherName = detail['other_name']?.toString() ?? 'Thành viên';
 
-    final netDirection =
-        detail['net_direction']?.toString() ?? '';
+    final netDirection = detail['net_direction']?.toString() ?? '';
 
-    final netAmount = readDouble(
-      detail['net_amount'],
-    );
+    final netAmount = readDouble(detail['net_amount']);
 
-    final items = readMapList(
-      detail['items'],
-    );
+    final items = readMapList(detail['items']);
 
     final isVirtualOwes = netDirection == 'virtual_owes';
-    final isOwedToVirtual =
-        netDirection == 'owed_to_virtual';
+    final isOwedToVirtual = netDirection == 'owed_to_virtual';
 
     String summaryText;
 
@@ -2694,23 +2375,15 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
       summaryText =
           '$otherName cần trả $virtualName ${formatMoney(netAmount)}đ';
     } else {
-      summaryText =
-          '$virtualName và $otherName không còn chênh lệch công nợ.';
+      summaryText = '$virtualName và $otherName không còn chênh lệch công nợ.';
     }
 
-    final summaryColor = isVirtualOwes
-      ? AppColors.danger
-      : AppColors.success;
+    final summaryColor = isVirtualOwes ? AppColors.danger : AppColors.success;
 
     return SafeArea(
       child: Container(
         margin: const EdgeInsets.all(14),
-        padding: const EdgeInsets.fromLTRB(
-          18,
-          16,
-          18,
-          18,
-        ),
+        padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(28),
@@ -2723,13 +2396,11 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
           ],
         ),
         constraints: BoxConstraints(
-          maxHeight:
-              MediaQuery.of(context).size.height * 0.82,
+          maxHeight: MediaQuery.of(context).size.height * 0.82,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
               child: Container(
@@ -2761,9 +2432,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
               decoration: BoxDecoration(
                 color: summaryColor.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(
-                  color: summaryColor.withValues(alpha: 0.16),
-                ),
+                border: Border.all(color: summaryColor.withValues(alpha: 0.16)),
               ),
               child: Text(
                 summaryText,
@@ -2807,8 +2476,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                 child: ListView.separated(
                   shrinkWrap: true,
                   itemCount: items.length,
-                  separatorBuilder: (_, _) =>
-                      const SizedBox(height: 10),
+                  separatorBuilder: (_, _) => const SizedBox(height: 10),
                   itemBuilder: (_, index) {
                     return buildVirtualDebtDetailItem(
                       items[index],
@@ -2857,17 +2525,11 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     String virtualName,
     String otherName,
   ) {
-    final title =
-        item['expense_title']?.toString() ?? 'Khoản chi';
-    final date =
-        item['expense_date']?.toString() ?? '';
-    final payerName =
-        item['payer_name']?.toString() ?? '';
-    final direction =
-        item['direction']?.toString() ?? '';
-    final amount = readDouble(
-      item['amount'],
-    );
+    final title = item['expense_title']?.toString() ?? 'Khoản chi';
+    final date = item['expense_date']?.toString() ?? '';
+    final payerName = item['payer_name']?.toString() ?? '';
+    final direction = item['direction']?.toString() ?? '';
+    final amount = readDouble(item['amount']);
 
     final isVirtualOwes = direction == 'virtual_owes';
 
@@ -2875,18 +2537,14 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
         ? '$virtualName nợ $otherName'
         : '$otherName nợ $virtualName';
 
-    final color = isVirtualOwes
-      ? AppColors.danger
-      : AppColors.success;
+    final color = isVirtualOwes ? AppColors.danger : AppColors.success;
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.background,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(
-          color: AppColors.border,
-        ),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
@@ -2908,8 +2566,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
           const SizedBox(width: 12),
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
@@ -2924,8 +2581,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                 const SizedBox(height: 4),
                 Text(
                   [
-                    if (payerName.isNotEmpty)
-                      'Người trả: $payerName',
+                    if (payerName.isNotEmpty) 'Người trả: $payerName',
                     if (date.isNotEmpty) date,
                   ].join(' • '),
                   maxLines: 1,
@@ -2962,16 +2618,10 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     );
   }
 
-  Future<void> settleVirtualDebtPair(
-    Map<String, dynamic> detail,
-  ) async {
-    final virtualUserId = readInt(
-      detail['virtual_user_id'],
-    );
+  Future<void> settleVirtualDebtPair(Map<String, dynamic> detail) async {
+    final virtualUserId = readInt(detail['virtual_user_id']);
 
-    final otherUserId = readInt(
-      detail['other_user_id'],
-    );
+    final otherUserId = readInt(detail['other_user_id']);
 
     if (virtualUserId <= 0 || otherUserId <= 0) {
       return;
@@ -3021,22 +2671,16 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
       Navigator.pop(context);
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đã đánh dấu xử lý ngoài đời'),
-        ),
+        const SnackBar(content: Text('Đã đánh dấu xử lý ngoài đời')),
       );
 
-      await loadData(
-        showFullLoading: false,
-      );
+      await loadData(showFullLoading: false);
     } catch (e) {
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(e.toString()),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
     } finally {
       if (mounted) {
         setState(() {
@@ -3124,11 +2768,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            buildAvatar(
-              imageUrl: debt.toUserAvatar,
-              name: toName,
-              radius: 24,
-            ),
+            buildAvatar(imageUrl: debt.toUserAvatar, name: toName, radius: 24),
           ],
         ),
       ),
@@ -3152,10 +2792,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
               color: AppColors.warning.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(
-              Icons.sync_alt_rounded,
-              color: AppColors.warning,
-            ),
+            child: const Icon(Icons.sync_alt_rounded, color: AppColors.warning),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -3225,9 +2862,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                   ),
                   child: const Text(
                     'Xem thêm',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w800,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.w800),
                   ),
                 ),
             ],
@@ -3236,10 +2871,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
           const SizedBox(height: 12),
 
           if (expenses.isEmpty)
-            buildEmptyCard(
-              icon: Icons.receipt_long,
-              title: 'Chưa có khoản chi',
-            )
+            buildEmptyCard(icon: Icons.receipt_long, title: 'Chưa có khoản chi')
           else ...[
             ...List.generate(
               expenses.length,
@@ -3256,9 +2888,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                   child: SizedBox(
                     width: 26,
                     height: 26,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                    ),
+                    child: CircularProgressIndicator(strokeWidth: 2.5),
                   ),
                 ),
               ),
@@ -3272,9 +2902,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                   decoration: BoxDecoration(
                     color: AppColors.background,
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: AppColors.border,
-                    ),
+                    border: Border.all(color: AppColors.border),
                   ),
                   child: Column(
                     children: [
@@ -3323,17 +2951,14 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     );
   }
 
-  Widget buildCompactExpenseCard(
-    Expense expense, {
-    bool showDivider = true,
-  }) {
+  Widget buildCompactExpenseCard(Expense expense, {bool showDivider = true}) {
     final payerName = displayUserName(
       name: expense.payerName,
       email: expense.payerEmail,
     );
 
-    final isBusy = editingExpenseId == expense.id ||
-        deletingExpenseId == expense.id;
+    final isBusy =
+        editingExpenseId == expense.id || deletingExpenseId == expense.id;
 
     final participantText = expense.participants.isEmpty
         ? 'Chưa có người tham gia'
@@ -3423,9 +3048,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                       const SizedBox(
                         width: 22,
                         height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.4,
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2.4),
                       )
                     else if (expense.canManage)
                       PopupMenuButton<String>(
@@ -3466,9 +3089,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                                 SizedBox(width: 10),
                                 Text(
                                   'Xóa',
-                                  style: TextStyle(
-                                    color: Colors.red,
-                                  ),
+                                  style: TextStyle(color: Colors.red),
                                 ),
                               ],
                             ),
@@ -3484,11 +3105,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
           ),
 
           if (showDivider)
-            const Divider(
-              height: 1,
-              thickness: 1,
-              color: AppColors.border,
-            ),
+            const Divider(height: 1, thickness: 1, color: AppColors.border),
         ],
       ),
     );
@@ -3516,17 +3133,11 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
             height: 56,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [
-                  AppColors.primary,
-                  AppColors.secondary,
-                ],
+                colors: [AppColors.primary, AppColors.secondary],
               ),
               borderRadius: BorderRadius.circular(18),
             ),
-            child: const Icon(
-              Icons.payments_rounded,
-              color: Colors.white,
-            ),
+            child: const Icon(Icons.payments_rounded, color: Colors.white),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -3568,10 +3179,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     );
   }
 
-  Widget buildEmptyCard({
-    required IconData icon,
-    required String title,
-  }) {
+  Widget buildEmptyCard({required IconData icon, required String title}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(28),
@@ -3581,11 +3189,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
       ),
       child: Column(
         children: [
-          Icon(
-            icon,
-            size: 46,
-            color: AppColors.textLight,
-          ),
+          Icon(icon, size: 46, color: AppColors.textLight),
           const SizedBox(height: 16),
           Text(
             title,
@@ -3605,19 +3209,14 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
     if (isLoading) {
       return const Scaffold(
         backgroundColor: AppColors.background,
-        body: AppLoadingState(
-          message: 'Đang tải dữ liệu nhóm...',
-        ),
+        body: AppLoadingState(message: 'Đang tải dữ liệu nhóm...'),
       );
     }
 
     if (errorMessage != null) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        body: AppErrorState(
-          message: errorMessage!,
-          onRetry: loadData,
-        ),
+        body: AppErrorState(message: errorMessage!, onRetry: loadData),
       );
     }
 
@@ -3645,32 +3244,31 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
             itemBuilder: (context) => [
               PopupMenuItem(
                 value: 'add_member',
-                enabled: isCurrentUserOwner &&
-                    !isAddingMember &&
-                    !isKickingMember,
+                enabled:
+                    isCurrentUserOwner && !isAddingMember && !isKickingMember,
                 child: const Text('Thêm thành viên'),
               ),
               PopupMenuItem(
-                  value: 'leave',
-                  enabled: !isLeavingHousehold && !isDeletingHousehold,
-                  child: Text(
-                    isLeavingHousehold ? 'Đang rời nhóm...' : 'Rời nhóm',
-                  ),
+                value: 'leave',
+                enabled: !isLeavingHousehold && !isDeletingHousehold,
+                child: Text(
+                  isLeavingHousehold ? 'Đang rời nhóm...' : 'Rời nhóm',
                 ),
-                if (isCurrentUserOwner) ...[
-                  const PopupMenuDivider(),
-                  PopupMenuItem(
-                    value: 'delete',
-                    enabled: !isDeletingHousehold && !isLeavingHousehold,
-                    child: Text(
-                      isDeletingHousehold ? 'Đang xóa nhóm...' : 'Xóa nhóm',
-                      style: const TextStyle(
-                        color: AppColors.danger,
-                        fontWeight: FontWeight.w800,
-                      ),
+              ),
+              if (isCurrentUserOwner) ...[
+                const PopupMenuDivider(),
+                PopupMenuItem(
+                  value: 'delete',
+                  enabled: !isDeletingHousehold && !isLeavingHousehold,
+                  child: Text(
+                    isDeletingHousehold ? 'Đang xóa nhóm...' : 'Xóa nhóm',
+                    style: const TextStyle(
+                      color: AppColors.danger,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
-                ],
+                ),
+              ],
             ],
           ),
         ],
@@ -3678,25 +3276,19 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
       floatingActionButton: FloatingActionButton.extended(
         elevation: 0,
         backgroundColor: AppColors.primary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         onPressed: openAddExpenseScreen,
-        icon: const Icon(
-          Icons.add_rounded,
-          color: Colors.white,
-        ),
+        icon: const Icon(Icons.add_rounded, color: Colors.white),
         label: const Text(
           'Thêm chi',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w800,
-          ),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
         ),
       ),
       body: RefreshIndicator(
         onRefresh: refreshData,
         child: ListView(
           controller: scrollController,
-          physics:
-              const AlwaysScrollableScrollPhysics(),
+          physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(20),
           children: [
             buildHeroCard(),
@@ -3707,9 +3299,7 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
             const SizedBox(height: 30),
             if (expenses.isEmpty)
               SizedBox(
-                height:
-                    MediaQuery.of(context).size.height *
-                    0.42,
+                height: MediaQuery.of(context).size.height * 0.42,
                 child: AppEmptyState(
                   icon: Icons.receipt_long_rounded,
                   title: 'Chưa có khoản chi',

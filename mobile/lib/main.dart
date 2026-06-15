@@ -2,34 +2,27 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
+import 'app_theme.dart';
 import 'bottom_nav_screen.dart';
 import 'firebase_options.dart';
 import 'login_screen.dart';
 import 'services/api_service.dart';
-import 'package:flutter/foundation.dart';
+import 'widgets/app_loading_state.dart';
 
-final GlobalKey<NavigatorState> navigatorKey =
-    GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
-Future<void> firebaseMessagingBackgroundHandler(
-  RemoteMessage message,
-) async {
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  FirebaseMessaging.onBackgroundMessage(
-    firebaseMessagingBackgroundHandler,
-  );
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   await ApiService.init();
 
@@ -78,11 +71,7 @@ class _MyAppState extends State<MyApp> {
     try {
       final messaging = FirebaseMessaging.instance;
 
-      await messaging.requestPermission(
-        alert: true,
-        badge: true,
-        sound: true,
-      );
+      await messaging.requestPermission(alert: true, badge: true, sound: true);
 
       final token = await messaging.getToken();
 
@@ -110,19 +99,17 @@ class _MyAppState extends State<MyApp> {
       navigatorKey: navigatorKey,
       debugShowCheckedModeBanner: false,
       title: 'Chung Ví',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorSchemeSeed: Colors.green,
-      ),
+      theme: AppTheme.lightTheme,
       home: isCheckingAuth
           ? const Scaffold(
-              body: Center(
-                child: CircularProgressIndicator(),
+              backgroundColor: AppColors.background,
+              body: AppLoadingState(
+                message: 'Đang kiểm tra phiên đăng nhập...',
               ),
             )
           : isLoggedIn
-              ? const BottomNavScreen()
-              : const LoginScreen(),
+          ? const BottomNavScreen()
+          : const LoginScreen(),
     );
   }
 }

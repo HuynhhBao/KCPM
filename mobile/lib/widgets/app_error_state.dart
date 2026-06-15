@@ -16,59 +16,55 @@ class AppErrorState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.cloud_off_rounded,
-              size: 72,
-              color: Colors.redAccent,
-            ),
-            const SizedBox(height: 18),
-            const Text(
-              'Đã xảy ra lỗi',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-                color: AppColors.textDark,
-              ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              message,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                height: 1.5,
-                color: AppColors.textLight,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 22),
-            ElevatedButton.icon(
-              onPressed: onRetry,
-              icon: const Icon(Icons.refresh_rounded),
-              label: const Text(
-                'Thử lại',
-                style: TextStyle(
-                  fontWeight: FontWeight.w800,
+        padding: const EdgeInsets.all(24),
+        child: Container(
+          width: double.infinity,
+          constraints: const BoxConstraints(maxWidth: 390),
+          padding: const EdgeInsets.fromLTRB(24, 26, 24, 24),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadii.xlarge),
+            border: Border.all(color: AppColors.danger.withValues(alpha: 0.18)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 74,
+                height: 74,
+                decoration: BoxDecoration(
+                  color: AppColors.danger.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: const Icon(
+                  Icons.cloud_off_rounded,
+                  size: 38,
+                  color: AppColors.danger,
                 ),
               ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 22,
-                  vertical: 14,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius:
-                      BorderRadius.circular(16),
+              const SizedBox(height: 20),
+              Text(
+                'Đã xảy ra lỗi',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              const SizedBox(height: 10),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 22),
+              SizedBox(
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: onRetry,
+                  icon: const Icon(Icons.refresh_rounded),
+                  label: const Text('Thử lại'),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

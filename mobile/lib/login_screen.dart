@@ -12,8 +12,7 @@ class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  State<LoginScreen> createState() =>
-      _LoginScreenState();
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
@@ -51,10 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       setState(() => isLoading = true);
 
-      final response = await ApiService.login(
-        email: email,
-        password: password,
-      );
+      final response = await ApiService.login(email: email, password: password);
 
       final access = response.data['access'];
       final refresh = response.data['refresh'];
@@ -73,9 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => const BottomNavScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const BottomNavScreen()),
       );
     } on DioException catch (e) {
       debugPrint('LOGIN ERROR: $e');
@@ -107,9 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => const BottomNavScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const BottomNavScreen()),
       );
     } catch (e) {
       debugPrint('GOOGLE LOGIN ERROR: $e');
@@ -127,10 +119,7 @@ class _LoginScreenState extends State<LoginScreen> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-        ),
+        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
       );
   }
 
@@ -155,10 +144,7 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(26),
-            child: Image.asset(
-              'assets/images/logo.jpg',
-              fit: BoxFit.cover,
-            ),
+            child: Image.asset('assets/images/logo.jpg', fit: BoxFit.cover),
           ),
         ),
         SizedBox(height: compact ? 12 : 16),
@@ -224,11 +210,7 @@ class _LoginScreenState extends State<LoginScreen> {
               hintText: hint,
               filled: true,
               fillColor: const Color(0xFFF7FAFA),
-              prefixIcon: Icon(
-                icon,
-                color: AppColors.textLight,
-                size: 21,
-              ),
+              prefixIcon: Icon(icon, color: AppColors.textLight, size: 21),
               suffixIcon: suffixIcon,
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
@@ -236,22 +218,15 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(19),
-                borderSide: const BorderSide(
-                  color: Color(0xFFDDE7EA),
-                ),
+                borderSide: const BorderSide(color: Color(0xFFDDE7EA)),
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(19),
-                borderSide: const BorderSide(
-                  color: Color(0xFFDDE7EA),
-                ),
+                borderSide: const BorderSide(color: Color(0xFFDDE7EA)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(19),
-                borderSide: const BorderSide(
-                  color: darkGreen,
-                  width: 1.5,
-                ),
+                borderSide: const BorderSide(color: darkGreen, width: 1.5),
               ),
             ),
           ),
@@ -269,16 +244,14 @@ class _LoginScreenState extends State<LoginScreen> {
         style: ElevatedButton.styleFrom(
           elevation: 0,
           backgroundColor: darkGreen,
-          disabledBackgroundColor:
-              darkGreen.withValues(alpha: 0.35),
+          disabledBackgroundColor: darkGreen.withValues(alpha: 0.35),
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
         ),
         child: Row(
-          mainAxisAlignment:
-              MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
             if (isLoading)
@@ -291,14 +264,11 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
 
-            if (isLoading)
-              const SizedBox(width: 10),
+            if (isLoading) const SizedBox(width: 10),
 
             Flexible(
               child: Text(
-                isLoading
-                    ? 'Đang đăng nhập...'
-                    : 'Đăng nhập',
+                isLoading ? 'Đang đăng nhập...' : 'Đăng nhập',
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontSize: 17,
@@ -325,9 +295,7 @@ class _LoginScreenState extends State<LoginScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           shape: BoxShape.circle,
-          border: Border.all(
-            color: const Color(0xFFE2EAED),
-          ),
+          border: Border.all(color: const Color(0xFFE2EAED)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.08),
@@ -354,12 +322,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget buildDividerText() {
     return Row(
       children: [
-        const Expanded(
-          child: Divider(
-            color: Color(0xFFDDE7EA),
-            thickness: 1,
-          ),
-        ),
+        const Expanded(child: Divider(color: Color(0xFFDDE7EA), thickness: 1)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 14),
           child: Text(
@@ -370,12 +333,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
           ),
         ),
-        const Expanded(
-          child: Divider(
-            color: Color(0xFFDDE7EA),
-            thickness: 1,
-          ),
-        ),
+        const Expanded(child: Divider(color: Color(0xFFDDE7EA), thickness: 1)),
       ],
     );
   }
@@ -397,17 +355,12 @@ class _LoginScreenState extends State<LoginScreen> {
               : () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const RegisterScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const RegisterScreen()),
                   );
                 },
           child: const Text(
             'Đăng ký',
-            style: TextStyle(
-              color: darkGreen,
-              fontWeight: FontWeight.w900,
-            ),
+            style: TextStyle(color: darkGreen, fontWeight: FontWeight.w900),
           ),
         ),
       ],
@@ -417,17 +370,10 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget buildLoginCard(bool compact) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(
-        24,
-        compact ? 24 : 30,
-        24,
-        18,
-      ),
+      padding: EdgeInsets.fromLTRB(24, compact ? 24 : 30, 24, 18),
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(34),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(34)),
       ),
       child: Column(
         children: [
@@ -472,8 +418,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) =>
-                              const ForgotPasswordScreen(),
+                          builder: (_) => const ForgotPasswordScreen(),
                         ),
                       );
                     },
@@ -542,11 +487,7 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                Color(0xFF24A87A),
-                Color(0xFF08745E),
-                Color(0xFF04584B),
-              ],
+              colors: [Color(0xFF24A87A), Color(0xFF08745E), Color(0xFF04584B)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -565,18 +506,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   child: SizedBox(
                     width: double.infinity,
-                      child: Column(
-                        children: [
-                          Expanded(
-                            flex: compact ? 32 : 36,
-                            child: buildLogoHeader(compact),
-                          ),
-                          Flexible(
-                            flex: compact ? 68 : 64,
-                            child: buildLoginCard(compact),
-                          ),
-                        ],
-                      ),
+                    child: Column(
+                      children: [
+                        Expanded(
+                          flex: compact ? 32 : 36,
+                          child: buildLogoHeader(compact),
+                        ),
+                        Flexible(
+                          flex: compact ? 68 : 64,
+                          child: buildLoginCard(compact),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },

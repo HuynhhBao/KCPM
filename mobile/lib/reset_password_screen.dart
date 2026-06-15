@@ -11,18 +11,13 @@ import 'services/api_service.dart';
 class ResetPasswordScreen extends StatefulWidget {
   final String email;
 
-  const ResetPasswordScreen({
-    super.key,
-    required this.email,
-  });
+  const ResetPasswordScreen({super.key, required this.email});
 
   @override
-  State<ResetPasswordScreen> createState() =>
-      _ResetPasswordScreenState();
+  State<ResetPasswordScreen> createState() => _ResetPasswordScreenState();
 }
 
-class _ResetPasswordScreenState
-    extends State<ResetPasswordScreen> {
+class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   static const otpLength = 6;
   static const resendCooldownSeconds = 60;
 
@@ -31,14 +26,10 @@ class _ResetPasswordScreenState
     (_) => TextEditingController(),
   );
 
-  final otpFocusNodes = List.generate(
-    otpLength,
-    (_) => FocusNode(),
-  );
+  final otpFocusNodes = List.generate(otpLength, (_) => FocusNode());
 
   final passwordController = TextEditingController();
-  final confirmPasswordController =
-      TextEditingController();
+  final confirmPasswordController = TextEditingController();
 
   bool isLoading = false;
   bool isResending = false;
@@ -86,30 +77,25 @@ class _ResetPasswordScreenState
       resendSeconds = resendCooldownSeconds;
     });
 
-    resendTimer = Timer.periodic(
-      const Duration(seconds: 1),
-      (timer) {
-        if (!mounted) return;
+    resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
 
-        if (resendSeconds <= 1) {
-          timer.cancel();
+      if (resendSeconds <= 1) {
+        timer.cancel();
 
-          setState(() {
-            resendSeconds = 0;
-          });
-        } else {
-          setState(() {
-            resendSeconds--;
-          });
-        }
-      },
-    );
+        setState(() {
+          resendSeconds = 0;
+        });
+      } else {
+        setState(() {
+          resendSeconds--;
+        });
+      }
+    });
   }
 
   String getOTP() {
-    return otpControllers
-        .map((controller) => controller.text.trim())
-        .join();
+    return otpControllers.map((controller) => controller.text.trim()).join();
   }
 
   void clearOTP() {
@@ -121,9 +107,7 @@ class _ResetPasswordScreenState
   }
 
   Future<void> resendOTP() async {
-    if (isResending ||
-        isLoading ||
-        resendSeconds > 0) {
+    if (isResending || isLoading || resendSeconds > 0) {
       return;
     }
 
@@ -132,9 +116,7 @@ class _ResetPasswordScreenState
         isResending = true;
       });
 
-      await ApiService.forgotPassword(
-        email: widget.email,
-      );
+      await ApiService.forgotPassword(email: widget.email);
 
       if (!mounted) return;
 
@@ -165,8 +147,7 @@ class _ResetPasswordScreenState
 
     final otp = getOTP();
     final password = passwordController.text.trim();
-    final confirmPassword =
-        confirmPasswordController.text.trim();
+    final confirmPassword = confirmPasswordController.text.trim();
 
     if (otp.length != otpLength) {
       showMessage('Vui lòng nhập đủ 6 số OTP');
@@ -174,16 +155,12 @@ class _ResetPasswordScreenState
     }
 
     if (password.length < 8) {
-      showMessage(
-        'Mật khẩu phải có ít nhất 8 ký tự',
-      );
+      showMessage('Mật khẩu phải có ít nhất 8 ký tự');
       return;
     }
 
     if (password != confirmPassword) {
-      showMessage(
-        'Mật khẩu xác nhận không khớp',
-      );
+      showMessage('Mật khẩu xác nhận không khớp');
       return;
     }
 
@@ -207,17 +184,13 @@ class _ResetPasswordScreenState
 
       showMessage('Đặt lại mật khẩu thành công');
 
-      await Future.delayed(
-        const Duration(milliseconds: 900),
-      );
+      await Future.delayed(const Duration(milliseconds: 900));
 
       if (!mounted) return;
 
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (_) => const LoginScreen(),
-        ),
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
         (route) => false,
       );
     } on DioException catch (e) {
@@ -225,11 +198,8 @@ class _ResetPasswordScreenState
 
       if (data is Map && data['detail'] != null) {
         showMessage(data['detail'].toString());
-      } else if (data is Map &&
-          data['confirm_password'] != null) {
-        showMessage(
-          data['confirm_password'].toString(),
-        );
+      } else if (data is Map && data['confirm_password'] != null) {
+        showMessage(data['confirm_password'].toString());
       } else {
         showMessage('Đặt lại mật khẩu thất bại');
       }
@@ -252,10 +222,7 @@ class _ResetPasswordScreenState
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
-        SnackBar(
-          content: Text(message),
-          behavior: SnackBarBehavior.floating,
-        ),
+        SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
       );
   }
 
@@ -267,8 +234,7 @@ class _ResetPasswordScreenState
         focusNode: FocusNode(),
         onKeyEvent: (event) {
           if (event is KeyDownEvent &&
-              event.logicalKey ==
-                  LogicalKeyboardKey.backspace &&
+              event.logicalKey == LogicalKeyboardKey.backspace &&
               otpControllers[index].text.isEmpty &&
               index > 0) {
             otpFocusNodes[index - 1].requestFocus();
@@ -282,9 +248,7 @@ class _ResetPasswordScreenState
           textAlign: TextAlign.center,
           keyboardType: TextInputType.number,
           maxLength: 1,
-          inputFormatters: [
-            FilteringTextInputFormatter.digitsOnly,
-          ],
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           style: const TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w900,
@@ -295,9 +259,7 @@ class _ResetPasswordScreenState
             filled: true,
             fillColor: const Color(0xFFF7FAFA),
             contentPadding: EdgeInsets.zero,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: const BorderSide(
@@ -332,29 +294,22 @@ class _ResetPasswordScreenState
       textInputAction: TextInputAction.next,
       decoration: InputDecoration(
         hintText: hint,
-        prefixIcon: const Icon(
-          Icons.lock_outline_rounded,
-        ),
+        prefixIcon: const Icon(Icons.lock_outline_rounded),
         suffixIcon: IconButton(
           onPressed: onToggle,
           icon: Icon(
-            obscure
-                ? Icons.visibility_off_outlined
-                : Icons.visibility_outlined,
+            obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
           ),
         ),
         filled: true,
         fillColor: const Color(0xFFF7FAFA),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-        ),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(18)),
       ),
     );
   }
 
   Widget buildResendButton() {
-    final canResend =
-        resendSeconds == 0 && !isResending && !isLoading;
+    final canResend = resendSeconds == 0 && !isResending && !isLoading;
 
     return TextButton(
       onPressed: canResend ? resendOTP : null,
@@ -362,13 +317,11 @@ class _ResetPasswordScreenState
         isResending
             ? 'Đang gửi lại...'
             : resendSeconds > 0
-                ? 'Gửi lại OTP sau ${resendSeconds}s'
-                : 'Gửi lại OTP',
+            ? 'Gửi lại OTP sau ${resendSeconds}s'
+            : 'Gửi lại OTP',
         style: TextStyle(
           fontWeight: FontWeight.w900,
-          color: canResend
-              ? AppColors.primary
-              : AppColors.textLight,
+          color: canResend ? AppColors.primary : AppColors.textLight,
         ),
       ),
     );
@@ -384,9 +337,7 @@ class _ResetPasswordScreenState
             padding: const EdgeInsets.all(24),
             child: Container(
               width: double.infinity,
-              constraints: const BoxConstraints(
-                maxWidth: 520,
-              ),
+              constraints: const BoxConstraints(maxWidth: 520),
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -423,12 +374,8 @@ class _ResetPasswordScreenState
                   ),
                   const SizedBox(height: 26),
                   Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment.spaceBetween,
-                    children: List.generate(
-                      otpLength,
-                      buildOTPBox,
-                    ),
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: List.generate(otpLength, buildOTPBox),
                   ),
                   const SizedBox(height: 18),
                   buildPasswordInput(
@@ -448,8 +395,7 @@ class _ResetPasswordScreenState
                     obscure: hideConfirmPassword,
                     onToggle: () {
                       setState(() {
-                        hideConfirmPassword =
-                            !hideConfirmPassword;
+                        hideConfirmPassword = !hideConfirmPassword;
                       });
                     },
                   ),
@@ -458,15 +404,12 @@ class _ResetPasswordScreenState
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: isLoading || isSuccess
-                          ? null
-                          : resetPassword,
+                      onPressed: isLoading || isSuccess ? null : resetPassword,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(20),
                         ),
                       ),
                       child: isLoading
@@ -479,9 +422,7 @@ class _ResetPasswordScreenState
                               ),
                             )
                           : Text(
-                              isSuccess
-                                  ? 'Thành công'
-                                  : 'Đặt lại mật khẩu',
+                              isSuccess ? 'Thành công' : 'Đặt lại mật khẩu',
                               style: const TextStyle(
                                 fontSize: 17,
                                 fontWeight: FontWeight.w900,

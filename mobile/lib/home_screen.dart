@@ -62,14 +62,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
       final loadedHouseholds = householdData
           .map<Household>(
-            (json) => Household.fromJson(
-              Map<String, dynamic>.from(json),
-            ),
+            (json) => Household.fromJson(Map<String, dynamic>.from(json)),
           )
           .toList();
 
-      final summaries =
-          await ApiService.getHouseholdSummaries();
+      final summaries = await ApiService.getHouseholdSummaries();
 
       double owe = 0;
       double receive = 0;
@@ -83,15 +80,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
         final householdId = summary['id']?.toString() ?? '';
 
-        final rawGroupOwe = double.tryParse(
-              summary['total_owe']?.toString() ?? '0',
-            ) ??
-            0;
+        final rawGroupOwe =
+            double.tryParse(summary['total_owe']?.toString() ?? '0') ?? 0;
 
-        final rawGroupReceive = double.tryParse(
-              summary['total_receive']?.toString() ?? '0',
-            ) ??
-            0;
+        final rawGroupReceive =
+            double.tryParse(summary['total_receive']?.toString() ?? '0') ?? 0;
         final groupNet = rawGroupReceive - rawGroupOwe;
 
         double displayGroupOwe = 0;
@@ -120,17 +113,16 @@ class _HomeScreenState extends State<HomeScreen> {
         totalReceive = receive;
         isLoading = false;
       });
-      } catch (e) {
-        debugPrint(e.toString());
+    } catch (e) {
+      debugPrint(e.toString());
 
-        if (!mounted) return;
+      if (!mounted) return;
 
-        setState(() {
-          errorMessage =
-              'Không thể tải dữ liệu trang chủ';
-          isLoading = false;
-        });
-      }
+      setState(() {
+        errorMessage = 'Không thể tải dữ liệu trang chủ';
+        isLoading = false;
+      });
+    }
   }
 
   void filterHouseholds() {
@@ -152,18 +144,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String formatMoney(double amount) {
-    return amount.toStringAsFixed(0).replaceAllMapped(
-          RegExp(r'\B(?=(\d{3})+(?!\d))'),
-          (match) => '.',
-        );
+    return amount
+        .toStringAsFixed(0)
+        .replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (match) => '.');
   }
 
   Future<void> openCreateHousehold() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => const CreateHouseholdScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const CreateHouseholdScreen()),
     );
 
     await loadData();
@@ -172,10 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> openJoinHousehold() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) =>
-            const JoinHouseholdScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const JoinHouseholdScreen()),
     );
 
     await loadData();
@@ -196,8 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(width: 14),
         const Expanded(
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Chung Ví',
@@ -225,9 +210,16 @@ class _HomeScreenState extends State<HomeScreen> {
           width: 46,
           height: 46,
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius:
-                BorderRadius.circular(16),
+            color: Colors.white.withValues(alpha: 0.94),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.border),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primaryDark.withValues(alpha: 0.06),
+                blurRadius: 18,
+                offset: const Offset(0, 8),
+              ),
+            ],
           ),
           child: const Icon(
             Icons.notifications_none_rounded,
@@ -258,6 +250,7 @@ class _HomeScreenState extends State<HomeScreen> {
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [
+            AppColors.primaryDark,
             AppColors.primary,
             AppColors.secondary,
           ],
@@ -265,17 +258,20 @@ class _HomeScreenState extends State<HomeScreen> {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.20),
+            blurRadius: 28,
+            offset: const Offset(0, 16),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(
-                netIcon,
-                color: Colors.white70,
-                size: 18,
-              ),
+              Icon(netIcon, color: Colors.white70, size: 18),
               const SizedBox(width: 6),
               Text(
                 netTitle,
@@ -333,11 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              icon,
-              color: Colors.white,
-              size: 22,
-            ),
+            Icon(icon, color: Colors.white, size: 22),
             const SizedBox(height: 14),
             Text(
               title,
@@ -365,9 +357,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget buildSearchBar() {
     return TextField(
       controller: searchController,
-      style: const TextStyle(
-        fontWeight: FontWeight.w700,
-      ),
+      style: const TextStyle(fontWeight: FontWeight.w700),
       decoration: InputDecoration(
         hintText: 'Tìm nhóm...',
         prefixIcon: const Icon(Icons.search_rounded),
@@ -382,87 +372,89 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget buildSectionTitle() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        const Text(
-          'Danh sách nhóm',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w800,
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      physics: const BouncingScrollPhysics(),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text(
+            'Danh sách nhóm',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
           ),
-        ),
 
-        Row(
-          children: [
-            InkWell(
-              borderRadius: BorderRadius.circular(999),
-              onTap: openCreateHousehold,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(
-                      Icons.add_rounded,
-                      size: 18,
-                      color: AppColors.primary,
-                    ),
-                    SizedBox(width: 6),
-                    Text(
-                      'Tạo nhóm',
-                      style: TextStyle(
+          const SizedBox(width: 16),
+          Row(
+            children: [
+              InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: openCreateHousehold,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(
+                        Icons.add_rounded,
+                        size: 18,
                         color: AppColors.primary,
-                        fontWeight: FontWeight.w700,
                       ),
-                    ),
-                  ],
+                      SizedBox(width: 6),
+                      Text(
+                        'Tạo nhóm',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
 
-            const SizedBox(width: 8),
+              const SizedBox(width: 8),
 
-            InkWell(
-              borderRadius: BorderRadius.circular(999),
-              onTap: openJoinHousehold,
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(
-                      Icons.group_add_rounded,
-                      size: 18,
-                      color: AppColors.primary,
-                    ),
-                    SizedBox(width: 6),
-                    Text(
-                      'Join',
-                      style: TextStyle(
+              InkWell(
+                borderRadius: BorderRadius.circular(999),
+                onTap: openJoinHousehold,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(
+                        Icons.group_add_rounded,
+                        size: 18,
                         color: AppColors.primary,
-                        fontWeight: FontWeight.w700,
                       ),
-                    ),
-                  ],
+                      SizedBox(width: 6),
+                      Text(
+                        'Join',
+                        style: TextStyle(
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        ),
-      ],
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -489,9 +481,7 @@ class _HomeScreenState extends State<HomeScreen> {
         await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => HouseholdDetailScreen(
-              household: household,
-            ),
+            builder: (_) => HouseholdDetailScreen(household: household),
           ),
         );
 
@@ -499,13 +489,14 @@ class _HomeScreenState extends State<HomeScreen> {
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(26),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppColors.border),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
+              color: AppColors.primaryDark.withValues(alpha: 0.045),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -517,17 +508,12 @@ class _HomeScreenState extends State<HomeScreen> {
               width: 58,
               height: 58,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [
-                    AppColors.primary,
-                    AppColors.secondary,
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(20),
+                color: AppColors.primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(18),
               ),
               child: const Icon(
                 Icons.home_rounded,
-                color: Colors.white,
+                color: AppColors.primary,
                 size: 28,
               ),
             ),
@@ -558,11 +544,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      Icon(
-                        statusIcon,
-                        color: statusColor,
-                        size: 18,
-                      ),
+                      Icon(statusIcon, color: statusColor, size: 18),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
@@ -580,10 +562,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: AppColors.textLight,
-            ),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.textLight),
           ],
         ),
       ),
@@ -605,10 +584,7 @@ class _HomeScreenState extends State<HomeScreen> {
             height: 84,
             decoration: BoxDecoration(
               gradient: const LinearGradient(
-                colors: [
-                  AppColors.primary,
-                  AppColors.secondary,
-                ],
+                colors: [AppColors.primary, AppColors.secondary],
               ),
               borderRadius: BorderRadius.circular(28),
             ),
@@ -656,19 +632,14 @@ class _HomeScreenState extends State<HomeScreen> {
     if (isLoading) {
       return const Scaffold(
         backgroundColor: AppColors.background,
-        body: AppLoadingState(
-          message: 'Đang tải dữ liệu...',
-        ),
+        body: AppLoadingState(message: 'Đang tải dữ liệu...'),
       );
     }
 
     if (errorMessage != null) {
       return Scaffold(
         backgroundColor: AppColors.background,
-        body: AppErrorState(
-          message: errorMessage!,
-          onRetry: loadData,
-        ),
+        body: AppErrorState(message: errorMessage!, onRetry: loadData),
       );
     }
 
@@ -678,8 +649,7 @@ class _HomeScreenState extends State<HomeScreen> {
         child: RefreshIndicator(
           onRefresh: refreshData,
           child: ListView(
-            physics:
-                const AlwaysScrollableScrollPhysics(),
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(20),
             children: [
               buildHeader(),
@@ -692,9 +662,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 16),
               if (households.isEmpty)
                 SizedBox(
-                  height:
-                      MediaQuery.of(context).size.height *
-                      0.52,
+                  height: MediaQuery.of(context).size.height * 0.52,
                   child: AppEmptyState(
                     icon: Icons.groups_rounded,
                     title: 'Chưa có nhóm nào',
@@ -706,20 +674,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 )
               else if (filteredHouseholds.isEmpty)
                 SizedBox(
-                  height:
-                      MediaQuery.of(context).size.height *
-                      0.42,
+                  height: MediaQuery.of(context).size.height * 0.42,
                   child: AppEmptyState(
                     icon: Icons.search_off_rounded,
                     title: 'Không tìm thấy nhóm',
-                    message:
-                        'Thử nhập từ khóa khác để tìm nhóm bạn cần.',
+                    message: 'Thử nhập từ khóa khác để tìm nhóm bạn cần.',
                   ),
                 )
               else
-                ...filteredHouseholds.map(
-                  buildHouseholdCard,
-                ),
+                ...filteredHouseholds.map(buildHouseholdCard),
               const SizedBox(height: 120),
             ],
           ),

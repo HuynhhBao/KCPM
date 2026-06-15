@@ -51,10 +51,7 @@ class _CreateHouseholdScreenState extends State<CreateHouseholdScreen> {
     try {
       setState(() => isLoading = true);
 
-      await ApiService.createHousehold(
-        name: name,
-        description: description,
-      );
+      await ApiService.createHousehold(name: name, description: description);
 
       if (!mounted) return;
 
@@ -79,9 +76,9 @@ class _CreateHouseholdScreenState extends State<CreateHouseholdScreen> {
   }
 
   void showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Widget buildHeader() {
@@ -90,6 +87,7 @@ class _CreateHouseholdScreenState extends State<CreateHouseholdScreen> {
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [
+            AppColors.primaryDark,
             AppColors.primary,
             AppColors.secondary,
           ],
@@ -97,6 +95,13 @@ class _CreateHouseholdScreenState extends State<CreateHouseholdScreen> {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(30),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.16),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -165,17 +170,14 @@ class _CreateHouseholdScreenState extends State<CreateHouseholdScreen> {
       ),
       decoration: InputDecoration(
         hintText: hint,
+        fillColor: Colors.white,
         prefixIcon: Padding(
           padding: EdgeInsets.only(
             left: 16,
             right: 12,
             top: isMultiline ? 18 : 0,
           ),
-          child: Icon(
-            icon,
-            color: AppColors.textLight,
-            size: 22,
-          ),
+          child: Icon(icon, color: AppColors.textLight, size: 22),
         ),
         prefixIconConstraints: BoxConstraints(
           minWidth: 50,
@@ -213,10 +215,7 @@ class _CreateHouseholdScreenState extends State<CreateHouseholdScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        titleSpacing: 20,
-        title: const Text('Nhóm mới'),
-      ),
+      appBar: AppBar(titleSpacing: 20, title: const Text('Nhóm mới')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
