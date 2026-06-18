@@ -28,12 +28,22 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
   void initState() {
     super.initState();
 
-    screens = const [
-      HomeScreen(),
-      ActivityScreen(),
-      SizedBox.shrink(),
-      DebtOverviewScreen(),
-      ProfileScreen(),
+    screens = [
+      HomeScreen(
+        onQuickAddExpense: () {
+          openQuickAddExpense();
+        },
+        onOpenDebts: () {
+          changeTab(3);
+        },
+        onOpenActivities: () {
+          changeTab(1);
+        },
+      ),
+      const ActivityScreen(),
+      const SizedBox.shrink(),
+      const DebtOverviewScreen(),
+      const ProfileScreen(),
     ];
 
     loadUnreadCount();
@@ -433,99 +443,32 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
   }
 
   Widget buildQuickAddFab() {
-    return SizedBox(
-      width: 56,
-      height: 56,
-      child: FloatingActionButton(
-        heroTag: 'quick_add_expense',
-        elevation: 0,
-        highlightElevation: 0,
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        shape: const CircleBorder(),
-        onPressed: isOpeningQuickAddExpense ? null : openQuickAddExpense,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 180),
-          child: isOpeningQuickAddExpense
-              ? const SizedBox(
-                  key: ValueKey('loading'),
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      Colors.white,
+    return Transform.translate(
+      offset: const Offset(0, 5),
+      child: SizedBox(
+        width: 56,
+        height: 56,
+        child: FloatingActionButton(
+          heroTag: 'quick_add_expense',
+          elevation: 0,
+          highlightElevation: 0,
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          shape: const CircleBorder(),
+          onPressed: isOpeningQuickAddExpense ? null : openQuickAddExpense,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 180),
+            child: isOpeningQuickAddExpense
+                ? const SizedBox(
+                    key: ValueKey('loading'),
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                     ),
-                  ),
-                )
-              : const Icon(
-                  Icons.add_rounded,
-                  key: ValueKey('add'),
-                  size: 30,
-                ),
-        ),
-      ),
-    );
-  }
-
-  Widget buildCenterButton() {
-    return Expanded(
-      child: GestureDetector(
-        onTap: openQuickAddExpense,
-        behavior: HitTestBehavior.opaque,
-        child: Transform.translate(
-          offset: const Offset(0, -10),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.32),
-                      blurRadius: 22,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 180),
-                  child: isOpeningQuickAddExpense
-                      ? const SizedBox(
-                          key: ValueKey('loading'),
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.6,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
-                          ),
-                        )
-                      : const Icon(
-                          Icons.add_rounded,
-                          key: ValueKey('add'),
-                          color: Colors.white,
-                          size: 34,
-                        ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'Thêm',
-                style: TextStyle(
-                  color: AppColors.primary,
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -0.1,
-                ),
-              ),
-            ],
+                  )
+                : const Icon(Icons.add_rounded, key: ValueKey('add'), size: 30),
           ),
         ),
       ),
@@ -577,7 +520,7 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 5),
                       decoration: BoxDecoration(
-                        color: Colors.red,
+                        color: AppColors.danger,
                         borderRadius: BorderRadius.circular(999),
                         border: Border.all(color: Colors.white, width: 2),
                       ),

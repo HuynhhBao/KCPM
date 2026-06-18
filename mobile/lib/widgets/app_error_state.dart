@@ -20,33 +20,33 @@ class AppErrorState extends StatelessWidget {
         child: Container(
           width: double.infinity,
           constraints: const BoxConstraints(maxWidth: 390),
-          padding: const EdgeInsets.fromLTRB(24, 26, 24, 24),
+          padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppRadii.xlarge),
+            color: AppColors.surfaceTint,
+            borderRadius: BorderRadius.circular(AppRadii.large),
             border: Border.all(color: AppColors.danger.withValues(alpha: 0.18)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 74,
-                height: 74,
+                width: 62,
+                height: 62,
                 decoration: BoxDecoration(
                   color: AppColors.danger.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(24),
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Icon(
                   Icons.cloud_off_rounded,
-                  size: 38,
+                  size: 31,
                   color: AppColors.danger,
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
               Text(
                 'Đã xảy ra lỗi',
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall,
+                style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 10),
               Text(

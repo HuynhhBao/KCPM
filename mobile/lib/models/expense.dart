@@ -15,31 +15,23 @@ class ExpenseParticipant {
     required this.shareAmount,
   });
 
-  factory ExpenseParticipant.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory ExpenseParticipant.fromJson(Map<String, dynamic> json) {
     return ExpenseParticipant(
       id: json['id']?.toString() ?? '',
-      userId: int.tryParse(
-            json['user_id']?.toString() ??
-                json['user']?.toString() ??
-                '',
+      userId:
+          int.tryParse(
+            json['user_id']?.toString() ?? json['user']?.toString() ?? '',
           ) ??
           0,
       userName:
           json['user_name']?.toString() ??
-              json['user_full_name']?.toString() ??
-              '',
+          json['user_full_name']?.toString() ??
+          '',
       userEmail:
-          json['user_email']?.toString() ??
-              json['email']?.toString() ??
-              '',
-      userAvatar:
-          json['user_avatar']?.toString() ?? '',
-      shareAmount: double.tryParse(
-            json['share_amount']?.toString() ?? '0',
-          ) ??
-          0,
+          json['user_email']?.toString() ?? json['email']?.toString() ?? '',
+      userAvatar: json['user_avatar']?.toString() ?? '',
+      shareAmount:
+          double.tryParse(json['share_amount']?.toString() ?? '0') ?? 0,
     );
   }
 
@@ -97,9 +89,7 @@ class Expense {
     required this.updatedAt,
   });
 
-  factory Expense.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory Expense.fromJson(Map<String, dynamic> json) {
     String readText(List<dynamic> values) {
       for (final value in values) {
         final text = value?.toString().trim() ?? '';
@@ -145,10 +135,7 @@ class Expense {
 
       title: json['title']?.toString() ?? '',
 
-      amount: double.tryParse(
-            json['amount']?.toString() ?? '0',
-          ) ??
-          0,
+      amount: double.tryParse(json['amount']?.toString() ?? '0') ?? 0,
 
       payerId: readIntValue(
         json['payer_id'] ??
@@ -186,9 +173,8 @@ class Expense {
 
       participants: (json['participants'] as List? ?? [])
           .map(
-            (item) => ExpenseParticipant.fromJson(
-              Map<String, dynamic>.from(item),
-            ),
+            (item) =>
+                ExpenseParticipant.fromJson(Map<String, dynamic>.from(item)),
           )
           .toList(),
 

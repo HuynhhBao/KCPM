@@ -25,13 +25,13 @@ class HouseholdMember {
       user: json['user'] is int
           ? json['user']
           : int.tryParse(json['user']?.toString() ?? '') ?? 0,
-      email: json['user_email']?.toString() ??
-          json['email']?.toString() ??
-          '',
-      fullName: json['user_full_name']?.toString() ??
+      email: json['user_email']?.toString() ?? json['email']?.toString() ?? '',
+      fullName:
+          json['user_full_name']?.toString() ??
           json['full_name']?.toString() ??
           '',
-      userAvatar: json['user_avatar']?.toString() ??
+      userAvatar:
+          json['user_avatar']?.toString() ??
           json['avatar_url']?.toString() ??
           json['avatar']?.toString() ??
           '',

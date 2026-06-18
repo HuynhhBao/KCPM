@@ -34,9 +34,7 @@ class _CreateHouseholdScreenState extends State<CreateHouseholdScreen> {
     final name = nameController.text.trim();
     final description = descriptionController.text.trim();
 
-    if (isLoading) {
-      return;
-    }
+    if (isLoading) return;
 
     if (name.isEmpty) {
       showMessage('Nhập tên nhóm');
@@ -76,49 +74,37 @@ class _CreateHouseholdScreenState extends State<CreateHouseholdScreen> {
   }
 
   void showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   Widget buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            AppColors.primaryDark,
-            AppColors.primary,
-            AppColors.secondary,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.16),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
-          ),
-        ],
+        color: AppColors.backgroundWarm,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.12)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 56,
-            height: 56,
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.16),
-              borderRadius: BorderRadius.circular(20),
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(18),
             ),
             child: const Icon(
               Icons.groups_rounded,
               color: Colors.white,
-              size: 28,
+              size: 26,
             ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
           const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -126,18 +112,18 @@ class _CreateHouseholdScreenState extends State<CreateHouseholdScreen> {
                 Text(
                   'Tạo nhóm mới',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: AppColors.textDark,
                     fontSize: 24,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -0.7,
-                    height: 1,
+                    height: 1.05,
                   ),
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'Quản lý chi tiêu cùng người thân',
+                  'Đặt tên dễ nhớ để mọi người cùng theo dõi chi tiêu.',
                   style: TextStyle(
-                    color: Colors.white70,
+                    color: AppColors.textLight,
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     height: 1.4,
@@ -170,7 +156,7 @@ class _CreateHouseholdScreenState extends State<CreateHouseholdScreen> {
       ),
       decoration: InputDecoration(
         hintText: hint,
-        fillColor: Colors.white,
+        fillColor: AppColors.surfaceTint,
         prefixIcon: Padding(
           padding: EdgeInsets.only(
             left: 16,
@@ -217,28 +203,42 @@ class _CreateHouseholdScreenState extends State<CreateHouseholdScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(titleSpacing: 20, title: const Text('Nhóm mới')),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            children: [
-              buildHeader(),
-              const SizedBox(height: 22),
-              buildInput(
-                controller: nameController,
-                hint: 'Tên nhóm',
-                icon: Icons.edit_rounded,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 620),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  buildHeader(),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'Thông tin nhóm',
+                    style: TextStyle(
+                      color: AppColors.textDark,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  buildInput(
+                    controller: nameController,
+                    hint: 'Tên nhóm',
+                    icon: Icons.edit_rounded,
+                  ),
+                  const SizedBox(height: 14),
+                  buildInput(
+                    controller: descriptionController,
+                    hint: 'Mô tả nhóm',
+                    icon: Icons.notes_rounded,
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 24),
+                  buildSaveButton(),
+                ],
               ),
-              const SizedBox(height: 16),
-              buildInput(
-                controller: descriptionController,
-                hint: 'Mô tả nhóm',
-                icon: Icons.notes_rounded,
-                maxLines: 3,
-              ),
-              const SizedBox(height: 28),
-              buildSaveButton(),
-              const SizedBox(height: 24),
-            ],
+            ),
           ),
         ),
       ),

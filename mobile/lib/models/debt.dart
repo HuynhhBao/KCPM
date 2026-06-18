@@ -60,11 +60,8 @@ class Debt {
         pendingPaymentStatus == 'pending';
   }
 
-  factory Debt.fromJson(
-    Map<String, dynamic> json,
-  ) {
-    final rawPendingPaymentId =
-        json['pending_payment_id']?.toString();
+  factory Debt.fromJson(Map<String, dynamic> json) {
+    final rawPendingPaymentId = json['pending_payment_id']?.toString();
 
     final fromVirtual = json['from_user_is_virtual'] ?? false;
     final toVirtual = json['to_user_is_virtual'] ?? false;
@@ -72,68 +69,50 @@ class Debt {
     return Debt(
       id: json['id'].toString(),
 
-      expenseId:
-          json['expense_id']?.toString() ?? '',
+      expenseId: json['expense_id']?.toString() ?? '',
 
-      expenseTitle:
-          json['expense_title']?.toString() ?? '',
+      expenseTitle: json['expense_title']?.toString() ?? '',
 
-      fromUserName:
-          json['from_user_name']?.toString() ?? '',
+      fromUserName: json['from_user_name']?.toString() ?? '',
 
-      fromUserEmail:
-          json['from_user_email']?.toString() ?? '',
+      fromUserEmail: json['from_user_email']?.toString() ?? '',
 
-      fromUserAvatar:
-          json['from_user_avatar']?.toString() ?? '',
+      fromUserAvatar: json['from_user_avatar']?.toString() ?? '',
 
       fromUserIsVirtual: fromVirtual,
 
-      toUserName:
-          json['to_user_name']?.toString() ?? '',
+      toUserName: json['to_user_name']?.toString() ?? '',
 
-      toUserEmail:
-          json['to_user_email']?.toString() ?? '',
+      toUserEmail: json['to_user_email']?.toString() ?? '',
 
-      toUserAvatar:
-          json['to_user_avatar']?.toString() ?? '',
+      toUserAvatar: json['to_user_avatar']?.toString() ?? '',
 
       toUserIsVirtual: toVirtual,
 
-      hasVirtualMember:
-          json['has_virtual_member'] ?? fromVirtual || toVirtual,
+      hasVirtualMember: json['has_virtual_member'] ?? fromVirtual || toVirtual,
 
-      bankName:
-          json['bank_name']?.toString() ?? '',
+      bankName: json['bank_name']?.toString() ?? '',
 
-      bankAccountNumber:
-          json['bank_account_number']?.toString() ?? '',
+      bankAccountNumber: json['bank_account_number']?.toString() ?? '',
 
-      bankAccountHolder:
-          json['bank_account_holder']?.toString() ?? '',
+      bankAccountHolder: json['bank_account_holder']?.toString() ?? '',
 
-      amount: double.tryParse(
-            json['amount'].toString(),
-          ) ??
-          0,
+      amount: double.tryParse(json['amount'].toString()) ?? 0,
 
-      isPaid:
-          json['is_paid'] ?? false,
+      isPaid: json['is_paid'] ?? false,
 
-      pendingPaymentId: rawPendingPaymentId == null ||
+      pendingPaymentId:
+          rawPendingPaymentId == null ||
               rawPendingPaymentId.trim().isEmpty ||
               rawPendingPaymentId == 'null'
           ? null
           : rawPendingPaymentId,
 
-      pendingPaymentStatus:
-          json['pending_payment_status']?.toString() ?? '',
+      pendingPaymentStatus: json['pending_payment_status']?.toString() ?? '',
 
-      canMarkPaid:
-          json['can_mark_paid'] ?? false,
+      canMarkPaid: json['can_mark_paid'] ?? false,
 
-      canConfirmPayment:
-          json['can_confirm_payment'] ?? false,
+      canConfirmPayment: json['can_confirm_payment'] ?? false,
     );
   }
 }

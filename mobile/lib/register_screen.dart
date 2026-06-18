@@ -398,7 +398,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor: AppColors.primaryDark,
+      backgroundColor: AppColors.primary,
       body: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: Container(

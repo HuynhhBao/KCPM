@@ -46,21 +46,17 @@ class ApiService {
 
     final apiUri = Uri.parse(baseUrl);
 
-    if (value.startsWith('http://') ||
-        value.startsWith('https://')) {
+    if (value.startsWith('http://') || value.startsWith('https://')) {
       final uri = Uri.tryParse(value);
 
       if (uri == null) {
         return value;
       }
 
-      final isLocalUrl =
-          uri.host == '127.0.0.1' ||
-          uri.host == 'localhost';
+      final isLocalUrl = uri.host == '127.0.0.1' || uri.host == 'localhost';
 
       final isLocalApi =
-          apiUri.host == '127.0.0.1' ||
-          apiUri.host == 'localhost';
+          apiUri.host == '127.0.0.1' || apiUri.host == 'localhost';
 
       if (isLocalUrl || isLocalApi) {
         return value;
@@ -91,16 +87,10 @@ class ApiService {
   static final Dio dio = Dio(
     BaseOptions(
       baseUrl: baseUrl,
-      connectTimeout:
-          const Duration(seconds: 15),
-      receiveTimeout:
-          const Duration(seconds: 15),
-      sendTimeout:
-          const Duration(seconds: 15),
-      headers: {
-        'Content-Type':
-            'application/json',
-      },
+      connectTimeout: const Duration(seconds: 15),
+      receiveTimeout: const Duration(seconds: 15),
+      sendTimeout: const Duration(seconds: 15),
+      headers: {'Content-Type': 'application/json'},
     ),
   );
 
@@ -155,91 +145,45 @@ class ApiService {
 
     dio.interceptors.add(
       InterceptorsWrapper(
-        onRequest: (
-          options,
-          handler,
-        ) async {
-          final access =
-              await getAccessToken();
+        onRequest: (options, handler) async {
+          final access = await getAccessToken();
 
-          if (access != null &&
-              access.isNotEmpty) {
-            options.headers[
-                    'Authorization'] =
-                'Bearer $access';
+          if (access != null && access.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $access';
           }
 
-          return handler.next(
-            options,
-          );
+          return handler.next(options);
         },
-        onError: (
-          error,
-          handler,
-        ) async {
-          final statusCode =
-              error.response
-                  ?.statusCode;
+        onError: (error, handler) async {
+          final statusCode = error.response?.statusCode;
 
-          final requestOptions =
-              error.requestOptions;
+          final requestOptions = error.requestOptions;
 
           final isAuthApi =
-              requestOptions.path
-                      .contains(
-                    '/auth/login/',
-                  ) ||
-                  requestOptions.path
-                      .contains(
-                    '/auth/register/',
-                  ) ||
-                  requestOptions.path
-                      .contains(
-                    '/auth/refresh/',
-                  );
+              requestOptions.path.contains('/auth/login/') ||
+              requestOptions.path.contains('/auth/register/') ||
+              requestOptions.path.contains('/auth/refresh/');
 
-          final alreadyRetried =
-              requestOptions.extra['alreadyRetried'] ==
-                  true;
+          final alreadyRetried = requestOptions.extra['alreadyRetried'] == true;
 
-          if (
-            statusCode == 401 &&
-            !isAuthApi &&
-            !alreadyRetried
-          ) {
-            final refreshed =
-                await _refreshTokenSafely();
+          if (statusCode == 401 && !isAuthApi && !alreadyRetried) {
+            final refreshed = await _refreshTokenSafely();
 
             if (refreshed) {
               try {
-                final access =
-                    await getAccessToken();
+                final access = await getAccessToken();
 
-                final retryResponse =
-                    await dio.fetch<
-                        dynamic>(
-                  requestOptions
-                      .copyWith(
+                final retryResponse = await dio.fetch<dynamic>(
+                  requestOptions.copyWith(
                     headers: {
-                      ...requestOptions
-                          .headers,
-                      if (access !=
-                          null)
-                        'Authorization':
-                            'Bearer $access',
+                      ...requestOptions.headers,
+                      if (access != null) 'Authorization': 'Bearer $access',
                     },
-                    extra: {
-                      ...requestOptions
-                          .extra,
-                      'alreadyRetried':
-                          true,
-                    },
+                    extra: {...requestOptions.extra, 'alreadyRetried': true},
                   ),
                 );
 
-                return handler.resolve(
-                  retryResponse,
-                );
+                return handler.resolve(retryResponse);
               } catch (_) {
                 return handler.next(error);
               }
@@ -250,15 +194,10 @@ class ApiService {
 
           return handler.reject(
             DioException(
-              requestOptions:
-                  requestOptions,
-              response:
-                  error.response,
+              requestOptions: requestOptions,
+              response: error.response,
               type: error.type,
-              error:
-                  parseDioException(
-                error,
-              ),
+              error: parseDioException(error),
             ),
           );
         },
@@ -287,17 +226,13 @@ class ApiService {
           connectTimeout: const Duration(seconds: 10),
           receiveTimeout: const Duration(seconds: 10),
           sendTimeout: const Duration(seconds: 10),
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: {'Content-Type': 'application/json'},
         ),
       );
 
       final response = await refreshDio.post(
         '$baseUrl/auth/refresh/',
-        data: {
-          'refresh': refresh,
-        },
+        data: {'refresh': refresh},
       );
 
       final newAccess = response.data['access'];
@@ -359,10 +294,7 @@ class ApiService {
   }) async {
     return dio.post(
       '/auth/login/',
-      data: {
-        'email': email,
-        'password': password,
-      },
+      data: {'email': email, 'password': password},
     );
   }
 
@@ -373,11 +305,7 @@ class ApiService {
   }) async {
     return dio.post(
       '/auth/register/',
-      data: {
-        'email': email,
-        'username': username,
-        'password': password,
-      },
+      data: {'email': email, 'username': username, 'password': password},
     );
   }
 
@@ -387,33 +315,16 @@ class ApiService {
   }) async {
     return dio.post(
       '/auth/verify-register-otp/',
-      data: {
-        'email': email,
-        'otp': otp,
-      },
+      data: {'email': email, 'otp': otp},
     );
   }
 
-  static Future<Response> resendRegisterOTP({
-    required String email,
-  }) async {
-    return dio.post(
-      '/auth/resend-register-otp/',
-      data: {
-        'email': email,
-      },
-    );
+  static Future<Response> resendRegisterOTP({required String email}) async {
+    return dio.post('/auth/resend-register-otp/', data: {'email': email});
   }
 
-  static Future<Response> forgotPassword({
-    required String email,
-  }) async {
-    return dio.post(
-      '/auth/forgot-password/',
-      data: {
-        'email': email,
-      },
-    );
+  static Future<Response> forgotPassword({required String email}) async {
+    return dio.post('/auth/forgot-password/', data: {'email': email});
   }
 
   static Future<Response> resetPassword({
@@ -449,25 +360,22 @@ class ApiService {
   }
 
   static Future<List<dynamic>> getHouseholds() async {
-      final response = await dio.get('/households/');
-      return List<dynamic>.from(response.data);
-    }
+    final response = await dio.get('/households/');
+    return List<dynamic>.from(response.data);
+  }
 
   static Future<List<dynamic>> getHouseholdSummaries() async {
     final response = await dio.get('/households/summary/');
     return List<dynamic>.from(response.data);
   }
-  
+
   static Future<Response> createHousehold({
     required String name,
     String? description,
   }) async {
     return dio.post(
       '/households/',
-      data: {
-        'name': name,
-        'description': description ?? '',
-      },
+      data: {'name': name, 'description': description ?? ''},
     );
   }
 
@@ -485,18 +393,13 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>>
-    getHouseholdDetail(
+  static Future<Map<String, dynamic>> getHouseholdDetail(
     String householdId,
   ) async {
     try {
-      final response = await dio.get(
-        '/households/$householdId/',
-      );
+      final response = await dio.get('/households/$householdId/');
 
-      return Map<String, dynamic>.from(
-        response.data,
-      );
+      return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
       throw parseDioException(e);
     } catch (_) {
@@ -504,7 +407,7 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>>addMemberToHousehold({
+  static Future<Map<String, dynamic>> addMemberToHousehold({
     required String householdId,
     required String email,
     String role = 'member',
@@ -512,15 +415,10 @@ class ApiService {
     try {
       final response = await dio.post(
         '/households/$householdId/members/add/',
-        data: {
-          'email': email,
-          'role': role,
-        },
+        data: {'email': email, 'role': role},
       );
 
-      return Map<String, dynamic>.from(
-        response.data,
-      );
+      return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
       throw parseDioException(e);
     } catch (_) {
@@ -529,35 +427,27 @@ class ApiService {
   }
 
   static Future<Map<String, dynamic>> kickMemberFromHousehold({
-  required String householdId,
-  required String memberId,
-}) async {
-  try {
-    final response = await dio.delete(
-      '/households/$householdId/members/$memberId/kick/',
-    );
-
-    return Map<String, dynamic>.from(
-      response.data,
-    );
-  } on DioException catch (e) {
-    throw parseDioException(e);
-  } catch (_) {
-    throw 'Không thể xóa thành viên khỏi nhóm';
-  }
-}
-
-  static Future<Map<String, dynamic>> getAllActivities({
-    int page = 1,
+    required String householdId,
+    required String memberId,
   }) async {
-    final response = await dio.get(
-      '/households/activities/?page=$page',
-    );
+    try {
+      final response = await dio.delete(
+        '/households/$householdId/members/$memberId/kick/',
+      );
+
+      return Map<String, dynamic>.from(response.data);
+    } on DioException catch (e) {
+      throw parseDioException(e);
+    } catch (_) {
+      throw 'Không thể xóa thành viên khỏi nhóm';
+    }
+  }
+
+  static Future<Map<String, dynamic>> getAllActivities({int page = 1}) async {
+    final response = await dio.get('/households/activities/?page=$page');
 
     return {
-      'results': List<dynamic>.from(
-        response.data['results'],
-      ),
+      'results': List<dynamic>.from(response.data['results']),
       'next': response.data['next'],
     };
   }
@@ -571,9 +461,7 @@ class ApiService {
     );
 
     return {
-      'results': List<dynamic>.from(
-        response.data['results'],
-      ),
+      'results': List<dynamic>.from(response.data['results']),
       'next': response.data['next'],
     };
   }
@@ -585,16 +473,11 @@ class ApiService {
   }) async {
     final response = await dio.get(
       '/expenses/household/$householdId/',
-      queryParameters: {
-        'page': page,
-        'page_size': pageSize,
-      },
+      queryParameters: {'page': page, 'page_size': pageSize},
     );
 
     return {
-      'results': List<dynamic>.from(
-        response.data['results'],
-      ),
+      'results': List<dynamic>.from(response.data['results']),
       'next': response.data['next'],
     };
   }
@@ -611,25 +494,17 @@ class ApiService {
       final data = response.data;
 
       if (data is List) {
-        return {
-          'results': List<dynamic>.from(data),
-          'next': null,
-        };
+        return {'results': List<dynamic>.from(data), 'next': null};
       }
 
       if (data is Map) {
         return {
-          'results': List<dynamic>.from(
-            data['results'] ?? [],
-          ),
+          'results': List<dynamic>.from(data['results'] ?? []),
           'next': data['next'],
         };
       }
 
-      return {
-        'results': <dynamic>[],
-        'next': null,
-      };
+      return {'results': <dynamic>[], 'next': null};
     } on DioException catch (e) {
       throw parseDioException(e);
     } catch (_) {
@@ -644,9 +519,7 @@ class ApiService {
 
     for (final id in householdIds) {
       try {
-        final response = await dio.get(
-          '/expenses/household/$id/debts/',
-        );
+        final response = await dio.get('/expenses/household/$id/debts/');
 
         if (response.data is List) {
           allDebts.addAll(response.data);
@@ -674,20 +547,14 @@ class ApiService {
           'amount': amount.toInt(),
           'expense_date': expenseDate,
           'participants': participants
-              .map(
-                (userId) => {
-                  'user_id': userId,
-                },
-              )
+              .map((userId) => {'user_id': userId})
               .toList(),
           'note': note,
           'split_type': 'equal',
         },
       );
 
-      return Map<String, dynamic>.from(
-        response.data,
-      );
+      return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
       throw parseDioException(e);
     } catch (_) {
@@ -695,17 +562,11 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> getExpenseDetail(
-    String expenseId,
-  ) async {
+  static Future<Map<String, dynamic>> getExpenseDetail(String expenseId) async {
     try {
-      final response = await dio.get(
-        '/expenses/$expenseId/',
-      );
+      final response = await dio.get('/expenses/$expenseId/');
 
-      return Map<String, dynamic>.from(
-        response.data,
-      );
+      return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
       throw parseDioException(e);
     } catch (_) {
@@ -729,20 +590,14 @@ class ApiService {
           'amount': amount.toInt(),
           'expense_date': expenseDate,
           'participants': participants
-              .map(
-                (userId) => {
-                  'user_id': userId,
-                },
-              )
+              .map((userId) => {'user_id': userId})
               .toList(),
           'note': note,
           'split_type': 'equal',
         },
       );
 
-      return Map<String, dynamic>.from(
-        response.data,
-      );
+      return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
       throw parseDioException(e);
     } catch (_) {
@@ -750,13 +605,9 @@ class ApiService {
     }
   }
 
-  static Future<void> deleteExpense(
-    String expenseId,
-  ) async {
+  static Future<void> deleteExpense(String expenseId) async {
     try {
-      await dio.delete(
-        '/expenses/$expenseId/',
-      );
+      await dio.delete('/expenses/$expenseId/');
     } on DioException catch (e) {
       throw parseDioException(e);
     } catch (_) {
@@ -764,29 +615,18 @@ class ApiService {
     }
   }
 
-  static Future<void> saveFCMToken(
-    String token,
-  ) async {
+  static Future<void> saveFCMToken(String token) async {
     await dio.post(
       '/notifications/save-fcm-token/',
-      data: {
-        'token': token,
-        'device_type': 'android',
-      },
+      data: {'token': token, 'device_type': 'android'},
     );
   }
 
-  static Future<Map<String, dynamic>> getNotifications({
-    int page = 1,
-  }) async {
-    final response = await dio.get(
-      '/notifications/?page=$page',
-    );
+  static Future<Map<String, dynamic>> getNotifications({int page = 1}) async {
+    final response = await dio.get('/notifications/?page=$page');
 
     return {
-      'results': List<dynamic>.from(
-        response.data['results'],
-      ),
+      'results': List<dynamic>.from(response.data['results']),
       'next': response.data['next'],
     };
   }
@@ -796,12 +636,8 @@ class ApiService {
     return response.data['unread_count'] ?? 0;
   }
 
-  static Future<void> markNotificationAsRead(
-    String notificationId,
-  ) async {
-    await dio.patch(
-      '/notifications/$notificationId/read/',
-    );
+  static Future<void> markNotificationAsRead(String notificationId) async {
+    await dio.patch('/notifications/$notificationId/read/');
   }
 
   static Future<void> markAllNotificationsAsRead() async {
@@ -846,18 +682,13 @@ class ApiService {
   }) async {
     try {
       final formData = FormData.fromMap({
-        'avatar': MultipartFile.fromBytes(
-          bytes,
-          filename: fileName,
-        ),
+        'avatar': MultipartFile.fromBytes(bytes, filename: fileName),
       });
 
       final response = await dio.patch(
         '/auth/profile/',
         data: formData,
-        options: Options(
-          contentType: 'multipart/form-data',
-        ),
+        options: Options(contentType: 'multipart/form-data'),
       );
 
       return Map<String, dynamic>.from(response.data);
@@ -869,62 +700,39 @@ class ApiService {
   }
 
   static Future<void> loginWithGoogle() async {
-    final GoogleSignIn googleSignIn =
-        GoogleSignIn(
-      scopes: [
-        'email',
-      ],
-    );
-    
+    final GoogleSignIn googleSignIn = GoogleSignIn(scopes: ['email']);
+
     await googleSignIn.signOut();
 
-    final GoogleSignInAccount?
-        googleUser =
-        await googleSignIn.signIn();
+    final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
     if (googleUser == null) {
-      throw Exception(
-        'Người dùng đã huỷ đăng nhập',
-      );
+      throw Exception('Người dùng đã huỷ đăng nhập');
     }
 
-    final GoogleSignInAuthentication
-        googleAuth =
+    final GoogleSignInAuthentication googleAuth =
         await googleUser.authentication;
 
-    String? token =
-        googleAuth.idToken;
+    String? token = googleAuth.idToken;
 
-    token ??=
-        googleAuth.accessToken;
+    token ??= googleAuth.accessToken;
 
     if (token == null) {
-      throw Exception(
-        'Không lấy được Google token',
-      );
+      throw Exception('Không lấy được Google token');
     }
 
     final response = await dio.post(
       '/auth/google-login/',
-      data: {
-        'token': token,
-      },
+      data: {'token': token},
     );
 
-    final access =
-        response.data['access'];
+    final access = response.data['access'];
 
-    final refresh =
-        response.data['refresh'];
+    final refresh = response.data['refresh'];
 
-    final email =
-        response.data['user']['email'];
+    final email = response.data['user']['email'];
 
-    await saveTokens(
-      access: access,
-      refresh: refresh,
-      email: email,
-    );
+    await saveTokens(access: access, refresh: refresh, email: email);
   }
 
   static Future<Map<String, dynamic>> createPairPayment({
@@ -967,14 +775,10 @@ class ApiService {
     try {
       final response = await dio.post(
         '/payments/debts/$debtId/mark-paid/',
-        data: {
-          'note': note,
-        },
+        data: {'note': note},
       );
 
-      return Map<String, dynamic>.from(
-        response.data,
-      );
+      return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
       throw parseDioException(e);
     } catch (_) {
@@ -989,14 +793,10 @@ class ApiService {
     try {
       final response = await dio.post(
         '/payments/$paymentId/confirm/',
-        data: {
-          'note': note,
-        },
+        data: {'note': note},
       );
 
-      return Map<String, dynamic>.from(
-        response.data,
-      );
+      return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
       throw parseDioException(e);
     } catch (_) {
@@ -1011,14 +811,10 @@ class ApiService {
     try {
       final response = await dio.post(
         '/payments/$paymentId/reject/',
-        data: {
-          'note': note,
-        },
+        data: {'note': note},
       );
 
-      return Map<String, dynamic>.from(
-        response.data,
-      );
+      return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
       throw parseDioException(e);
     } catch (_) {
@@ -1026,36 +822,24 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> getPendingPayments({
-    int page = 1,
-  }) async {
+  static Future<Map<String, dynamic>> getPendingPayments({int page = 1}) async {
     try {
-      final response = await dio.get(
-        '/payments/pending/?page=$page',
-      );
+      final response = await dio.get('/payments/pending/?page=$page');
 
       final data = response.data;
 
       if (data is List) {
-        return {
-          'results': List<dynamic>.from(data),
-          'next': null,
-        };
+        return {'results': List<dynamic>.from(data), 'next': null};
       }
 
       if (data is Map) {
         return {
-          'results': List<dynamic>.from(
-            data['results'] ?? [],
-          ),
+          'results': List<dynamic>.from(data['results'] ?? []),
           'next': data['next'],
         };
       }
 
-      return {
-        'results': <dynamic>[],
-        'next': null,
-      };
+      return {'results': <dynamic>[], 'next': null};
     } on DioException catch (e) {
       throw parseDioException(e);
     } catch (_) {
@@ -1073,12 +857,7 @@ class ApiService {
     }
 
     if (data is Map) {
-      final priorityKeys = [
-        'detail',
-        'message',
-        'error',
-        'non_field_errors',
-      ];
+      final priorityKeys = ['detail', 'message', 'error', 'non_field_errors'];
 
       for (final key in priorityKeys) {
         final value = data[key];
@@ -1110,39 +889,24 @@ class ApiService {
     return '';
   }
 
-  static String parseDioException(
-    DioException error,
-  ) {
-    if (
-      error.type ==
-              DioExceptionType
-                  .connectionTimeout ||
-          error.type ==
-              DioExceptionType
-                  .receiveTimeout ||
-          error.type ==
-              DioExceptionType
-                  .sendTimeout
-    ) {
+  static String parseDioException(DioException error) {
+    if (error.type == DioExceptionType.connectionTimeout ||
+        error.type == DioExceptionType.receiveTimeout ||
+        error.type == DioExceptionType.sendTimeout) {
       return 'Kết nối quá chậm. Vui lòng thử lại.';
     }
 
-    if (error.type ==
-        DioExceptionType
-            .connectionError) {
+    if (error.type == DioExceptionType.connectionError) {
       return 'Không có kết nối mạng.';
     }
 
-    final serverMessage = _extractErrorMessage(
-      error.response?.data,
-    );
+    final serverMessage = _extractErrorMessage(error.response?.data);
 
     if (serverMessage.isNotEmpty) {
       return serverMessage;
     }
 
-    final statusCode =
-        error.response?.statusCode;
+    final statusCode = error.response?.statusCode;
 
     if (statusCode == 400) {
       return 'Dữ liệu gửi lên không hợp lệ.';
@@ -1167,21 +931,16 @@ class ApiService {
     return 'Đã có lỗi xảy ra.';
   }
 
-  static Future<Map<String, dynamic>>
-      joinHousehold({
+  static Future<Map<String, dynamic>> joinHousehold({
     required String inviteCode,
   }) async {
     try {
       final response = await dio.post(
         '/households/join/',
-        data: {
-          'invite_code': inviteCode,
-        },
+        data: {'invite_code': inviteCode},
       );
 
-      return Map<String, dynamic>.from(
-        response.data,
-      );
+      return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
       throw parseDioException(e);
     } catch (_) {
@@ -1197,10 +956,7 @@ class ApiService {
     try {
       final response = await dio.post(
         '/households/$householdId/members/virtual/',
-        data: {
-          'display_name': displayName,
-          'note': note,
-        },
+        data: {'display_name': displayName, 'note': note},
       );
 
       return Map<String, dynamic>.from(response.data);
@@ -1227,9 +983,7 @@ class ApiService {
     String householdId,
   ) async {
     try {
-      final response = await dio.get(
-        '/households/$householdId/my-debts/',
-      );
+      final response = await dio.get('/households/$householdId/my-debts/');
 
       return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {

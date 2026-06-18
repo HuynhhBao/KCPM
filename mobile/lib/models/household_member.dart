@@ -20,9 +20,7 @@ class HouseholdMember {
     required this.isVirtual,
   });
 
-  factory HouseholdMember.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory HouseholdMember.fromJson(Map<String, dynamic> json) {
     return HouseholdMember(
       id: json['id']?.toString() ?? '',
 
@@ -30,22 +28,24 @@ class HouseholdMember {
           ? json['user']
           : int.tryParse(json['user']?.toString() ?? '') ?? 0,
 
-      userEmail: json['user_email']?.toString() ??
-          json['email']?.toString() ??
-          '',
+      userEmail:
+          json['user_email']?.toString() ?? json['email']?.toString() ?? '',
 
-      userFullName: json['user_full_name']?.toString() ??
+      userFullName:
+          json['user_full_name']?.toString() ??
           json['full_name']?.toString() ??
           '',
 
-      userAvatar: json['user_avatar']?.toString() ??
+      userAvatar:
+          json['user_avatar']?.toString() ??
           json['avatar_url']?.toString() ??
           json['avatar']?.toString() ??
           '',
 
       role: json['role']?.toString() ?? '',
 
-      isVirtual: json['is_virtual'] == true ||
+      isVirtual:
+          json['is_virtual'] == true ||
           json['is_virtual']?.toString().toLowerCase() == 'true',
     );
   }

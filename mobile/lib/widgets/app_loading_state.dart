@@ -15,11 +15,11 @@ class AppLoadingState extends StatelessWidget {
         child: Container(
           width: double.infinity,
           constraints: const BoxConstraints(maxWidth: 360),
-          padding: const EdgeInsets.all(22),
+          padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: AppColors.surfaceTint,
             borderRadius: BorderRadius.circular(AppRadii.large),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: AppColors.borderStrong),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -54,7 +54,7 @@ class _LoadingBars extends StatelessWidget {
               width: 54,
               height: 54,
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.10),
+                color: AppColors.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(18),
               ),
               child: const Center(
@@ -100,7 +100,7 @@ class _SkeletonLine extends StatelessWidget {
       child: Container(
         height: 12,
         decoration: BoxDecoration(
-          color: AppColors.border.withValues(alpha: 0.72),
+          color: AppColors.borderStrong.withValues(alpha: 0.62),
           borderRadius: BorderRadius.circular(999),
         ),
       ),

@@ -1,28 +1,28 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  static const Color primary = Color(0xFF08745E);
-  static const Color primaryDark = Color(0xFF06493F);
-  static const Color primaryLight = Color(0xFF2FA37E);
+  static const Color primary = Color(0xFF0AAE7A);
+  static const Color primaryDark = Color(0xFF066B55);
+  static const Color primaryLight = Color(0xFF34C98F);
 
-  static const Color secondary = Color(0xFF5A8F7D);
+  static const Color secondary = Color(0xFF47B99A);
 
-  static const Color background = Color(0xFFF3F6F4);
-  static const Color backgroundWarm = Color(0xFFEEF4F1);
+  static const Color background = Color(0xFFF4F8F5);
+  static const Color backgroundWarm = Color(0xFFEAF7F1);
   static const Color surface = Colors.white;
-  static const Color surfaceTint = Color(0xFFF8FBF9);
+  static const Color surfaceTint = Color(0xFFF8FCFA);
 
   static const Color textDark = Color(0xFF111827);
   static const Color textLight = Color(0xFF6B7280);
   static const Color textMuted = Color(0xFF8A938F);
 
   static const Color border = Color(0xFFE5E7EB);
-  static const Color borderStrong = Color(0xFFD5DED9);
+  static const Color borderStrong = Color(0xFFD6E6DF);
 
-  static const Color success = Color(0xFF16A34A);
-  static const Color danger = Color(0xFFD93855);
-  static const Color warning = Color(0xFFD9891B);
-  static const Color info = Color(0xFF256D85);
+  static const Color success = Color(0xFF159B5F);
+  static const Color danger = Color(0xFFC84A5E);
+  static const Color warning = Color(0xFFD58A22);
+  static const Color info = Color(0xFF247C92);
 }
 
 class AppRadii {
@@ -43,7 +43,7 @@ class AppTheme {
       error: AppColors.danger,
     );
 
-    const baseFont = 'Roboto';
+    const String? baseFont = null;
     const textTheme = TextTheme(
       displaySmall: TextStyle(
         fontFamily: baseFont,
@@ -239,6 +239,26 @@ class AppTheme {
           fontSize: 14,
           fontWeight: FontWeight.w600,
           height: 1.45,
+        ),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        backgroundColor: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        modalBackgroundColor: AppColors.surface,
+        modalBarrierColor: Color(0x66061310),
+      ),
+      popupMenuTheme: PopupMenuThemeData(
+        color: AppColors.surface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.medium),
+          side: const BorderSide(color: AppColors.border),
+        ),
+        textStyle: const TextStyle(
+          fontFamily: baseFont,
+          color: AppColors.textDark,
+          fontWeight: FontWeight.w700,
         ),
       ),
       snackBarTheme: SnackBarThemeData(

@@ -26,29 +26,29 @@ class AppEmptyState extends StatelessWidget {
         child: Container(
           width: double.infinity,
           constraints: const BoxConstraints(maxWidth: 390),
-          padding: const EdgeInsets.fromLTRB(24, 26, 24, 24),
+          padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
           decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(AppRadii.xlarge),
-            border: Border.all(color: AppColors.border),
+            color: AppColors.surfaceTint,
+            borderRadius: BorderRadius.circular(AppRadii.large),
+            border: Border.all(color: AppColors.borderStrong),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 74,
-                height: 74,
+                width: 62,
+                height: 62,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(24),
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
                 ),
-                child: Icon(icon, size: 38, color: AppColors.primary),
+                child: Icon(icon, size: 31, color: AppColors.primary),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall,
+                style: Theme.of(context).textTheme.titleLarge,
               ),
               const SizedBox(height: 10),
               Text(

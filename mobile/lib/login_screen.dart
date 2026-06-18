@@ -29,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   static const Color darkGreen = AppColors.primary;
-  static const Color deepGreen = AppColors.primaryDark;
+  static const Color deepGreen = AppColors.primary;
 
   @override
   void dispose() {
@@ -487,7 +487,11 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [Color(0xFF24A87A), Color(0xFF08745E), Color(0xFF04584B)],
+              colors: [
+                AppColors.primaryLight,
+                AppColors.primary,
+                AppColors.primary,
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),

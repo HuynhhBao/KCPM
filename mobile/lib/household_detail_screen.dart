@@ -450,7 +450,9 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
               child: const Text('Hủy'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.danger,
+              ),
               onPressed: () {
                 Navigator.pop(dialogContext, true);
               },
@@ -791,7 +793,9 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
               child: const Text('Hủy'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.danger,
+              ),
               onPressed: () {
                 Navigator.pop(dialogContext, true);
               },
@@ -3084,12 +3088,12 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                               children: [
                                 Icon(
                                   Icons.delete_outline_rounded,
-                                  color: Colors.red,
+                                  color: AppColors.danger,
                                 ),
                                 SizedBox(width: 10),
                                 Text(
                                   'Xóa',
-                                  style: TextStyle(color: Colors.red),
+                                  style: TextStyle(color: AppColors.danger),
                                 ),
                               ],
                             ),

@@ -102,7 +102,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
   }
 
   Color getAmountColor(bool isIOwe) {
-    return isIOwe ? Colors.redAccent : AppColors.primary;
+    return isIOwe ? AppColors.danger : AppColors.primary;
   }
 
   bool hasReceiverBankInfo() {
@@ -463,7 +463,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
           color: isVirtual
               ? const Color(0xFFE0F2FE)
               : isIOwe
-              ? Colors.redAccent.withValues(alpha: 0.10)
+              ? AppColors.danger.withValues(alpha: 0.10)
               : AppColors.primary.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(22),
         ),
@@ -477,7 +477,7 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
               : Text(
                   letter,
                   style: TextStyle(
-                    color: isIOwe ? Colors.redAccent : AppColors.primary,
+                    color: isIOwe ? AppColors.danger : AppColors.primary,
                     fontSize: 22,
                     fontWeight: FontWeight.w900,
                   ),

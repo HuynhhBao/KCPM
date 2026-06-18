@@ -695,7 +695,7 @@ class _DebtOverviewScreenState extends State<DebtOverviewScreen> {
                 Text(
                   formatMoney(item.amount),
                   style: TextStyle(
-                    color: isOwe ? Colors.redAccent : AppColors.primary,
+                    color: isOwe ? AppColors.danger : AppColors.primary,
                     fontSize: 16,
                     fontWeight: FontWeight.w900,
                     letterSpacing: -0.2,
@@ -765,7 +765,7 @@ class _DebtOverviewScreenState extends State<DebtOverviewScreen> {
           color: isVirtual
               ? const Color(0xFFE0F2FE)
               : isOwe
-              ? Colors.redAccent.withValues(alpha: 0.10)
+              ? AppColors.danger.withValues(alpha: 0.10)
               : AppColors.primary.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(20),
         ),
@@ -778,12 +778,12 @@ class _DebtOverviewScreenState extends State<DebtOverviewScreen> {
               : letter.isEmpty
               ? Icon(
                   fallbackIcon,
-                  color: isOwe ? Colors.redAccent : AppColors.primary,
+                  color: isOwe ? AppColors.danger : AppColors.primary,
                 )
               : Text(
                   letter,
                   style: TextStyle(
-                    color: isOwe ? Colors.redAccent : AppColors.primary,
+                    color: isOwe ? AppColors.danger : AppColors.primary,
                     fontSize: 20,
                     fontWeight: FontWeight.w900,
                   ),
@@ -882,7 +882,7 @@ class _DebtOverviewScreenState extends State<DebtOverviewScreen> {
       summaryText = 'Bạn và $otherName không còn chênh lệch công nợ.';
     }
 
-    final summaryColor = isIOwe ? Colors.redAccent : AppColors.primary;
+    final summaryColor = isIOwe ? AppColors.danger : AppColors.primary;
 
     return SafeArea(
       child: Container(
@@ -998,7 +998,7 @@ class _DebtOverviewScreenState extends State<DebtOverviewScreen> {
 
     final isIOwe = row.direction == 'i_owe';
 
-    final color = isIOwe ? Colors.redAccent : AppColors.primary;
+    final color = isIOwe ? AppColors.danger : AppColors.primary;
 
     final label = isIOwe ? 'Bạn nợ $otherName' : '$otherName nợ bạn';
 

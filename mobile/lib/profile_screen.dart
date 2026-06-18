@@ -609,31 +609,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.fromLTRB(16, 15, 16, 15),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primaryDark.withValues(alpha: 0.03),
-            blurRadius: 16,
-            offset: const Offset(0, 8),
-          ),
-        ],
       ),
       child: Row(
         children: [
           Container(
-            width: 50,
-            height: 50,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.10),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(15),
             ),
-            child: Icon(icon, color: AppColors.primary),
+            child: Icon(icon, color: AppColors.primary, size: 22),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -671,21 +664,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.border),
       ),
       child: ListTile(
         onTap: onTap,
         contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
         leading: Container(
-          width: 48,
-          height: 48,
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
             color: AppColors.primary.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(15),
           ),
-          child: Icon(icon, color: AppColors.primary),
+          child: Icon(icon, color: AppColors.primary, size: 22),
         ),
         title: Text(
           title,
@@ -720,25 +713,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final avatarUrl = ApiService.resolveMediaUrl(rawAvatarUrl);
 
     return Container(
-      padding: const EdgeInsets.all(28),
+      padding: const EdgeInsets.fromLTRB(22, 22, 22, 20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [
-            AppColors.primaryDark,
-            AppColors.primary,
-            AppColors.secondary,
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.18),
-            blurRadius: 28,
-            offset: const Offset(0, 16),
-          ),
-        ],
+        color: AppColors.backgroundWarm,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.12)),
       ),
       child: Column(
         children: [
@@ -749,10 +728,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 width: 96,
                 height: 96,
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.18),
+                  color: Colors.white,
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.55),
+                    color: AppColors.primary.withValues(alpha: 0.18),
                     width: 2,
                   ),
                 ),
@@ -766,14 +745,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             return const Icon(
                               Icons.person_rounded,
                               size: 52,
-                              color: Colors.white,
+                              color: AppColors.primary,
                             );
                           },
                         )
                       : const Icon(
                           Icons.person_rounded,
                           size: 52,
-                          color: Colors.white,
+                          color: AppColors.primary,
                         ),
                 ),
               ),
@@ -811,36 +790,36 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 18),
           Text(
             fullName == 'Chưa cập nhật' ? 'Người dùng Chung Ví' : fullName,
             textAlign: TextAlign.center,
             style: const TextStyle(
-              color: Colors.white,
+              color: AppColors.textDark,
               fontSize: 24,
               fontWeight: FontWeight.w900,
               letterSpacing: -0.6,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(
             email,
             style: const TextStyle(
-              color: Colors.white70,
+              color: AppColors.textLight,
               fontWeight: FontWeight.w600,
               fontSize: 15,
             ),
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 20),
           SizedBox(
             height: 46,
-            child: OutlinedButton.icon(
+            child: FilledButton.icon(
               onPressed: openEditProfile,
               icon: const Icon(Icons.edit_rounded),
               label: const Text('Chỉnh sửa hồ sơ'),
-              style: OutlinedButton.styleFrom(
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
-                side: const BorderSide(color: Colors.white70),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(18),
                 ),

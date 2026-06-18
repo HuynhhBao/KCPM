@@ -25,31 +25,23 @@ class Household {
     required this.members,
   });
 
-  factory Household.fromJson(
-    Map<String, dynamic> json,
-  ) {
+  factory Household.fromJson(Map<String, dynamic> json) {
     return Household(
       id: json['id']?.toString() ?? '',
 
       name: json['name']?.toString() ?? '',
 
-      description:
-          json['description']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
 
-      inviteCode:
-          json['invite_code']?.toString() ?? '',
+      inviteCode: json['invite_code']?.toString() ?? '',
 
-      avatarUrl:
-          json['avatar_url']?.toString() ?? '',
+      avatarUrl: json['avatar_url']?.toString() ?? '',
 
-      isActive:
-          json['is_active'] ?? true,
+      isActive: json['is_active'] ?? true,
 
       members: (json['members'] as List? ?? [])
           .map(
-            (item) => HouseholdMember.fromJson(
-              Map<String, dynamic>.from(item),
-            ),
+            (item) => HouseholdMember.fromJson(Map<String, dynamic>.from(item)),
           )
           .toList(),
     );

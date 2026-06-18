@@ -410,7 +410,9 @@ class _HouseholdMembersScreenState extends State<HouseholdMembersScreen> {
               child: const Text('Hủy'),
             ),
             ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.danger,
+              ),
               onPressed: () {
                 Navigator.pop(context, true);
               },
@@ -648,7 +650,7 @@ class _HouseholdMembersScreenState extends State<HouseholdMembersScreen> {
                                     ? 'Xóa thành viên ảo'
                                     : 'Xóa khỏi nhóm',
                                 style: const TextStyle(
-                                  color: Colors.red,
+                                  color: AppColors.danger,
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
