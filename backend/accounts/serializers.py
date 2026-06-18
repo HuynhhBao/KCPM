@@ -1,19 +1,68 @@
+import logging
+import mimetypes
+import re
+
 from django.contrib.auth import get_user_model
+from google_crc32c import value
+from rest_framework import serializers
+
 from accounts.avatar_utils import build_user_avatar_url
 from accounts.cloudinary_storage import (
     delete_cloudinary_avatar_safely,
     upload_user_avatar,
 )
-from rest_framework import serializers
-import mimetypes
-import re
 
 User = get_user_model()
 
+logger = logging.getLogger(__name__)
+
+
+def validate_password_strength(value):
+    if not re.search(r'[A-Z]', value):
+        raise serializers.ValidationError(
+            'Mật khẩu phải chứa ít nhất 1 chữ hoa'
+        )
+
+    if not re.search(r'[0-9]', value):
+        raise serializers.ValidationError(
+            'Mật khẩu phải chứa ít nhất 1 chữ số'
+        )
+
+    return value
+
+
+def normalize_phone_number(value):
+    if value is None:
+        return ''
+
+    value = value.strip()
+
+    if not value:
+        return ''
+
+    if not re.fullmatch(
+        r'\+?[0-9]{9,15}',
+        value,
+    ):
+        raise serializers.ValidationError(
+            'Số điện thoại không hợp lệ'
+        )
+
+    return value
+
 class RegisterSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(
+        validators=[],
+    )
+
+    username = serializers.CharField(
+        max_length=150,
+        validators=[],
+    )
+
     password = serializers.CharField(
         write_only=True,
-        min_length=8
+        min_length=8,
     )
 
     class Meta:
@@ -28,24 +77,89 @@ class RegisterSerializer(serializers.ModelSerializer):
         ]
 
     def validate_email(self, value):
-        email = value.lower().strip()
+        return value.lower().strip()
 
-        existing_user = User.objects.filter(
-            email=email
+    def validate_username(self, value):
+        value = value.strip()
+
+        if not value:
+            raise serializers.ValidationError(
+                'Tên đăng nhập không được để trống'
+            )
+
+        return value
+
+    def validate_phone_number(self, value):
+        return normalize_phone_number(value)
+
+    def validate_password(self, value):
+        return validate_password_strength(value)
+
+    def validate(self, attrs):
+        email = attrs.get(
+            'email',
+            '',
+        )
+
+        username = attrs.get(
+            'username',
+            '',
+        )
+
+        existing_email_user = User.objects.filter(
+            email=email,
         ).first()
 
         if (
-            existing_user and
-            existing_user.email_verified
+            existing_email_user and
+            existing_email_user.email_verified
         ):
             raise serializers.ValidationError(
-                'Email đã tồn tại'
+                {
+                    'email':
+                    'Email đã tồn tại'
+                }
             )
 
-        return email
+        existing_username_user = User.objects.filter(
+            username=username,
+        ).first()
+
+        if (
+            existing_username_user and
+            (
+                not existing_email_user or
+                existing_username_user.pk !=
+                existing_email_user.pk
+            )
+        ):
+            raise serializers.ValidationError(
+                {
+                    'username':
+                    'Tên đăng nhập đã tồn tại'
+                }
+            )
+
+        if (
+            existing_email_user and
+            not existing_email_user.email_verified and
+            existing_email_user.username != username
+        ):
+            raise serializers.ValidationError(
+                {
+                    'username': (
+                        'Email này đang có đăng ký '
+                        'chờ xác thực với tên đăng nhập khác'
+                    )
+                }
+            )
+
+        return attrs
 
     def create(self, validated_data):
-        password = validated_data.pop('password')
+        password = validated_data.pop(
+            'password'
+        )
 
         user = User(
             **validated_data,
@@ -53,7 +167,10 @@ class RegisterSerializer(serializers.ModelSerializer):
             email_verified=False,
         )
 
-        user.set_password(password)
+        user.set_password(
+            password
+        )
+
         user.save()
 
         return user
@@ -131,20 +248,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return value
 
     def validate_phone_number(self, value):
-        if value is None:
-            return ''
-
-        value = value.strip()
-
-        if not value:
-            return ''
-
-        if not re.match(r'^\+?[0-9]{9,15}$', value):
-            raise serializers.ValidationError(
-                'Số điện thoại không hợp lệ'
-            )
-
-        return value
+        return normalize_phone_number(value)
 
     def validate_bank_name(self, value):
         if value is None:
@@ -256,12 +360,13 @@ class UserProfileSerializer(serializers.ModelSerializer):
                         save=False,
                     )
             except Exception:
-                pass
+                logger.exception(
+                    'Không thể xóa avatar local cũ '
+                    'của user_id=%s',
+                    instance.pk,
+                )
 
-            try:
-                instance.avatar = None
-            except Exception:
-                pass
+            instance.avatar = None
 
         instance.save()
 
@@ -326,17 +431,7 @@ class ChangePasswordSerializer(serializers.Serializer):
     )
 
     def validate_new_password(self, value):
-        if not re.search(r'[A-Z]', value):
-            raise serializers.ValidationError(
-                'Mật khẩu phải chứa ít nhất 1 chữ hoa'
-            )
-
-        if not re.search(r'[0-9]', value):
-            raise serializers.ValidationError(
-                'Mật khẩu phải chứa ít nhất 1 chữ số'
-            )
-
-        return value
+        return validate_password_strength(value)
 
     def validate(self, attrs):
         if attrs['new_password'] != attrs['confirm_password']:
@@ -372,17 +467,7 @@ class ResetPasswordSerializer(serializers.Serializer):
     )
 
     def validate_new_password(self, value):
-        if not re.search(r'[A-Z]', value):
-            raise serializers.ValidationError(
-                'Mật khẩu phải chứa ít nhất 1 chữ hoa'
-            )
-
-        if not re.search(r'[0-9]', value):
-            raise serializers.ValidationError(
-                'Mật khẩu phải chứa ít nhất 1 chữ số'
-            )
-
-        return value
+        return validate_password_strength(value)
 
     def validate(self, attrs):
         if attrs['new_password'] != attrs['confirm_password']:

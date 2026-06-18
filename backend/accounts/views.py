@@ -17,13 +17,17 @@ from accounts.serializers import (
     ResendRegisterOTPSerializer,
 )
 
-from django.contrib.auth.hashers import check_password
+import logging
+import os
 import random
+
 from django.conf import settings
+from django.contrib.auth.hashers import check_password
 from django.core.cache import cache
 from django.core.mail import send_mail
 from django.contrib.auth import get_user_model
 
+from google.auth.exceptions import GoogleAuthError
 from google.oauth2 import id_token
 from google.auth.transport import requests
 
@@ -43,8 +47,220 @@ from django.http import HttpResponse
 
 User = get_user_model()
 
+logger = logging.getLogger(__name__)
+
 OTP_EXPIRE_SECONDS = 600
 OTP_RESEND_COOLDOWN = 60
+OTP_MAX_ATTEMPTS = 5
+
+FORGOT_PASSWORD_OTP_COOLDOWN = 60
+
+FCM_TOKEN_MAX_LENGTH = 4096
+
+GOOGLE_REQUEST_TIMEOUT = (
+    3.05,
+    10,
+)
+
+
+class GoogleTokenInvalidError(Exception):
+    pass
+
+
+class GoogleProviderUnavailableError(Exception):
+    pass
+
+
+def consume_cached_otp(
+    *,
+    otp_key,
+    attempts_key,
+    submitted_otp,
+):
+    cached_otp = cache.get(
+        otp_key
+    )
+
+    if not cached_otp:
+        return False
+
+    attempts = cache.get(
+        attempts_key,
+        0,
+    )
+
+    if not isinstance(attempts, int):
+        attempts = 0
+
+    if attempts >= OTP_MAX_ATTEMPTS:
+        cache.delete(otp_key)
+        cache.delete(attempts_key)
+        return False
+
+    if cached_otp != submitted_otp:
+        attempts += 1
+
+        cache.set(
+            attempts_key,
+            attempts,
+            timeout=OTP_EXPIRE_SECONDS,
+        )
+
+        if attempts >= OTP_MAX_ATTEMPTS:
+            cache.delete(otp_key)
+
+        return False
+
+    cache.delete(otp_key)
+    cache.delete(attempts_key)
+
+    return True
+
+
+def request_google_json(
+    url,
+    *,
+    params,
+):
+    try:
+        response = pyrequests.get(
+            url,
+            params=params,
+            timeout=GOOGLE_REQUEST_TIMEOUT,
+        )
+
+    except (
+        pyrequests.Timeout,
+        pyrequests.ConnectionError,
+    ) as exc:
+        raise GoogleProviderUnavailableError(
+            'Không thể kết nối dịch vụ Google'
+        ) from exc
+
+    if response.status_code in (
+        400,
+        401,
+        403,
+    ):
+        raise GoogleTokenInvalidError(
+            'Google token không hợp lệ'
+        )
+
+    try:
+        response.raise_for_status()
+
+    except pyrequests.HTTPError as exc:
+        raise GoogleProviderUnavailableError(
+            'Dịch vụ Google phản hồi lỗi'
+        ) from exc
+
+    try:
+        return response.json()
+
+    except ValueError as exc:
+        raise GoogleProviderUnavailableError(
+            'Dịch vụ Google trả dữ liệu không hợp lệ'
+        ) from exc
+
+
+def get_google_identity(token):
+    google_client_id = (
+        getattr(
+            settings,
+            'GOOGLE_CLIENT_ID',
+            '',
+        )
+        or getattr(
+            settings,
+            'GOOGLE_WEB_CLIENT_ID',
+            '',
+        )
+        or os.getenv(
+            'GOOGLE_CLIENT_ID',
+            '',
+        )
+        or os.getenv(
+            'GOOGLE_WEB_CLIENT_ID',
+            '',
+        )
+    ).strip()
+
+    if not google_client_id:
+        logger.error(
+            'Google Login chưa cấu hình Google Client ID'
+        )
+
+        raise GoogleProviderUnavailableError(
+            'Google Login chưa được cấu hình'
+        )
+
+    try:
+        identity = id_token.verify_oauth2_token(
+            token,
+            requests.Request(),
+            google_client_id,
+        )
+
+    except (
+        ValueError,
+        GoogleAuthError,
+    ):
+        token_info = request_google_json(
+            'https://oauth2.googleapis.com/tokeninfo',
+            params={
+                'access_token': token,
+            },
+        )
+
+        token_audience = (
+            token_info.get('audience')
+            or token_info.get('issued_to')
+            or ''
+        )
+
+        if token_audience != google_client_id:
+            raise GoogleTokenInvalidError(
+                'Google token không thuộc ứng dụng'
+            )
+
+        identity = request_google_json(
+            'https://www.googleapis.com/oauth2/v1/userinfo',
+            params={
+                'access_token': token,
+            },
+        )
+
+    email = str(
+        identity.get('email') or ''
+    ).strip().lower()
+
+    if not email:
+        raise GoogleTokenInvalidError(
+            'Không lấy được email Google'
+        )
+
+    email_verified = identity.get(
+        'email_verified'
+    )
+
+    if email_verified is None:
+        email_verified = identity.get(
+            'verified_email'
+        )
+
+    if email_verified is not True:
+        raise GoogleTokenInvalidError(
+            'Email Google chưa được xác thực'
+        )
+
+    full_name = str(
+        identity.get('name') or ''
+    ).strip()
+
+    return {
+        'email': email,
+        'full_name': full_name,
+    }
 
 
 def generate_otp():
@@ -155,6 +371,12 @@ class RegisterView(generics.CreateAPIView):
         )
 
         cache.set(
+            f'register_otp_attempts:{user.email}',
+            0,
+            timeout=OTP_EXPIRE_SECONDS,
+        )
+
+        cache.set(
             f'register_otp_cooldown:{user.email}',
             True,
             timeout=OTP_RESEND_COOLDOWN,
@@ -191,7 +413,7 @@ class VerifyRegisterOTPView(APIView):
 
         email = serializer.validated_data[
             'email'
-        ].lower()
+        ].lower().strip()
 
         otp = serializer.validated_data[
             'otp'
@@ -201,33 +423,21 @@ class VerifyRegisterOTPView(APIView):
             email=email
         ).first()
 
-        if not user:
-            return Response(
-                {
-                    'detail':
-                    'Người dùng không tồn tại'
-                },
-                status=status.HTTP_404_NOT_FOUND,
-            )
-
-        cached_otp = cache.get(
-            f'register_otp:{email}'
+        otp_is_valid = consume_cached_otp(
+            otp_key=f'register_otp:{email}',
+            attempts_key=(
+                f'register_otp_attempts:{email}'
+            ),
+            submitted_otp=otp,
         )
 
-        if not cached_otp:
+        if not user or not otp_is_valid:
             return Response(
                 {
-                    'detail':
-                    'OTP đã hết hạn'
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        if cached_otp != otp:
-            return Response(
-                {
-                    'detail':
-                    'OTP không chính xác'
+                    'detail': (
+                        'OTP không hợp lệ, đã hết hạn '
+                        'hoặc đã vượt quá số lần thử'
+                    )
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
@@ -237,10 +447,6 @@ class VerifyRegisterOTPView(APIView):
 
         user.save()
 
-        cache.delete(
-            f'register_otp:{email}'
-        )
-
         return Response(
             {
                 'message':
@@ -249,15 +455,12 @@ class VerifyRegisterOTPView(APIView):
             status=status.HTTP_200_OK,
         )
 
-
 class ResendRegisterOTPView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer = (
-            ResendRegisterOTPSerializer(
-                data=request.data
-            )
+        serializer = ResendRegisterOTPSerializer(
+            data=request.data
         )
 
         serializer.is_valid(
@@ -266,35 +469,13 @@ class ResendRegisterOTPView(APIView):
 
         email = serializer.validated_data[
             'email'
-        ].lower()
+        ].lower().strip()
 
-        user = User.objects.filter(
-            email=email
-        ).first()
-
-        if not user:
-            return Response(
-                {
-                    'message':
-                    'Nếu email tồn tại OTP sẽ được gửi.'
-                },
-                status=status.HTTP_200_OK,
-            )
-
-        if user.email_verified:
-            return Response(
-                {
-                    'detail':
-                    'Email đã xác thực'
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
-
-        cooldown = cache.get(
+        cooldown_key = (
             f'register_otp_cooldown:{email}'
         )
 
-        if cooldown:
+        if cache.get(cooldown_key):
             return Response(
                 {
                     'detail': (
@@ -305,29 +486,42 @@ class ResendRegisterOTPView(APIView):
                 status=status.HTTP_429_TOO_MANY_REQUESTS,
             )
 
-        otp = generate_otp()
-
         cache.set(
-            f'register_otp:{email}',
-            otp,
-            timeout=OTP_EXPIRE_SECONDS,
-        )
-
-        cache.set(
-            f'register_otp_cooldown:{email}',
+            cooldown_key,
             True,
             timeout=OTP_RESEND_COOLDOWN,
         )
 
-        send_register_otp(
-            email,
-            otp,
-        )
+        user = User.objects.filter(
+            email=email
+        ).first()
+
+        if user and not user.email_verified:
+            otp = generate_otp()
+
+            cache.set(
+                f'register_otp:{email}',
+                otp,
+                timeout=OTP_EXPIRE_SECONDS,
+            )
+
+            cache.set(
+                f'register_otp_attempts:{email}',
+                0,
+                timeout=OTP_EXPIRE_SECONDS,
+            )
+
+            send_register_otp(
+                email,
+                otp,
+            )
 
         return Response(
             {
-                'message':
-                'OTP đã được gửi lại.'
+                'message': (
+                    'Nếu email hợp lệ và chưa xác thực, '
+                    'OTP sẽ được gửi.'
+                )
             },
             status=status.HTTP_200_OK,
         )
@@ -415,28 +609,94 @@ class SaveFCMTokenView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        token = request.data.get('token')
+        raw_token = request.data.get(
+            'token'
+        )
+
+        if not isinstance(raw_token, str):
+            return Response(
+                {
+                    'detail':
+                    'Token phải là chuỗi ký tự'
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        token = raw_token.strip()
 
         if not token:
             return Response(
-                {'detail': 'Token is required'},
-                status=status.HTTP_400_BAD_REQUEST
+                {
+                    'detail':
+                    'Token không được để trống'
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if len(token) > FCM_TOKEN_MAX_LENGTH:
+            return Response(
+                {
+                    'detail': (
+                        'Token vượt quá độ dài '
+                        'cho phép'
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        raw_device_type = request.data.get(
+            'device_type',
+            FCMDevice.DeviceType.ANDROID,
+        )
+
+        if not isinstance(
+            raw_device_type,
+            str,
+        ):
+            return Response(
+                {
+                    'detail': (
+                        'Loại thiết bị phải là '
+                        'chuỗi ký tự'
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        device_type = (
+            raw_device_type
+            .strip()
+            .lower()
+        )
+
+        if (
+            device_type not in
+            FCMDevice.DeviceType.values
+        ):
+            return Response(
+                {
+                    'detail': (
+                        'Loại thiết bị chỉ chấp nhận '
+                        'android, ios hoặc web'
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         FCMDevice.objects.update_or_create(
             token=token,
             defaults={
                 'user': request.user,
-                'device_type': request.data.get(
-                    'device_type',
-                    'android'
-                ),
-            }
+                'device_type': device_type,
+            },
         )
 
         return Response(
-            {'message': 'FCM token saved successfully'},
-            status=status.HTTP_200_OK
+            {
+                'message':
+                'FCM token saved successfully'
+            },
+            status=status.HTTP_200_OK,
         )
 
 
@@ -512,48 +772,73 @@ class ForgotPasswordRequestView(APIView):
 
         email = serializer.validated_data[
             'email'
-        ].lower()
+        ].lower().strip()
+
+        cooldown_key = (
+            f'forgot_password_otp_cooldown:{email}'
+        )
+
+        if cache.get(cooldown_key):
+            return Response(
+                {
+                    'detail': (
+                        'Vui lòng đợi 60 giây '
+                        'trước khi yêu cầu OTP mới.'
+                    )
+                },
+                status=status.HTTP_429_TOO_MANY_REQUESTS,
+            )
+
+        cache.set(
+            cooldown_key,
+            True,
+            timeout=FORGOT_PASSWORD_OTP_COOLDOWN,
+        )
 
         user = User.objects.filter(
             email=email
         ).first()
 
-        if not user:
-            return Response(
-                {
-                    'message':
-                    'Nếu email tồn tại, OTP sẽ được gửi.'
-                },
-                status=status.HTTP_200_OK
+        if user:
+            otp = generate_otp()
+
+            cache.set(
+                f'forgot_password_otp:{email}',
+                otp,
+                timeout=OTP_EXPIRE_SECONDS,
             )
 
-        otp = str(
-            random.randint(100000, 999999)
-        )
+            cache.set(
+                (
+                    'forgot_password_otp_attempts:'
+                    f'{email}'
+                ),
+                0,
+                timeout=OTP_EXPIRE_SECONDS,
+            )
 
-        cache.set(
-            f'forgot_password_otp:{email}',
-            otp,
-            timeout=600
-        )
-
-        send_mail(
-            subject='Mã OTP đặt lại mật khẩu Chung Ví',
-            message=(
-                f'Mã OTP của bạn là: {otp}\n\n'
-                'OTP có hiệu lực trong 10 phút.'
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            fail_silently=False,
-        )
+            send_mail(
+                subject=(
+                    'Mã OTP đặt lại mật khẩu '
+                    'Chung Ví'
+                ),
+                message=(
+                    f'Mã OTP của bạn là: {otp}\n\n'
+                    'OTP có hiệu lực trong 10 phút.'
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                fail_silently=False,
+            )
 
         return Response(
             {
-                'message':
-                'OTP đã được gửi tới email.'
+                'message': (
+                    'Nếu email tồn tại, '
+                    'OTP sẽ được gửi.'
+                )
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
 
 
@@ -571,7 +856,7 @@ class ResetPasswordView(APIView):
 
         email = serializer.validated_data[
             'email'
-        ].lower()
+        ].lower().strip()
 
         otp = serializer.validated_data[
             'otp'
@@ -581,55 +866,44 @@ class ResetPasswordView(APIView):
             'new_password'
         ]
 
-        cached_otp = cache.get(
-            f'forgot_password_otp:{email}'
+        otp_is_valid = consume_cached_otp(
+            otp_key=(
+                f'forgot_password_otp:{email}'
+            ),
+            attempts_key=(
+                'forgot_password_otp_attempts:'
+                f'{email}'
+            ),
+            submitted_otp=otp,
         )
-
-        if not cached_otp:
-            return Response(
-                {
-                    'detail':
-                    'OTP đã hết hạn'
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        if cached_otp != otp:
-            return Response(
-                {
-                    'detail':
-                    'OTP không chính xác'
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
 
         user = User.objects.filter(
             email=email
         ).first()
 
-        if not user:
+        if not otp_is_valid or not user:
             return Response(
                 {
-                    'detail':
-                    'Người dùng không tồn tại'
+                    'detail': (
+                        'OTP không hợp lệ, đã hết hạn '
+                        'hoặc đã vượt quá số lần thử'
+                    )
                 },
-                status=status.HTTP_404_NOT_FOUND
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
-        user.set_password(new_password)
+        user.set_password(
+            new_password
+        )
 
         user.save()
-
-        cache.delete(
-            f'forgot_password_otp:{email}'
-        )
 
         return Response(
             {
                 'message':
                 'Đặt lại mật khẩu thành công'
             },
-            status=status.HTTP_200_OK
+            status=status.HTTP_200_OK,
         )
 
 
@@ -637,93 +911,120 @@ class GoogleLoginView(APIView):
     permission_classes = [AllowAny]
 
     def post(self, request):
-        token = request.data.get('token')
+        token = request.data.get(
+            'token'
+        )
+
+        if not isinstance(token, str):
+            return Response(
+                {
+                    'detail':
+                    'Thiếu token Google'
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        token = token.strip()
 
         if not token:
             return Response(
                 {
-                    'detail': 'Thiếu token Google'
+                    'detail':
+                    'Thiếu token Google'
                 },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
         try:
-            try:
-                idinfo = id_token.verify_oauth2_token(
-                    token,
-                    requests.Request(),
-                )
-
-            except Exception:
-                userinfo_response = pyrequests.get(
-                    'https://www.googleapis.com/oauth2/v1/userinfo',
-                    params={
-                        'access_token': token
-                    }
-                )
-
-                idinfo = userinfo_response.json()
-
-            email = idinfo.get('email')
-
-            if not email:
-                return Response(
-                    {
-                        'detail': 'Không lấy được email'
-                    },
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
-            full_name = idinfo.get(
-                'name',
-                ''
+            identity = get_google_identity(
+                token
             )
 
-            user, created = User.objects.get_or_create(
-                email=email,
-                defaults={
-                    'username': email,
-                    'full_name': full_name,
-                    'auth_provider': 'google',
-                    'email_verified': True,
-                    'is_active': True,
-                }
-            )
-
-            if created:
-                user.set_unusable_password()
-
-            user.full_name = user.full_name or full_name
-            user.auth_provider = 'google'
-            user.email_verified = True
-            user.is_active = True
-            user.save()
-
-            refresh = RefreshToken.for_user(user)
-
-            return Response(
-                {
-                    'access': str(
-                        refresh.access_token
-                    ),
-
-                    'refresh': str(refresh),
-
-                    'user': {
-                        'email': user.email,
-                        'full_name':
-                        user.full_name,
-                    }
-                }
-            )
-
-        except Exception as e:
-            print(e)
-
+        except GoogleTokenInvalidError:
             return Response(
                 {
                     'detail':
                     'Google token không hợp lệ'
                 },
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
+
+        except GoogleProviderUnavailableError:
+            logger.exception(
+                'Dịch vụ Google Login không khả dụng'
+            )
+
+            return Response(
+                {
+                    'detail': (
+                        'Dịch vụ Google tạm thời '
+                        'không khả dụng'
+                    )
+                },
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
+        email = identity[
+            'email'
+        ]
+
+        full_name = identity[
+            'full_name'
+        ]
+
+        user = User.objects.filter(
+            email=email
+        ).first()
+
+        if user and not user.is_active:
+            return Response(
+                {
+                    'detail':
+                    'Tài khoản đã bị vô hiệu hóa'
+                },
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        if not user:
+            user = User.objects.create(
+                email=email,
+                username=email,
+                full_name=full_name,
+                auth_provider='google',
+                email_verified=True,
+                is_active=True,
+            )
+
+            user.set_unusable_password()
+            user.save()
+
+        else:
+            user.full_name = (
+                user.full_name
+                or full_name
+            )
+
+            user.auth_provider = 'google'
+            user.email_verified = True
+
+            user.save()
+
+        refresh = RefreshToken.for_user(
+            user
+        )
+
+        return Response(
+            {
+                'access': str(
+                    refresh.access_token
+                ),
+                'refresh': str(
+                    refresh
+                ),
+                'user': {
+                    'email': user.email,
+                    'full_name': user.full_name,
+                },
+            },
+            status=status.HTTP_200_OK,
+        )

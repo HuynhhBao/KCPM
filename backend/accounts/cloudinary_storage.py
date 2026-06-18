@@ -1,3 +1,4 @@
+import logging
 import uuid
 from io import BytesIO
 
@@ -7,9 +8,9 @@ from decouple import config
 from django.utils import timezone
 from PIL import Image, ImageOps
 
+logger = logging.getLogger(__name__)
 
 _CLOUDINARY_CONFIGURED = False
-
 
 def configure_cloudinary():
     global _CLOUDINARY_CONFIGURED
@@ -174,4 +175,8 @@ def delete_cloudinary_avatar_safely(public_id):
         )
 
     except Exception:
-        pass
+        logger.exception(
+            'Không thể xóa avatar Cloudinary '
+            'public_id=%s',
+            public_id,
+        )
