@@ -3,7 +3,22 @@ import secrets
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import (
+    Case,
+    Count,
+    DecimalField,
+    F,
+    IntegerField,
+    OuterRef,
+    Prefetch,
+    Q,
+    Subquery,
+    Sum,
+    Value,
+    When,
+)
+
+from django.db.models.functions import Coalesce
 from accounts.avatar_utils import build_user_avatar_url
 
 from rest_framework import generics
@@ -29,7 +44,9 @@ from households.models import (
 
 from households.serializers import (
     ActivitySerializer,
+    AddHouseholdMemberSerializer,
     CreateVirtualMemberSerializer,
+    HouseholdListSerializer,
     HouseholdSerializer,
     HouseholdSummarySerializer,
     JoinHouseholdSerializer,
@@ -75,6 +92,93 @@ def debt_remaining_to_int(debt):
         return 0
 
     return int(remaining)
+
+def get_debt_summary_rows(
+    *,
+    household,
+    subject_user,
+):
+    money_field = DecimalField(
+        max_digits=12,
+        decimal_places=0,
+    )
+
+    zero_money = Value(
+        0,
+        output_field=money_field,
+    )
+
+    paid_amount = Coalesce(
+        F('paid_amount'),
+        zero_money,
+        output_field=money_field,
+    )
+
+    remaining_amount = Case(
+        When(
+            paid_amount__gte=F('amount'),
+            then=zero_money,
+        ),
+        default=F('amount') - paid_amount,
+        output_field=money_field,
+    )
+
+    rows = list(
+        Debt.objects.filter(
+            household=household,
+            is_paid=False,
+        ).filter(
+            Q(from_user=subject_user) |
+            Q(to_user=subject_user)
+        ).annotate(
+            other_user_id=Case(
+                When(
+                    from_user=subject_user,
+                    then=F('to_user_id'),
+                ),
+                default=F('from_user_id'),
+                output_field=IntegerField(),
+            ),
+        ).values(
+            'other_user_id',
+        ).annotate(
+            subject_owes_amount=Sum(
+                Case(
+                    When(
+                        from_user=subject_user,
+                        then=remaining_amount,
+                    ),
+                    default=zero_money,
+                    output_field=money_field,
+                )
+            ),
+            owed_to_subject_amount=Sum(
+                Case(
+                    When(
+                        to_user=subject_user,
+                        then=remaining_amount,
+                    ),
+                    default=zero_money,
+                    output_field=money_field,
+                )
+            ),
+            expense_count=Count(
+                'expense_id',
+                distinct=True,
+            ),
+        ).order_by()
+    )
+
+    other_user_ids = [
+        row['other_user_id']
+        for row in rows
+    ]
+
+    users_by_id = User.objects.filter(
+        id__in=other_user_ids,
+    ).in_bulk()
+
+    return rows, users_by_id
 
 def debt_pending_amount_to_int(debt):
     total = 0
@@ -424,21 +528,44 @@ def get_virtual_user_or_response(household, virtual_user_id):
 
     return membership.user, None
 
+class DefaultPagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 class HouseholdListCreateView(
     generics.ListCreateAPIView
 ):
     serializer_class = HouseholdSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = DefaultPagination
+
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return HouseholdListSerializer
+
+        return HouseholdSerializer
 
     def get_queryset(self):
+        household_ids = HouseholdMember.objects.filter(
+            user=self.request.user,
+        ).values(
+            'household_id',
+        )
+
         return Household.objects.filter(
+            id__in=household_ids,
             is_active=True,
-            members__user=self.request.user
-        ).prefetch_related(
-            'members',
-            'members__user',
-        ).distinct().order_by('-updated_at')
+        ).select_related(
+            'owner',
+        ).annotate(
+            member_count=Count(
+                'members',
+                distinct=True,
+            ),
+        ).order_by(
+            '-updated_at',
+        )
 
     @transaction.atomic
     def perform_create(self, serializer):
@@ -471,17 +598,56 @@ class HouseholdSummaryListView(
 ):
     serializer_class = HouseholdSummarySerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = DefaultPagination
 
     def get_queryset(self):
+        current_user = self.request.user
+
+        household_ids = HouseholdMember.objects.filter(
+            user=current_user,
+        ).values(
+            'household_id',
+        )
+
+        latest_activity_title = Activity.objects.filter(
+            household_id=OuterRef('pk'),
+        ).order_by(
+            '-created_at',
+        ).values(
+            'title',
+        )[:1]
+
+        relevant_debts = Debt.objects.filter(
+            is_paid=False,
+        ).filter(
+            Q(from_user=current_user) |
+            Q(to_user=current_user)
+        )
+
         return Household.objects.filter(
+            id__in=household_ids,
             is_active=True,
-            members__user=self.request.user
+        ).annotate(
+            summary_member_count=Count(
+                'members',
+                distinct=True,
+            ),
+            summary_expense_count=Count(
+                'expenses',
+                distinct=True,
+            ),
+            summary_latest_activity_title=Subquery(
+                latest_activity_title,
+            ),
         ).prefetch_related(
-            'members',
-            'expenses',
-            'debts',
-            'activities',
-        ).distinct().order_by('-updated_at')
+            Prefetch(
+                'debts',
+                queryset=relevant_debts,
+                to_attr='summary_debts',
+            ),
+        ).order_by(
+            '-updated_at',
+        )
 
 
 class HouseholdDetailView(
@@ -563,7 +729,9 @@ class HouseholdDetailView(
         Activity.objects.create(
             household=household,
             actor=request.user,
-            activity_type=Activity.ActivityType.MEMBER_JOINED,
+            activity_type=(
+                Activity.ActivityType.HOUSEHOLD_DELETED
+            ),
             title=f'{request.user.email} đã xóa nhóm',
             metadata={
                 'action': 'household_deleted',
@@ -673,46 +841,19 @@ class AddHouseholdMemberView(APIView):
 
     @transaction.atomic
     def post(self, request, household_id):
-        email = (
-            request.data.get('email', '')
-            .strip()
-            .lower()
+        input_serializer = AddHouseholdMemberSerializer(
+            data=request.data,
+        )
+        input_serializer.is_valid(
+            raise_exception=True,
         )
 
-        role = request.data.get(
-            'role',
-            HouseholdMember.Role.MEMBER
-        )
-
-        if not email:
-            return Response(
-                {
-                    'detail':
-                    'Vui lòng nhập email thành viên.'
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        if email.endswith(VIRTUAL_MEMBER_EMAIL_DOMAIN):
-            return Response(
-                {
-                    'detail':
-                    'Email này thuộc thành viên ảo, không thể thêm như tài khoản thật.'
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        if role not in [
-            HouseholdMember.Role.MEMBER,
-            HouseholdMember.Role.OWNER,
-        ]:
-            return Response(
-                {
-                    'detail':
-                    'Vai trò thành viên không hợp lệ.'
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        email = input_serializer.validated_data[
+            'email'
+        ]
+        role = input_serializer.validated_data[
+            'role'
+        ]
 
         household = Household.objects.select_for_update().filter(
             id=household_id,
@@ -921,7 +1062,10 @@ class CreateVirtualHouseholdMemberView(APIView):
         Activity.objects.create(
             household=household,
             actor=request.user,
-            activity_type=Activity.ActivityType.MEMBER_JOINED,
+            activity_type=(
+                Activity.ActivityType
+                .VIRTUAL_MEMBER_CREATED
+            ),
             title=(
                 f'{actor_name} đã tạo thành viên ảo {display_name}'
             ),
@@ -1057,7 +1201,9 @@ class KickHouseholdMemberView(APIView):
         Activity.objects.create(
             household=household,
             actor=request.user,
-            activity_type=Activity.ActivityType.MEMBER_JOINED,
+            activity_type=(
+                Activity.ActivityType.MEMBER_KICKED
+            ),
             title=(
                 f'{actor_name} đã xóa {kicked_name} khỏi nhóm'
             ),
@@ -1094,12 +1240,6 @@ class KickHouseholdMemberView(APIView):
             },
             status=status.HTTP_200_OK
         )
-
-
-class DefaultPagination(PageNumberPagination):
-    page_size = 20
-    page_size_query_param = 'page_size'
-    max_page_size = 100
 
 
 class ActivityListView(generics.ListAPIView):
@@ -1191,10 +1331,27 @@ class LeaveHouseholdView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        has_unpaid_debt = Debt.objects.filter(
+            household=household,
+            is_paid=False,
+        ).filter(
+            Q(from_user=request.user) |
+            Q(to_user=request.user)
+        ).exists()
+
+        if has_unpaid_debt:
+            return Response(
+                {
+                    'detail':
+                    'Không thể rời nhóm khi còn công nợ chưa thanh toán liên quan đến bạn.'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         Activity.objects.create(
             household=household,
             actor=request.user,
-            activity_type=Activity.ActivityType.MEMBER_JOINED,
+            activity_type=Activity.ActivityType.MEMBER_LEFT,
             title=f'{request.user.email} đã rời nhóm',
             metadata={
                 'action': 'member_left',
@@ -1247,54 +1404,12 @@ class MyDebtSummaryView(APIView):
 
         current_user = request.user
 
-        debts = Debt.objects.filter(
-            household=household,
-            is_paid=False,
-        ).filter(
-            Q(from_user=current_user) |
-            Q(to_user=current_user)
-        ).select_related(
-            'from_user',
-            'to_user',
-            'expense',
-        )
-
-        pair_map = {}
-
-        for debt in debts:
-            if debt.from_user_id == current_user.id:
-                other_user = debt.to_user
-                direction = 'i_owe'
-            else:
-                other_user = debt.from_user
-                direction = 'owed_to_me'
-
-            if other_user.id not in pair_map:
-                user_data = serialize_debt_user(
-                    other_user,
-                    request,
-                )
-
-                pair_map[other_user.id] = {
-                    **user_data,
-                    'i_owe_amount': 0,
-                    'owed_to_me_amount': 0,
-                    'expense_ids': set(),
-                }
-
-            amount = debt_remaining_to_int(debt)
-
-            if amount <= 0:
-                continue
-
-            if direction == 'i_owe':
-                pair_map[other_user.id]['i_owe_amount'] += amount
-            else:
-                pair_map[other_user.id]['owed_to_me_amount'] += amount
-
-            pair_map[other_user.id]['expense_ids'].add(
-                str(debt.expense_id)
+        summary_rows, users_by_id = (
+            get_debt_summary_rows(
+                household=household,
+                subject_user=current_user,
             )
+        )
 
         i_owe = []
         owed_to_me = []
@@ -1302,31 +1417,66 @@ class MyDebtSummaryView(APIView):
         total_i_owe = 0
         total_owed_to_me = 0
 
-        for item in pair_map.values():
+        for row in summary_rows:
+            other_user = users_by_id.get(
+                row['other_user_id']
+            )
+
+            if not other_user:
+                continue
+
+            i_owe_amount = money_to_int(
+                row['subject_owes_amount']
+            )
+
+            owed_to_me_amount = money_to_int(
+                row['owed_to_subject_amount']
+            )
+
             net_amount = (
-                item['i_owe_amount'] -
-                item['owed_to_me_amount']
+                i_owe_amount -
+                owed_to_me_amount
             )
 
             if net_amount == 0:
                 continue
 
+            user_data = serialize_debt_user(
+                other_user,
+                request,
+            )
+
             response_item = {
-                'other_user_id': item['other_user_id'],
-                'other_name': item['other_name'],
-                'other_email': item['other_email'],
-                'other_avatar': item['other_avatar'],
-                'is_virtual': item['is_virtual'],
+                'other_user_id':
+                    user_data['other_user_id'],
+                'other_name':
+                    user_data['other_name'],
+                'other_email':
+                    user_data['other_email'],
+                'other_avatar':
+                    user_data['other_avatar'],
+                'is_virtual':
+                    user_data['is_virtual'],
                 'amount': abs(net_amount),
-                'expense_count': len(item['expense_ids']),
+                'expense_count':
+                    row['expense_count'],
             }
 
             if net_amount > 0:
                 total_i_owe += net_amount
                 i_owe.append(response_item)
             else:
-                total_owed_to_me += abs(net_amount)
-                owed_to_me.append(response_item)
+                amount_to_receive = abs(
+                    net_amount
+                )
+
+                total_owed_to_me += (
+                    amount_to_receive
+                )
+
+                owed_to_me.append(
+                    response_item
+                )
 
         i_owe.sort(
             key=lambda item: item['amount'],
@@ -1389,9 +1539,40 @@ class MyDebtDetailView(APIView):
         current_user = request.user
         other_user = other_membership.user
 
-        debts = Debt.objects.filter(
-            household=household,
-        ).filter(
+        paid_limit_raw = request.query_params.get(
+            'paid_limit',
+            '20',
+        )
+
+        try:
+            paid_limit = int(paid_limit_raw)
+        except (TypeError, ValueError):
+            return Response(
+                {
+                    'detail':
+                    'paid_limit phải là số nguyên.'
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if paid_limit < 1 or paid_limit > 100:
+            return Response(
+                {
+                    'detail':
+                    'paid_limit phải nằm trong khoảng từ 1 đến 100.'
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        include_legacy_items = (
+            request.query_params.get(
+                'include_legacy_items',
+                'false',
+            ).strip().lower()
+            in ['1', 'true', 'yes']
+        )
+
+        pair_filter = (
             Q(
                 from_user=current_user,
                 to_user=other_user,
@@ -1400,6 +1581,12 @@ class MyDebtDetailView(APIView):
                 from_user=other_user,
                 to_user=current_user,
             )
+        )
+
+        debt_detail_queryset = Debt.objects.filter(
+            household=household,
+        ).filter(
+            pair_filter,
         ).select_related(
             'from_user',
             'to_user',
@@ -1409,10 +1596,31 @@ class MyDebtDetailView(APIView):
             'payments',
             'payment_allocations',
             'payment_allocations__payment',
+        )
+
+        unpaid_debts = debt_detail_queryset.filter(
+            is_paid=False,
         ).order_by(
             'expense__expense_date',
             'created_at',
         )
+
+        paid_debt_rows = list(
+            debt_detail_queryset.filter(
+                is_paid=True,
+            ).order_by(
+                '-updated_at',
+                '-created_at',
+            )[:paid_limit + 1]
+        )
+
+        paid_items_has_more = (
+            len(paid_debt_rows) > paid_limit
+        )
+
+        paid_debts = paid_debt_rows[
+            :paid_limit
+        ]
 
         total_i_owe = 0
         total_owed_to_me = 0
@@ -1420,7 +1628,7 @@ class MyDebtDetailView(APIView):
         unpaid_items = []
         paid_items = []
 
-        for debt in debts:
+        for debt in unpaid_debts:
             if debt.from_user_id == current_user.id:
                 direction = 'i_owe'
             else:
@@ -1432,13 +1640,14 @@ class MyDebtDetailView(APIView):
                 request=request,
             )
 
-            remaining_amount = item['remaining_amount']
+            remaining_amount = item[
+                'remaining_amount'
+            ]
 
-            if item['status'] == 'paid':
-                paid_items.append(item)
-                continue
-
-            if remaining_amount <= 0:
+            if (
+                item['status'] == 'paid'
+                or remaining_amount <= 0
+            ):
                 paid_items.append(item)
                 continue
 
@@ -1448,6 +1657,20 @@ class MyDebtDetailView(APIView):
                 total_owed_to_me += remaining_amount
 
             unpaid_items.append(item)
+
+        for debt in paid_debts:
+            if debt.from_user_id == current_user.id:
+                direction = 'i_owe'
+            else:
+                direction = 'owed_to_me'
+
+            paid_items.append(
+                serialize_debt_detail_item(
+                    debt=debt,
+                    direction=direction,
+                    request=request,
+                )
+            )
 
         net_amount = total_i_owe - total_owed_to_me
 
@@ -1557,9 +1780,17 @@ class MyDebtDetailView(APIView):
 
                 'unpaid_items': unpaid_items,
                 'paid_items': paid_items,
+                'paid_items_limit': paid_limit,
+                'paid_items_has_more':
+                    paid_items_has_more,
 
-                # Giữ lại field cũ để frontend chưa sửa vẫn không vỡ:
-                'items': unpaid_items,
+                **(
+                    {
+                        'items': unpaid_items,
+                    }
+                    if include_legacy_items
+                    else {}
+                ),
 
                 'pending_payment': (
                     PaymentSerializer(
@@ -1607,62 +1838,12 @@ class VirtualMemberDebtSummaryView(APIView):
         if error_response:
             return error_response
 
-        debts = Debt.objects.filter(
-            household=household,
-            is_paid=False,
-        ).filter(
-            Q(from_user=virtual_user) |
-            Q(to_user=virtual_user)
-        ).select_related(
-            'from_user',
-            'to_user',
-            'expense',
-        )
-
-        pair_map = {}
-
-        for debt in debts:
-            if debt.from_user_id == virtual_user.id:
-                other_user = debt.to_user
-                direction = 'virtual_owes'
-            else:
-                other_user = debt.from_user
-                direction = 'owed_to_virtual'
-
-            if other_user.id not in pair_map:
-                user_data = serialize_debt_user(
-                    other_user,
-                    request,
-                )
-
-                pair_map[other_user.id] = {
-                    'other_user_id': user_data['other_user_id'],
-                    'other_name': user_data['other_name'],
-                    'other_email': user_data['other_email'],
-                    'other_avatar': user_data['other_avatar'],
-                    'other_is_virtual': user_data['is_virtual'],
-                    'virtual_owes_amount': 0,
-                    'owed_to_virtual_amount': 0,
-                    'expense_ids': set(),
-                }
-
-            amount = debt_remaining_to_int(debt)
-
-            if amount <= 0:
-                continue
-
-            if direction == 'virtual_owes':
-                pair_map[other_user.id][
-                    'virtual_owes_amount'
-                ] += amount
-            else:
-                pair_map[other_user.id][
-                    'owed_to_virtual_amount'
-                ] += amount
-
-            pair_map[other_user.id]['expense_ids'].add(
-                str(debt.expense_id)
+        summary_rows, users_by_id = (
+            get_debt_summary_rows(
+                household=household,
+                subject_user=virtual_user,
             )
+        )
 
         virtual_owes = []
         owed_to_virtual = []
@@ -1670,31 +1851,69 @@ class VirtualMemberDebtSummaryView(APIView):
         total_virtual_owes = 0
         total_owed_to_virtual = 0
 
-        for item in pair_map.values():
+        for row in summary_rows:
+            other_user = users_by_id.get(
+                row['other_user_id']
+            )
+
+            if not other_user:
+                continue
+
+            virtual_owes_amount = money_to_int(
+                row['subject_owes_amount']
+            )
+
+            owed_to_virtual_amount = money_to_int(
+                row['owed_to_subject_amount']
+            )
+
             net_amount = (
-                item['virtual_owes_amount'] -
-                item['owed_to_virtual_amount']
+                virtual_owes_amount -
+                owed_to_virtual_amount
             )
 
             if net_amount == 0:
                 continue
 
+            user_data = serialize_debt_user(
+                other_user,
+                request,
+            )
+
             response_item = {
-                'other_user_id': item['other_user_id'],
-                'other_name': item['other_name'],
-                'other_email': item['other_email'],
-                'other_avatar': item['other_avatar'],
-                'other_is_virtual': item['other_is_virtual'],
+                'other_user_id':
+                    user_data['other_user_id'],
+                'other_name':
+                    user_data['other_name'],
+                'other_email':
+                    user_data['other_email'],
+                'other_avatar':
+                    user_data['other_avatar'],
+                'other_is_virtual':
+                    user_data['is_virtual'],
                 'amount': abs(net_amount),
-                'expense_count': len(item['expense_ids']),
+                'expense_count':
+                    row['expense_count'],
             }
 
             if net_amount > 0:
                 total_virtual_owes += net_amount
-                virtual_owes.append(response_item)
+
+                virtual_owes.append(
+                    response_item
+                )
             else:
-                total_owed_to_virtual += abs(net_amount)
-                owed_to_virtual.append(response_item)
+                amount_to_receive = abs(
+                    net_amount
+                )
+
+                total_owed_to_virtual += (
+                    amount_to_receive
+                )
+
+                owed_to_virtual.append(
+                    response_item
+                )
 
         virtual_owes.sort(
             key=lambda item: item['amount'],

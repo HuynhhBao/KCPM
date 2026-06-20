@@ -99,10 +99,38 @@ class HouseholdMember(BaseModel):
 
 class Activity(BaseModel):
     class ActivityType(models.TextChoices):
-        EXPENSE_CREATED = 'expense_created', 'Thêm khoản chi'
-        EXPENSE_UPDATED = 'expense_updated', 'Sửa khoản chi'
-        EXPENSE_DELETED = 'expense_deleted', 'Xóa khoản chi'
-        MEMBER_JOINED = 'member_joined', 'Thành viên tham gia'
+        EXPENSE_CREATED = (
+            'expense_created',
+            'Thêm khoản chi',
+        )
+        EXPENSE_UPDATED = (
+            'expense_updated',
+            'Sửa khoản chi',
+        )
+        EXPENSE_DELETED = (
+            'expense_deleted',
+            'Xóa khoản chi',
+        )
+        MEMBER_JOINED = (
+            'member_joined',
+            'Thành viên tham gia',
+        )
+        MEMBER_LEFT = (
+            'member_left',
+            'Thành viên rời nhóm',
+        )
+        MEMBER_KICKED = (
+            'member_kicked',
+            'Xóa thành viên khỏi nhóm',
+        )
+        VIRTUAL_MEMBER_CREATED = (
+            'virtual_member_created',
+            'Tạo thành viên ảo',
+        )
+        HOUSEHOLD_DELETED = (
+            'household_deleted',
+            'Xóa nhóm',
+        )
 
     household = models.ForeignKey(
         Household,

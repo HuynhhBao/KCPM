@@ -93,9 +93,4 @@ urlpatterns = [
         '<uuid:household_id>/activities/',
         ActivityListView.as_view(),
     ),
-
-    path(
-        '<uuid:household_id>/activities/',
-        ActivityListView.as_view(),
-    ),
 ]

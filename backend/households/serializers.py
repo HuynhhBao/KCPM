@@ -131,6 +131,55 @@ class HouseholdSerializer(
             )
 
         return ''
+    
+class HouseholdListSerializer(
+    serializers.ModelSerializer
+):
+    owner_email = serializers.EmailField(
+        source='owner.email',
+        read_only=True
+    )
+
+    avatar_url = serializers.SerializerMethodField()
+
+    member_count = serializers.IntegerField(
+        read_only=True
+    )
+
+    class Meta:
+        model = Household
+
+        fields = [
+            'id',
+            'name',
+            'description',
+            'avatar',
+            'avatar_url',
+            'owner',
+            'owner_email',
+            'invite_code',
+            'is_active',
+            'member_count',
+            'created_at',
+            'updated_at',
+        ]
+
+        read_only_fields = [
+            'owner',
+            'invite_code',
+            'is_active',
+            'member_count',
+        ]
+
+    def get_avatar_url(self, obj):
+        request = self.context.get('request')
+
+        if obj.avatar and request:
+            return request.build_absolute_uri(
+                obj.avatar.url
+            )
+
+        return ''
 
 
 class JoinHouseholdSerializer(
@@ -140,6 +189,31 @@ class JoinHouseholdSerializer(
 
     def validate_invite_code(self, value):
         return value.strip().upper()
+
+
+class AddHouseholdMemberSerializer(
+    serializers.Serializer
+):
+    email = serializers.EmailField(
+        max_length=254,
+        allow_blank=False,
+    )
+
+    role = serializers.ChoiceField(
+        choices=HouseholdMember.Role.choices,
+        default=HouseholdMember.Role.MEMBER,
+    )
+
+    def validate_email(self, value):
+        email = value.strip().lower()
+
+        if email.endswith(VIRTUAL_MEMBER_EMAIL_DOMAIN):
+            raise serializers.ValidationError(
+                'Email này thuộc thành viên ảo, '
+                'không thể thêm như tài khoản thật.'
+            )
+
+        return email
 
 
 class CreateVirtualMemberSerializer(serializers.Serializer):
@@ -238,9 +312,15 @@ class HouseholdSummarySerializer(
         return ''
 
     def get_member_count(self, obj):
+        if hasattr(obj, 'summary_member_count'):
+            return obj.summary_member_count
+
         return obj.members.count()
 
     def get_expense_count(self, obj):
+        if hasattr(obj, 'summary_expense_count'):
+            return obj.summary_expense_count
+
         return obj.expenses.count()
 
     def _get_user_debt_totals(self, obj):
@@ -260,15 +340,18 @@ class HouseholdSummarySerializer(
 
         current_user = request.user
 
-        debts = obj.debts.filter(
-            is_paid=False,
-        ).filter(
-            Q(from_user=current_user) |
-            Q(to_user=current_user)
-        ).select_related(
-            'from_user',
-            'to_user',
-        )
+        if hasattr(obj, 'summary_debts'):
+            debts = obj.summary_debts
+        else:
+            debts = obj.debts.filter(
+                is_paid=False,
+            ).filter(
+                Q(from_user=current_user) |
+                Q(to_user=current_user)
+            ).select_related(
+                'from_user',
+                'to_user',
+            )
 
         pair_map = {}
 
@@ -324,6 +407,15 @@ class HouseholdSummarySerializer(
         return self._get_user_debt_totals(obj)['total_receive']
 
     def get_latest_activity(self, obj):
+        if hasattr(
+            obj,
+            'summary_latest_activity_title',
+        ):
+            return (
+                obj.summary_latest_activity_title
+                or ''
+            )
+
         latest = obj.activities.order_by(
             '-created_at'
         ).first()
