@@ -288,6 +288,22 @@ class ApiService {
     }
   }
 
+  static List<dynamic> _extractResultsList(dynamic data) {
+    if (data is List) {
+      return List<dynamic>.from(data);
+    }
+
+    if (data is Map) {
+      final results = data['results'];
+
+      if (results is List) {
+        return List<dynamic>.from(results);
+      }
+    }
+
+    return <dynamic>[];
+  }
+
   static Future<Response> login({
     required String email,
     required String password,
@@ -361,12 +377,12 @@ class ApiService {
 
   static Future<List<dynamic>> getHouseholds() async {
     final response = await dio.get('/households/');
-    return List<dynamic>.from(response.data);
+    return _extractResultsList(response.data);
   }
 
   static Future<List<dynamic>> getHouseholdSummaries() async {
     final response = await dio.get('/households/summary/');
-    return List<dynamic>.from(response.data);
+    return _extractResultsList(response.data);
   }
 
   static Future<Response> createHousehold({
@@ -380,7 +396,13 @@ class ApiService {
   }
 
   static Future<void> leaveHousehold(String householdId) async {
-    await dio.post('/households/$householdId/leave/');
+    try {
+      await dio.post('/households/$householdId/leave/');
+    } on DioException catch (e) {
+      throw parseDioException(e);
+    } catch (_) {
+      throw 'KhÃ´ng thá»ƒ rá»i nhÃ³m';
+    }
   }
 
   static Future<void> deleteHousehold(String householdId) async {
@@ -445,11 +467,13 @@ class ApiService {
 
   static Future<Map<String, dynamic>> getAllActivities({int page = 1}) async {
     final response = await dio.get('/households/activities/?page=$page');
+    final data = response.data;
 
-    return {
-      'results': List<dynamic>.from(response.data['results']),
-      'next': response.data['next'],
-    };
+    if (data is Map) {
+      return {'results': _extractResultsList(data), 'next': data['next']};
+    }
+
+    return {'results': _extractResultsList(data), 'next': null};
   }
 
   static Future<Map<String, dynamic>> getActivities(
@@ -459,11 +483,13 @@ class ApiService {
     final response = await dio.get(
       '/households/$householdId/activities/?page=$page',
     );
+    final data = response.data;
 
-    return {
-      'results': List<dynamic>.from(response.data['results']),
-      'next': response.data['next'],
-    };
+    if (data is Map) {
+      return {'results': _extractResultsList(data), 'next': data['next']};
+    }
+
+    return {'results': _extractResultsList(data), 'next': null};
   }
 
   static Future<Map<String, dynamic>> getHouseholdExpenses(
@@ -877,11 +903,23 @@ class ApiService {
         final value = entry.value;
 
         if (value is List && value.isNotEmpty) {
-          return value.first.toString();
+          final firstMessage = _extractErrorMessage(value.first);
+
+          if (firstMessage.isNotEmpty) {
+            return firstMessage;
+          }
         }
 
         if (value is String && value.trim().isNotEmpty) {
           return value;
+        }
+
+        if (value is Map) {
+          final nestedMessage = _extractErrorMessage(value);
+
+          if (nestedMessage.isNotEmpty) {
+            return nestedMessage;
+          }
         }
       }
     }

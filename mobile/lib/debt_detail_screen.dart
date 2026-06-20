@@ -80,6 +80,14 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
         .toList();
   }
 
+  List<Map<String, dynamic>> readUnpaidItems(Map<String, dynamic> source) {
+    return readMapList(source['unpaid_items'] ?? source['items'] ?? const []);
+  }
+
+  List<Map<String, dynamic>> readPaidItems(Map<String, dynamic> source) {
+    return readMapList(source['paid_items'] ?? const []);
+  }
+
   String formatMoney(int amount) {
     return amount.toString().replaceAllMapped(
       RegExp(r'\B(?=(\d{3})+(?!\d))'),
@@ -389,8 +397,10 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
     final pendingPayment = detail['pending_payment'];
     final canPayNow = detail['can_pay_now'] == true;
     final isOtherVirtual = detail['is_virtual'] == true || widget.isVirtualMode;
-    final unpaidItems = readMapList(detail['unpaid_items']);
-    final paidItems = readMapList(detail['paid_items']);
+    final unpaidItems = readUnpaidItems(detail);
+    final paidItems = readPaidItems(detail);
+    final paidItemsLimit = readInt(detail['paid_items_limit']);
+    final paidItemsHasMore = detail['paid_items_has_more'] == true;
 
     final isIOwe = netDirection == 'i_owe' || netDirection == 'virtual_owes';
 
@@ -440,6 +450,8 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
                   buildDebtSectionsCard(
                     unpaidItems: unpaidItems,
                     paidItems: paidItems,
+                    paidItemsLimit: paidItemsLimit,
+                    paidItemsHasMore: paidItemsHasMore,
                   ),
                 ],
               ),
@@ -1084,6 +1096,8 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
   Widget buildDebtSectionsCard({
     required List<Map<String, dynamic>> unpaidItems,
     required List<Map<String, dynamic>> paidItems,
+    required int paidItemsLimit,
+    required bool paidItemsHasMore,
   }) {
     return Container(
       padding: const EdgeInsets.all(22),
@@ -1115,6 +1129,17 @@ class _DebtDetailScreenState extends State<DebtDetailScreen> {
             items: paidItems,
             isPaidSection: true,
           ),
+          if (paidItemsHasMore && paidItemsLimit > 0) ...[
+            const SizedBox(height: 10),
+            Text(
+              'Đang hiển thị $paidItemsLimit khoản đã thanh toán gần nhất.',
+              style: const TextStyle(
+                color: AppColors.textLight,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ],
       ),
     );

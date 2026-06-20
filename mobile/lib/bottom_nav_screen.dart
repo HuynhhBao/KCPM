@@ -276,9 +276,9 @@ class _BottomNavScreenState extends State<BottomNavScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      household.members.isEmpty
+                                      household.memberCount <= 0
                                           ? 'Nhấn để chọn nhóm'
-                                          : '${household.members.length} thành viên',
+                                          : '${household.memberCount} thành viên',
                                       style: const TextStyle(
                                         color: AppColors.textLight,
                                         fontSize: 13,

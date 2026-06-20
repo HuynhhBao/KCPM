@@ -891,6 +891,14 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
         .toList();
   }
 
+  List<Map<String, dynamic>> readUnpaidDebtItems(Map<String, dynamic> detail) {
+    return readMapList(detail['unpaid_items'] ?? detail['items'] ?? const []);
+  }
+
+  List<Map<String, dynamic>> readPaidDebtItems(Map<String, dynamic> detail) {
+    return readMapList(detail['paid_items'] ?? const []);
+  }
+
   String readDebtUserName(Map<String, dynamic> item) {
     final name = item['other_name']?.toString() ?? '';
     final email = item['other_email']?.toString() ?? '';
@@ -1964,7 +1972,8 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
 
     final netAmount = readDouble(detail['net_amount']);
 
-    final items = readMapList(detail['items']);
+    final items = readUnpaidDebtItems(detail);
+    final paidItems = readPaidDebtItems(detail);
 
     final isIOwe = netDirection == 'i_owe';
     final isOwedToMe = netDirection == 'owed_to_me';
@@ -2083,6 +2092,28 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                   },
                 ),
               ),
+            if (paidItems.isNotEmpty) ...[
+              const SizedBox(height: 18),
+              const Text(
+                'Đã thanh toán',
+                style: TextStyle(
+                  color: AppColors.textDark,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: paidItems.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 10),
+                  itemBuilder: (_, index) {
+                    return buildPairDebtDetailItem(paidItems[index], otherName);
+                  },
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -2365,7 +2396,8 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
 
     final netAmount = readDouble(detail['net_amount']);
 
-    final items = readMapList(detail['items']);
+    final items = readUnpaidDebtItems(detail);
+    final paidItems = readPaidDebtItems(detail);
 
     final isVirtualOwes = netDirection == 'virtual_owes';
     final isOwedToVirtual = netDirection == 'owed_to_virtual';
@@ -2490,6 +2522,33 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
                   },
                 ),
               ),
+
+            if (paidItems.isNotEmpty) ...[
+              const SizedBox(height: 18),
+              const Text(
+                'Đã thanh toán',
+                style: TextStyle(
+                  color: AppColors.textDark,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: paidItems.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 10),
+                  itemBuilder: (_, index) {
+                    return buildVirtualDebtDetailItem(
+                      paidItems[index],
+                      virtualName,
+                      otherName,
+                    );
+                  },
+                ),
+              ),
+            ],
 
             if (items.isNotEmpty) ...[
               const SizedBox(height: 16),
@@ -3302,8 +3361,8 @@ class _HouseholdDetailScreenState extends State<HouseholdDetailScreen> {
             buildDebtSection(),
             const SizedBox(height: 30),
             if (expenses.isEmpty)
-              SizedBox(
-                height: MediaQuery.of(context).size.height * 0.42,
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
                 child: AppEmptyState(
                   icon: Icons.receipt_long_rounded,
                   title: 'Chưa có khoản chi',

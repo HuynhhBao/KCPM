@@ -278,6 +278,14 @@ class _ActivityScreenState extends State<ActivityScreen>
       case 'added_to_group':
       case 'member_added_to_group':
         return Icons.person_add_alt_1_rounded;
+      case 'member_left':
+        return Icons.person_remove_alt_1_rounded;
+      case 'member_kicked':
+        return Icons.person_off_rounded;
+      case 'virtual_member_created':
+        return Icons.person_outline_rounded;
+      case 'household_deleted':
+        return Icons.delete_forever_rounded;
       case 'debt_created':
         return Icons.account_balance_wallet_rounded;
       case 'payment_received':
@@ -307,11 +315,15 @@ class _ActivityScreenState extends State<ActivityScreen>
       case 'debt_reminder_sent':
         return AppColors.warning;
       case 'expense_deleted':
+      case 'member_kicked':
+      case 'household_deleted':
         return AppColors.danger;
       case 'group_created':
       case 'member_joined':
       case 'added_to_group':
       case 'member_added_to_group':
+      case 'member_left':
+      case 'virtual_member_created':
         return AppColors.info;
       default:
         return AppColors.textLight;

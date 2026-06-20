@@ -626,7 +626,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '${household.members.length} thành viên',
+                    '${household.memberCount} thành viên',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
@@ -708,6 +708,14 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'added_to_group':
       case 'member_added_to_group':
         return Icons.person_add_alt_1_rounded;
+      case 'member_left':
+        return Icons.person_remove_alt_1_rounded;
+      case 'member_kicked':
+        return Icons.person_off_rounded;
+      case 'virtual_member_created':
+        return Icons.person_outline_rounded;
+      case 'household_deleted':
+        return Icons.delete_forever_rounded;
       case 'debt_created':
         return Icons.account_balance_wallet_rounded;
       case 'payment_received':
@@ -726,6 +734,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Color getActivityColor(String type) {
     switch (type) {
       case 'expense_deleted':
+      case 'member_kicked':
+      case 'household_deleted':
         return const Color(0xFFB94355);
       case 'payment_received':
       case 'payment_sent':
@@ -738,6 +748,9 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'debt_reminder_received':
       case 'debt_reminder_sent':
         return AppColors.warning;
+      case 'member_left':
+      case 'virtual_member_created':
+        return AppColors.info;
       default:
         return AppColors.info;
     }
@@ -1278,7 +1291,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(width: 5),
                       Flexible(
                         child: Text(
-                          '$statusText • ${household.members.length} thành viên',
+                          '$statusText • ${household.memberCount} thành viên',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
