@@ -235,3 +235,8 @@ CACHES = {
         "django.core.cache.backends.locmem.LocMemCache",
     }
 }
+
+GOOGLE_CLIENT_ID = config(
+    'GOOGLE_CLIENT_ID',
+    default=''
+)
