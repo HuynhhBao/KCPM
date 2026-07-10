@@ -1,7 +1,6 @@
 from decimal import Decimal
 from django.contrib.auth import get_user_model
 from django.test import TestCase
-
 from expenses.serializers import ExpenseCreateUpdateSerializer
 
 class ExpenseSerializerXSSTestCase(TestCase):
@@ -12,7 +11,6 @@ class ExpenseSerializerXSSTestCase(TestCase):
 
 from rest_framework.test import APIRequestFactory
 from households.models import Household, HouseholdMember
-from expenses.serializers import ExpenseCreateUpdateSerializer
 
 User = get_user_model()
 
