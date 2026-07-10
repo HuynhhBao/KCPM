@@ -85,6 +85,12 @@ class ExpenseParticipantSerializer(serializers.ModelSerializer):
 
 
 class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
+    title = serializers.CharField(
+        max_length=255,
+        error_messages={
+            'max_length': 'Tiêu đề quá dài, không được vượt quá 255 ký tự.'
+        }
+    )
     participants = ExpenseParticipantInputSerializer(
         many=True,
         write_only=True,

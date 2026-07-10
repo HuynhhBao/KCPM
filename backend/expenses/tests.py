@@ -71,3 +71,28 @@ class ExpenseCreateUpdateSerializerTestCase(TestCase):
         
         for p in rep['participants']:
             self.assertEqual(Decimal(p['share_amount']), Decimal('150000'))
+
+    def test_title_too_long_returns_vietnamese_validation_error(self):
+        request = self.factory.post('/api/expenses/')
+        request.user = self.user
+
+        data = {
+            'household': self.household.id,
+            'title': 'a' * 256,  # 256 characters is longer than max_length=255
+            'amount': 300000,
+            'split_type': 'equal',
+            'participants': [
+                {'user_id': self.user.id}
+            ]
+        }
+
+        serializer = ExpenseCreateUpdateSerializer(
+            data=data,
+            context={'request': request}
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('title', serializer.errors)
+        self.assertEqual(
+            str(serializer.errors['title'][0]),
+            'Tiêu đề quá dài, không được vượt quá 255 ký tự.'
+        )
