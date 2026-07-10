@@ -460,6 +460,9 @@ class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
 
         return instance
 
+    def to_representation(self, instance):
+        return ExpenseDetailSerializer(instance, context=self.context).data
+
 
 class ExpenseListSerializer(serializers.ModelSerializer):
     payer_id = serializers.IntegerField(
