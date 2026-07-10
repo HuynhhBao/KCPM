@@ -124,3 +124,53 @@ class ExpenseCreateUpdateSerializerTestCase(TestCase):
         # Verify the representation also contains the escaped title
         rep = serializer.data
         self.assertEqual(rep['title'], "&lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;")
+
+    def test_amount_too_large_returns_vietnamese_validation_error(self):
+        request = self.factory.post('/api/expenses/')
+        request.user = self.user
+
+        data = {
+            'household': self.household.id,
+            'title': 'Test Amount',
+            'amount': 9999999999999,  # 13 digits, exceeds max_digits=12
+            'split_type': 'equal',
+            'participants': [
+                {'user_id': self.user.id}
+            ]
+        }
+
+        serializer = ExpenseCreateUpdateSerializer(
+            data=data,
+            context={'request': request}
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('amount', serializer.errors)
+        self.assertIn(
+            'Số tiền quá lớn, tối đa chỉ được 12 chữ số.',
+            [str(e) for e in serializer.errors['amount']]
+        )
+
+    def test_amount_invalid_type_returns_vietnamese_validation_error(self):
+        request = self.factory.post('/api/expenses/')
+        request.user = self.user
+
+        data = {
+            'household': self.household.id,
+            'title': 'Test Amount',
+            'amount': [100000],  # Array instead of number
+            'split_type': 'equal',
+            'participants': [
+                {'user_id': self.user.id}
+            ]
+        }
+
+        serializer = ExpenseCreateUpdateSerializer(
+            data=data,
+            context={'request': request}
+        )
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('amount', serializer.errors)
+        self.assertIn(
+            'Số tiền không hợp lệ, vui lòng nhập một số.',
+            [str(e) for e in serializer.errors['amount']]
+        )

@@ -92,6 +92,14 @@ class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
             'max_length': 'Tiêu đề quá dài, không được vượt quá 255 ký tự.'
         }
     )
+    amount = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=0,
+        error_messages={
+            'max_digits': 'Số tiền quá lớn, tối đa chỉ được 12 chữ số.',
+            'invalid': 'Số tiền không hợp lệ, vui lòng nhập một số.'
+        }
+    )
     participants = ExpenseParticipantInputSerializer(
         many=True,
         write_only=True,
