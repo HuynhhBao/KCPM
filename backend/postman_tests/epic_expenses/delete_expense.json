@@ -1,0 +1,673 @@
+{
+    "info": {
+        "_postman_id": "cd3d27c4-1a85-438e-a119-df40ef5575b7",
+        "name": "CHUNGVI-30 Delete Expense",
+        "description": "Test cases for Delete Expense API",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "TC1 - Fail - Expense Not Found",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 404\", function () {",
+                            "    pm.response.to.have.status(404);",
+                            "});",
+                            "pm.test(\"Response time is less than 1000ms\", function () {",
+                            "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/expenses/11111111-1111-1111-1111-111111111111/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "expenses",
+                        "11111111-1111-1111-1111-111111111111",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC2 - Fail - Unauthenticated",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 401\", function () {",
+                            "    pm.response.to.have.status(401);",
+                            "});",
+                            "pm.test(\"Response time is less than 1000ms\", function () {",
+                            "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/expenses/{{expense_id}}/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "expenses",
+                        "{{expense_id}}",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC3 - Security - SQL Injection in ID",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 404\", function () {",
+                            "    pm.response.to.have.status(404);",
+                            "});",
+                            "pm.test(\"Response time is less than 1000ms\", function () {",
+                            "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/expenses/{{expense_id}}' OR 1=1--/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "expenses",
+                        "{{expense_id}}' OR 1=1--",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC4 - Logic - Permission Denied (Not Manager)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 403\", function () {",
+                            "    pm.response.to.have.status(403);",
+                            "});",
+                            "pm.test(\"Check error message for permission\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData.detail).to.match(/quyền/i);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token_not_manager}}"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/expenses/{{expense_id}}/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "expenses",
+                        "{{expense_id}}",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC5 - Logic - Cannot Delete Expense with Paid Debts",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 400\", function () {",
+                            "    pm.response.to.have.status(400);",
+                            "});",
+                            "pm.test(\"Check error message for paid debt\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    var errorMsg = JSON.stringify(jsonData);",
+                            "    pm.expect(errorMsg).to.match(/đã có công nợ được thanh toán/i);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/expenses/{{expense_id_paid}}/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "expenses",
+                        "{{expense_id_paid}}",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC6 - Logic - Delete as Household Owner (Success)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token_owner}}"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/expenses/{{expense_id_owner_test}}/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "expenses",
+                        "{{expense_id_owner_test}}",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC7 - Negative - Invalid UUID format",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 404 (or 400)\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([404, 400]);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/expenses/invalid-uuid-format-123/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "expenses",
+                        "invalid-uuid-format-123",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC8 - Negative - Wrong HTTP Method (POST)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 405 Method Not Allowed\", function () {",
+                            "    pm.response.to.have.status(405);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "POST",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/expenses/{{expense_id}}/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "expenses",
+                        "{{expense_id}}",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC9 - Boundary - Empty UUID",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 405 Method Not Allowed (Route mismatch)\", function () {",
+                            "    pm.response.to.have.status(405);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/expenses//",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "expenses",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC10 - Boundary - UUID with spaces",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 404\", function () {",
+                            "    pm.response.to.have.status(404);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/expenses/%20{{expense_id}}%20/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "expenses",
+                        "%20{{expense_id}}%20",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC11 - Negative - Request with Body",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200 or 404 (Body is ignored safely)\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                    },
+                    {
+                        "key": "Content-Type",
+                        "value": "application/json"
+                    }
+                ],
+                "body": {
+                    "mode": "raw",
+                    "raw": "{\n    \"malicious\": \"body_content\"\n}"
+                },
+                "url": {
+                    "raw": "{{base_url}}/expenses/{{expense_id_with_body}}/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "expenses",
+                        "{{expense_id_with_body}}",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC12 - Security - IDOR",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 404 (Avoid data leakage)\", function () {",
+                            "    pm.response.to.have.status(404);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token_stranger}}"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/expenses/{{expense_id}}/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "expenses",
+                        "{{expense_id}}",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC13 - Security - XSS in URL",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 404\", function () {",
+                            "    pm.response.to.have.status(404);",
+                            "});",
+                            "pm.test(\"Response does not contain raw script tag\", function () {",
+                            "    var respText = pm.response.text();",
+                            "    pm.expect(respText).to.not.include(\"<script>\");",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/expenses/<script>alert('xss')<script>/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "expenses",
+                        "<script>alert('xss')<script>",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC14 - Security - Invalid/Malformed Token",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 401\", function () {",
+                            "    pm.response.to.have.status(401);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalid.token"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/expenses/{{expense_id}}/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "expenses",
+                        "{{expense_id}}",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC15 - Security - SQLi (DROP TABLE)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 404\", function () {",
+                            "    pm.response.to.have.status(404);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/expenses/{{expense_id}}'; DROP TABLE expenses;--/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "expenses",
+                        "{{expense_id}}'; DROP TABLE expenses;--",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC16 - Security - SQLi (Time-based)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 404\", function () {",
+                            "    pm.response.to.have.status(404);",
+                            "});",
+                            "pm.test(\"Response time is less than 1000ms (No DB Sleep)\", function () {",
+                            "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/expenses/{{expense_id}}' OR pg_sleep(5)--/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "expenses",
+                        "{{expense_id}}' OR pg_sleep(5)--",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC17 - Success - Delete Expense",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});",
+                            "pm.test(\"Check success message\", function () {",
+                            "    var jsonData = pm.response.json();",
+                            "    pm.expect(jsonData.message).to.match(/thành công|success/i);",
+                            "});",
+                            "pm.test(\"Response time is less than 1000ms\", function () {",
+                            "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "DELETE",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/expenses/{{expense_id}}/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "expenses",
+                        "{{expense_id}}",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        }
+    ]
+}

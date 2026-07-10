@@ -1,0 +1,197 @@
+{
+	"info": {
+		"_postman_id": "bva-notification-function-39",
+		"name": "BVA - Function 39 - getUnreadCount",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "TC1 - Valid get request",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"Response has unread_count property\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData).to.have.property('unread_count');",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/notifications/unread-count/",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"notifications",
+						"unread-count",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "TC2 - Unauthorized access (No token)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 401\", function () {",
+							"    pm.response.to.have.status(401);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/notifications/unread-count/",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"notifications",
+						"unread-count",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "TC3 - Invalid token format",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 401\", function () {",
+							"    pm.response.to.have.status(401);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "BearerInvalidToken",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/notifications/unread-count/",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"notifications",
+						"unread-count",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "TC4 - Expired or fake token",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 401\", function () {",
+							"    pm.response.to.have.status(401);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.fake_signature",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/notifications/unread-count/",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"notifications",
+						"unread-count",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "TC5 - Unsupported HTTP method",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 405\", function () {",
+							"    pm.response.to.have.status(405);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/notifications/unread-count/",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"notifications",
+						"unread-count",
+						""
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

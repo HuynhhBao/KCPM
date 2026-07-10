@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.db import transaction
 from django.utils import timezone
+from django.utils.html import escape
 from rest_framework import serializers
 from expenses.models import Debt, Expense, ExpenseParticipant
 from households.models import Activity, HouseholdMember
@@ -85,6 +86,20 @@ class ExpenseParticipantSerializer(serializers.ModelSerializer):
 
 
 class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
+    title = serializers.CharField(
+        max_length=255,
+        error_messages={
+            'max_length': 'Tiêu đề quá dài, không được vượt quá 255 ký tự.'
+        }
+    )
+    amount = serializers.DecimalField(
+        max_digits=12,
+        decimal_places=0,
+        error_messages={
+            'max_digits': 'Số tiền quá lớn, tối đa chỉ được 12 chữ số.',
+            'invalid': 'Số tiền không hợp lệ, vui lòng nhập một số.'
+        }
+    )
     participants = ExpenseParticipantInputSerializer(
         many=True,
         write_only=True,
@@ -128,7 +143,7 @@ class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
                 'Tên khoản chi không được để trống.'
             )
 
-        return value
+        return escape(value)
 
     def validate_amount(self, value):
         if value <= 0:
@@ -459,6 +474,9 @@ class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
         )
 
         return instance
+
+    def to_representation(self, instance):
+        return ExpenseDetailSerializer(instance, context=self.context).data
 
 
 class ExpenseListSerializer(serializers.ModelSerializer):

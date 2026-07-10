@@ -1,0 +1,206 @@
+{
+	"info": {
+		"_postman_id": "bva-notification-function-40",
+		"name": "BVA - Function 40 - markAllNotificationsRead",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "TC1 - Valid mark all read request",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"Response contains success message\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.message).to.eql(\"Đã đánh dấu tất cả là đã đọc.\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/notifications/mark-all-read/",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"notifications",
+						"mark-all-read",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "TC2 - Unauthorized access (No token)",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 401\", function () {",
+							"    pm.response.to.have.status(401);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PATCH",
+				"header": [],
+				"url": {
+					"raw": "{{base_url}}/notifications/mark-all-read/",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"notifications",
+						"mark-all-read",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "TC3 - Invalid token format",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 401\", function () {",
+							"    pm.response.to.have.status(401);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "BearerInvalidToken",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/notifications/mark-all-read/",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"notifications",
+						"mark-all-read",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "TC4 - Unsupported HTTP method",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 405\", function () {",
+							"    pm.response.to.have.status(405);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "{{base_url}}/notifications/mark-all-read/",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"notifications",
+						"mark-all-read",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "TC5 - Extra body parameters",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200 or 400\", function () {",
+							"    pm.expect(pm.response.code).to.be.oneOf([200, 400]);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "PATCH",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"extra_field\": \"should_be_ignored\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{base_url}}/notifications/mark-all-read/",
+					"host": [
+						"{{base_url}}"
+					],
+					"path": [
+						"notifications",
+						"mark-all-read",
+						""
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
