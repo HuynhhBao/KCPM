@@ -1,0 +1,845 @@
+{
+  "info": {
+    "_postman_id": "5e1c22f5-2443-4f00-a04e-2cfd4454c37b",
+    "name": "CHUNGVI-32 List Household Debts",
+    "description": "Test cases for List Household Debts API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "TC1 - Success - List Debts",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Check pagination fields\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property(\"count\");",
+              "    pm.expect(jsonData).to.have.property(\"results\");",
+              "    pm.expect(jsonData.results).to.be.an(\"array\");",
+              "});",
+              "pm.test(\"Response time is less than 1000ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/expenses/household/{{household_id}}/debts/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "expenses",
+            "household",
+            "{{household_id}}",
+            "debts",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC2 - Success - Empty List for Non-existent/Unauthorized Household",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Results array should be empty\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.results).to.be.an(\"array\").that.is.empty;",
+              "});",
+              "pm.test(\"Response time is less than 1000ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/expenses/household/11111111-1111-1111-1111-111111111111/debts/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "expenses",
+            "household",
+            "11111111-1111-1111-1111-111111111111",
+            "debts",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC3 - Fail - Unauthenticated",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 401\", function () {",
+              "    pm.response.to.have.status(401);",
+              "});",
+              "pm.test(\"Response time is less than 1000ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{base_url}}/expenses/household/{{household_id}}/debts/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "expenses",
+            "household",
+            "{{household_id}}",
+            "debts",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC4 - Business Logic - Custom Page Size",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Results length is less than or equal to 5\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.results.length).to.be.at.most(5);",
+              "});",
+              "pm.test(\"Response time is less than 1000ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/expenses/household/{{household_id}}/debts/?page_size=5/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "expenses",
+            "household",
+            "{{household_id}}",
+            "debts",
+            ""
+          ],
+          "query": [
+            {
+              "key": "page_size",
+              "value": "5"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC5 - Business Logic - Second Page",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 or 404 (if no second page)\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+              "});",
+              "pm.test(\"Response time is less than 1000ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/expenses/household/{{household_id}}/debts/?page=2/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "expenses",
+            "household",
+            "{{household_id}}",
+            "debts",
+            ""
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "2"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC6 - Boundary - page_size exceeds max (150)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Results length is capped at max (e.g. 100)\", function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.results.length).to.be.at.most(100);",
+              "});",
+              "pm.test(\"Response time is less than 1000ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/expenses/household/{{household_id}}/debts/?page_size=150/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "expenses",
+            "household",
+            "{{household_id}}",
+            "debts",
+            ""
+          ],
+          "query": [
+            {
+              "key": "page_size",
+              "value": "150"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC7 - Boundary - page is 0",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 404 Not Found\", function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "pm.test(\"Response time is less than 1000ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/expenses/household/{{household_id}}/debts/?page=0/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "expenses",
+            "household",
+            "{{household_id}}",
+            "debts",
+            ""
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "0"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC8 - Boundary - Extreme large page (999999999)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 404 Not Found\", function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "pm.test(\"Response time is less than 1000ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/expenses/household/{{household_id}}/debts/?page=999999999/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "expenses",
+            "household",
+            "{{household_id}}",
+            "debts",
+            ""
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "999999999"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC9 - Boundary - Negative page_size (-1)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 (Falls back to default)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Response time is less than 1000ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/expenses/household/{{household_id}}/debts/?page_size=-1/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "expenses",
+            "household",
+            "{{household_id}}",
+            "debts",
+            ""
+          ],
+          "query": [
+            {
+              "key": "page_size",
+              "value": "-1"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC10 - Negative - Wrong HTTP Method (POST)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 405 Method Not Allowed\", function () {",
+              "    pm.response.to.have.status(405);",
+              "});",
+              "pm.test(\"Response time is less than 1000ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/expenses/household/{{household_id}}/debts/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "expenses",
+            "household",
+            "{{household_id}}",
+            "debts",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC11 - Negative - Invalid Token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 401 Unauthorized\", function () {",
+              "    pm.response.to.have.status(401);",
+              "});",
+              "pm.test(\"Response time is less than 1000ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer invalid.token.format"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/expenses/household/{{household_id}}/debts/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "expenses",
+            "household",
+            "{{household_id}}",
+            "debts",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC12 - Negative - Non-numeric page param (abc)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 404 Not Found\", function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "pm.test(\"Response time is less than 1000ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/expenses/household/{{household_id}}/debts/?page=abc/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "expenses",
+            "household",
+            "{{household_id}}",
+            "debts",
+            ""
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "abc"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC13 - Negative - Non-numeric page_size param (abc)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 (Falls back to default)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Response time is less than 1000ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/expenses/household/{{household_id}}/debts/?page_size=abc/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "expenses",
+            "household",
+            "{{household_id}}",
+            "debts",
+            ""
+          ],
+          "query": [
+            {
+              "key": "page_size",
+              "value": "abc"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC14 - Negative - Invalid Household ID Format",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 404 Not Found\", function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "pm.test(\"Response time is less than 1000ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/expenses/household/invalid-id/debts/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "expenses",
+            "household",
+            "invalid-id",
+            "debts",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC15 - Security - SQL Injection in page param",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 404 Not Found (Invalid page)\", function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "pm.test(\"Response time is less than 1000ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/expenses/household/{{household_id}}/debts/?page=1' OR 1=1--/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "expenses",
+            "household",
+            "{{household_id}}",
+            "debts",
+            ""
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "1' OR 1=1--"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC16 - Security - SQL Injection in page_size param",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 200 (Invalid integer caught, fall back)\", function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test(\"Response time is less than 1000ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/expenses/household/{{household_id}}/debts/?page_size=20; DROP TABLE users;/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "expenses",
+            "household",
+            "{{household_id}}",
+            "debts",
+            ""
+          ],
+          "query": [
+            {
+              "key": "page_size",
+              "value": "20; DROP TABLE users;"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC17 - Security - XSS in page param",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 404 (Invalid page)\", function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "pm.test(\"Response time is less than 1000ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/expenses/household/{{household_id}}/debts/?page=<script>alert('XSS')</script>/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "expenses",
+            "household",
+            "{{household_id}}",
+            "debts",
+            ""
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "<script>alert('XSS')</script>"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "TC18 - Security - SQL Injection / Malformed UUID in Path",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Status code is 404 (Regex won't match)\", function () {",
+              "    pm.response.to.have.status(404);",
+              "});",
+              "pm.test(\"Response time is less than 1000ms\", function () {",
+              "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/expenses/household/11111111-1111-1111-1111-111111111111' OR '1'='1/debts/",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "expenses",
+            "household",
+            "11111111-1111-1111-1111-111111111111' OR '1'='1",
+            "debts",
+            ""
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
