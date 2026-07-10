@@ -1,0 +1,502 @@
+{
+    "info": {
+        "_postman_id": "bva-notification-function-37",
+        "name": "BVA - Function 37 - getNotificationList",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "TC1 - Valid page_size = 1 (Boundary min)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/notifications/?page_size=1",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "notifications",
+                        ""
+                    ],
+                    "query": [
+                        {
+                            "key": "page_size",
+                            "value": "1"
+                        }
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC2 - Valid page_size = 100 (Boundary max)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/notifications/?page_size=100",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "notifications",
+                        ""
+                    ],
+                    "query": [
+                        {
+                            "key": "page_size",
+                            "value": "100"
+                        }
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC3 - Invalid page_size = 101 (Exceeds max)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200 (DRF falls back to max_page_size)\", function () {",
+                            "    pm.response.to.have.status(200);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/notifications/?page_size=101",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "notifications",
+                        ""
+                    ],
+                    "query": [
+                        {
+                            "key": "page_size",
+                            "value": "101"
+                        }
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC4 - Invalid page = 0 (Below min)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 404 (Invalid page)\", function () {",
+                            "    pm.response.to.have.status(404);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/notifications/?page=0",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "notifications",
+                        ""
+                    ],
+                    "query": [
+                        {
+                            "key": "page",
+                            "value": "0"
+                        }
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC5 - Invalid page type = abc",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 404\", function () {",
+                            "    pm.response.to.have.status(404);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/notifications/?page=abc",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "notifications",
+                        ""
+                    ],
+                    "query": [
+                        {
+                            "key": "page",
+                            "value": "abc"
+                        }
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC6 - Invalid page_size = 0 (Below min)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 400 or fallback to 200\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 400]);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/notifications/?page_size=0",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "notifications",
+                        ""
+                    ],
+                    "query": [
+                        {
+                            "key": "page_size",
+                            "value": "0"
+                        }
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC7 - page_size = 2 (Boundary min + 1)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status check for BVA\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/notifications/?page=1&page_size=2",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "notifications",
+                        ""
+                    ],
+                    "query": [
+                        {
+                            "key": "page",
+                            "value": "1"
+                        },
+                        {
+                            "key": "page_size",
+                            "value": "2"
+                        }
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC8 - page_size = 99 (Boundary max - 1)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status check for BVA\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/notifications/?page=1&page_size=99",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "notifications",
+                        ""
+                    ],
+                    "query": [
+                        {
+                            "key": "page",
+                            "value": "1"
+                        },
+                        {
+                            "key": "page_size",
+                            "value": "99"
+                        }
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC9 - page = 1 (Boundary min)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status check for BVA\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/notifications/?page=1&page_size=10",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "notifications",
+                        ""
+                    ],
+                    "query": [
+                        {
+                            "key": "page",
+                            "value": "1"
+                        },
+                        {
+                            "key": "page_size",
+                            "value": "10"
+                        }
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC10 - page = 2 (Boundary min + 1)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status check for BVA\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/notifications/?page=2&page_size=10",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "notifications",
+                        ""
+                    ],
+                    "query": [
+                        {
+                            "key": "page",
+                            "value": "2"
+                        },
+                        {
+                            "key": "page_size",
+                            "value": "10"
+                        }
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC11 - page = 9999999 (Boundary max)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status check for BVA\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [
+                    {
+                        "key": "Authorization",
+                        "value": "Bearer {{token}}",
+                        "type": "text"
+                    }
+                ],
+                "url": {
+                    "raw": "{{base_url}}/notifications/?page=9999999&page_size=10",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "notifications",
+                        ""
+                    ],
+                    "query": [
+                        {
+                            "key": "page",
+                            "value": "9999999"
+                        },
+                        {
+                            "key": "page_size",
+                            "value": "10"
+                        }
+                    ]
+                }
+            },
+            "response": []
+        }
+    ]
+}
