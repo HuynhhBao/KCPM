@@ -137,19 +137,16 @@ def request_google_json(
             'Không thể kết nối dịch vụ Google'
         ) from exc
 
-    if response.status_code in (
-        400,
-        401,
-        403,
-    ):
-        raise GoogleTokenInvalidError(
-            'Google token không hợp lệ'
-        )
-
     try:
         response.raise_for_status()
 
     except pyrequests.HTTPError as exc:
+        # Nếu Google trả về lỗi Client (400, 401, 403) do token sai
+        if exc.response is not None and exc.response.status_code in (400, 401, 403):
+            raise GoogleTokenInvalidError(
+                'Google token không hợp lệ'
+            ) from exc
+        # Các lỗi 5xx khác hoặc lỗi đường truyền
         raise GoogleProviderUnavailableError(
             'Dịch vụ Google phản hồi lỗi'
         ) from exc
