@@ -3,7 +3,7 @@ import pytest
 from expenses.models import Debt
 from expenses.views import DebtListView
 
-from expenses.WB.conftest import make_drf_request
+from whitebox_tests.expenses.conftest import make_drf_request
 
 
 # ─────────────────────────────────────────────
