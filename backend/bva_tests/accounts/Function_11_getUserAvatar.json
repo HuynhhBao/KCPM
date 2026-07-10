@@ -1,0 +1,321 @@
+{
+    "info": {
+        "_postman_id": "bva-account-function-11",
+        "name": "BVA - Function 11 - getUserAvatar",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "TC1 - Valid user_id (In bounds: 1)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200 or 404\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/auth/users/{{user1_id}}/avatar/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "auth",
+                        "users",
+                        "{{user1_id}}",
+                        "avatar",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC2 - user_id out of bounds (999999999)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 404 (Not Found)\", function () {",
+                            "    pm.response.to.have.status(404);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/auth/users/999999999/avatar/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "auth",
+                        "users",
+                        "999999999",
+                        "avatar",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC3 - user_id with cache query param (v=1)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200 or 404\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/auth/users/{{user1_id}}/avatar/?v=1",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "auth",
+                        "users",
+                        "{{user1_id}}",
+                        "avatar",
+                        ""
+                    ],
+                    "query": [
+                        {
+                            "key": "v",
+                            "value": "1"
+                        }
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC4 - user_id invalid type (abc)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 404 (Router fails to match int)\", function () {",
+                            "    pm.response.to.have.status(404);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/auth/users/abc/avatar/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "auth",
+                        "users",
+                        "abc",
+                        "avatar",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC5 - user_id = 0 (Boundary min - 1)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 404 (Not Found)\", function () {",
+                            "    pm.response.to.have.status(404);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/auth/users/0/avatar/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "auth",
+                        "users",
+                        "0",
+                        "avatar",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC6 - user_id = 2 (Boundary min + 1)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 200 or 404\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/auth/users/2/avatar/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "auth",
+                        "users",
+                        "2",
+                        "avatar",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC7 - user_id = 2147483647 (Boundary max)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 404\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([404, 400]);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/auth/users/2147483647/avatar/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "auth",
+                        "users",
+                        "2147483647",
+                        "avatar",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC8 - user_id = 2147483646 (Boundary max - 1)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 404\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([404, 400]);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/auth/users/2147483646/avatar/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "auth",
+                        "users",
+                        "2147483646",
+                        "avatar",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        },
+        {
+            "name": "TC9 - user_id = 2147483648 (Boundary max + 1)",
+            "event": [
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [
+                            "pm.test(\"Status code is 404\", function () {",
+                            "    pm.expect(pm.response.code).to.be.oneOf([404, 400]);",
+                            "});"
+                        ],
+                        "type": "text/javascript"
+                    }
+                }
+            ],
+            "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                    "raw": "{{base_url}}/auth/users/2147483648/avatar/",
+                    "host": [
+                        "{{base_url}}"
+                    ],
+                    "path": [
+                        "auth",
+                        "users",
+                        "2147483648",
+                        "avatar",
+                        ""
+                    ]
+                }
+            },
+            "response": []
+        }
+    ]
+}
