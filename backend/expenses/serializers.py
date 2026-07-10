@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.db import transaction
 from django.utils import timezone
+from django.utils.html import escape
 from rest_framework import serializers
 from expenses.models import Debt, Expense, ExpenseParticipant
 from households.models import Activity, HouseholdMember
@@ -134,7 +135,7 @@ class ExpenseCreateUpdateSerializer(serializers.ModelSerializer):
                 'Tên khoản chi không được để trống.'
             )
 
-        return value
+        return escape(value)
 
     def validate_amount(self, value):
         if value <= 0:

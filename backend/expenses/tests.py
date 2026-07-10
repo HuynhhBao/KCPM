@@ -96,3 +96,31 @@ class ExpenseCreateUpdateSerializerTestCase(TestCase):
             str(serializer.errors['title'][0]),
             'Tiêu đề quá dài, không được vượt quá 255 ký tự.'
         )
+
+    def test_create_expense_escapes_xss_in_title(self):
+        request = self.factory.post('/api/expenses/')
+        request.user = self.user
+
+        data = {
+            'household': self.household.id,
+            'title': "<script>alert('xss')</script>",
+            'amount': 300000,
+            'split_type': 'equal',
+            'participants': [
+                {'user_id': self.user.id}
+            ]
+        }
+
+        serializer = ExpenseCreateUpdateSerializer(
+            data=data,
+            context={'request': request}
+        )
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+        expense = serializer.save()
+
+        # The saved title should be escaped to safe HTML entities
+        self.assertEqual(expense.title, "&lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;")
+        
+        # Verify the representation also contains the escaped title
+        rep = serializer.data
+        self.assertEqual(rep['title'], "&lt;script&gt;alert(&#x27;xss&#x27;)&lt;/script&gt;")
