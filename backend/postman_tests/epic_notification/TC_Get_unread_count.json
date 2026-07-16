@@ -1,0 +1,1227 @@
+{
+  "info": {
+    "_postman_id": "cf788fe2-f2a6-4b4e-8199-212d5b515f2f",
+    "name": "TC_Get_unread_count",
+    "description": "Postman tests for Get unread count. Mock: not required (no external services).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "54905880",
+    "_collection_link": "https://go.postman.co/collection/54905880-cf788fe2-f2a6-4b4e-8199-212d5b515f2f?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "api",
+      "item": [
+        {
+          "name": "CHUNGVI-33 Get unread count",
+          "item": [
+            {
+              "name": "Setup - Login user A",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "pm.test(\"Has access token\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"access\");",
+                      "});",
+                      "",
+                      "pm.environment.set(\"bearerTokenA\", jsonData.access);"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"phuonghuynh01020304@gmail.com\",\n  \"password\": \"phuong1234\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/login/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "login",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Setup - Login user B",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "pm.test(\"Has access token\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"access\");",
+                      "});",
+                      "",
+                      "pm.environment.set(\"bearerTokenB\", jsonData.access);",
+                      "pm.environment.set(\"bearerToken\", jsonData.access);"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"hoangphuongphgg@gmail.com\",\n  \"password\": \"phuong1234\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/login/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "login",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Setup - Create household (user A)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 201\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "pm.environment.set(\"householdId\", jsonData.id);",
+                      "pm.environment.set(\"inviteCode\", jsonData.invite_code);"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{bearerTokenA}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Household Notifications\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/households/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "households",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Setup - Join household (user B)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{bearerTokenB}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"invite_code\": \"{{inviteCode}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/households/join/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "households",
+                    "join",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Setup - Get household detail",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "if (jsonData.members && jsonData.members.length > 0) {",
+                      "    jsonData.members.forEach(function (member) {",
+                      "        if (member.user_email === pm.environment.get(\"userAEmail\")) {",
+                      "            pm.environment.set(\"userIdA\", member.user);",
+                      "        }",
+                      "        if (member.user_email === pm.environment.get(\"userBEmail\")) {",
+                      "            pm.environment.set(\"userIdB\", member.user);",
+                      "        }",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{bearerTokenA}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/households/{{householdId}}/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "households",
+                    "{{householdId}}",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Setup - Create expense (creates notification)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 201\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "var jsonData = pm.response.json();",
+                      "var userAEmail = \"phuonghuynh01020304@gmail.com\";",
+                      "var userBEmail = \"hoangphuongphgg@gmail.com\";",
+                      "",
+                      "if (jsonData.members && jsonData.members.length > 0) {",
+                      "    jsonData.members.forEach(function (member) {",
+                      "        var email = member.user_email || member.email || (member.user && member.user.email);",
+                      "        var userId = (typeof member.user === \"object\" && member.user !== null) ? (member.user.id || member.user.user_id) : member.user;",
+                      "        if (userId === undefined) {",
+                      "            userId = member.user_id || member.id;",
+                      "        }",
+                      "        if (email === userAEmail) {",
+                      "            pm.environment.set(\"userIdA\", userId);",
+                      "        }",
+                      "        if (email === userBEmail) {",
+                      "            pm.environment.set(\"userIdB\", userId);",
+                      "        }",
+                      "    });",
+                      "}",
+                      "pm.test(\"userIdA is set\", function () {",
+                      "    pm.expect(pm.environment.get(\"userIdA\")).to.not.be.undefined;",
+                      "});",
+                      "pm.test(\"userIdB is set\", function () {",
+                      "    pm.expect(pm.environment.get(\"userIdB\")).to.not.be.undefined;",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{bearerTokenA}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"household\": \"{{householdId}}\",\n  \"title\": \"Notification seed expense\",\n  \"amount\": 100000,\n  \"split_type\": \"equal\",\n  \"participants\": [\n    {\"user_id\": {{userIdA}}},\n    {\"user_id\": {{userIdB}}}\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC01 - Success - Authorized GET",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Arrange",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// GET /api/notifications/unread-count/",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test(\"Has unread_count and is integer >= 0\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"unread_count\");",
+                      "    pm.expect(Number.isInteger(jsonData.unread_count)).to.be.true;",
+                      "    pm.expect(jsonData.unread_count).to.be.at.least(0);",
+                      "});",
+                      "pm.test(\"Content-Type is JSON\", function () {",
+                      "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/unread-count/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "unread-count",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC02 - Fail - No token",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Arrange",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// GET without Authorization",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 401\", function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "pm.test(\"Error message indicates authentication\", function () {",
+                      "    var detail = (jsonData.detail || \"\").toLowerCase();",
+                      "    pm.expect(detail).to.satisfy(function (v) {",
+                      "        return v.includes(\"authentication\") || v.includes(\"credentials\") || v.includes(\"not provided\");",
+                      "    });",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/unread-count/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "unread-count",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC03 - Fail - Invalid token",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Arrange",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// GET with invalid token",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 401\", function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "",
+                      "pm.test(\"Error message indicates invalid token\", function () {",
+                      "    var detail = (jsonData.detail || \"\").toLowerCase();",
+                      "    pm.expect(detail).to.satisfy(function (v) {",
+                      "        return v.includes(\"token\") || v.includes(\"invalid\") || v.includes(\"not valid\");",
+                      "    });",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer invalid.token.value"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/unread-count/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "unread-count",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC04 - Fail - Wrong method POST",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Arrange",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// POST to GET-only endpoint",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 405\", function () {",
+                      "    pm.response.to.have.status(405);",
+                      "})",
+                      "",
+                      "pm.test(\"Error mentions method not allowed\", function () {",
+                      "    var responseBodyText = pm.response.text().toLowerCase();",
+                      "    // Thêm cụm từ thực tế của server vào đây (viết thường)",
+                      "    var expectedPattern = /405 method not allowed|phương thức không được phép|không được chấp nhận|không được hỗ trợ/;",
+                      "    pm.expect(responseBodyText).to.match(expectedPattern);",
+                      "});",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "protocolProfileBehavior": {
+                "followOriginalHttpMethod": false
+              },
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/unread-count/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "unread-count",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC05 - Fail - Wrong method PUT",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Arrange",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// PUT to GET-only endpoint",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 405\", function () {",
+                      "    pm.response.to.have.status(405);",
+                      "});",
+                      "",
+                      "pm.test(\"Error mentions method not allowed\", function () {",
+                      "    var responseBodyText = pm.response.text().toLowerCase();",
+                      "    // Thêm cụm từ thực tế của server vào đây (viết thường)",
+                      "    var expectedPattern = /405 method not allowed|phương thức không được phép|không được chấp nhận|không được hỗ trợ/;",
+                      "    pm.expect(responseBodyText).to.match(expectedPattern);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/unread-count/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "unread-count",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC06 - Fail - Wrong method PATCH",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Arrange",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// PATCH to GET-only endpoint",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 405\", function () {",
+                      "    pm.response.to.have.status(405);",
+                      "});",
+                      "",
+                      "pm.test(\"Error mentions method not allowed\", function () {",
+                      "    var responseBodyText = pm.response.text().toLowerCase();",
+                      "    // Thêm cụm từ thực tế của server vào đây (viết thường)",
+                      "    var expectedPattern = /405 method not allowed|phương thức không được phép|không được chấp nhận|không được hỗ trợ/;",
+                      "    pm.expect(responseBodyText).to.match(expectedPattern);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/unread-count/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "unread-count",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC07 - Fail - Wrong method DELETE",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Arrange",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// DELETE to GET-only endpoint",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 405\", function () {",
+                      "    pm.response.to.have.status(405);",
+                      "});",
+                      "",
+                      "pm.test(\"Error mentions method not allowed\", function () {",
+                      "    var responseBodyText = pm.response.text().toLowerCase();",
+                      "    // Thêm cụm từ thực tế của server vào đây (viết thường)",
+                      "    var expectedPattern = /405 method not allowed|phương thức không được phép|không được chấp nhận|không được hỗ trợ/;",
+                      "    pm.expect(responseBodyText).to.match(expectedPattern);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/unread-count/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "unread-count",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC08 - Success - Response time under 1000ms",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Arrange",
+                      "",
+                      "// Act",
+                      "// GET /api/notifications/unread-count/",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});",
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/unread-count/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "unread-count",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC09 - Success - Only unread_count key",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Arrange",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// GET /api/notifications/unread-count/",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test(\"Response has only unread_count\", function () {",
+                      "    pm.expect(Object.keys(jsonData)).to.eql([\"unread_count\"]);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/unread-count/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "unread-count",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC10 - Success - Accept header text/plain",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Arrange",
+                      "",
+                      "// Act",
+                      "// GET with Accept: text/plain",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 406\", function () {",
+                      "    pm.response.to.have.status(406);",
+                      "});",
+                      "pm.test(\"Still returns JSON\", function () {",
+                      "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "text/plain"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/unread-count/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "unread-count",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC11 - Success - Query params ignored",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Arrange",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// GET with irrelevant query params",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test(\"Has unread_count\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"unread_count\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/unread-count/?page=1&page_size=20",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "unread-count",
+                    ""
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "page_size",
+                      "value": "20"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC12 - Fail - Empty bearer token",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Arrange",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// GET with empty token",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 401\", function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "pm.test(\"Error message indicates authentication\", function () {",
+                      "    var detail = (jsonData.detail || \"\").toLowerCase();",
+                      "    pm.expect(detail).to.satisfy(function (v) {",
+                      "        return v.includes(\"authentication\") || v.includes(\"credentials\") || v.includes(\"not provided\");",
+                      "    });",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer "
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/unread-count/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "unread-count",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC13 - Fail - Token without Bearer prefix",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Arrange",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// GET with token missing Bearer prefix",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 401\", function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "pm.test(\"Error message indicates authentication\", function () {",
+                      "    var detail = (jsonData.detail || \"\").toLowerCase();",
+                      "    pm.expect(detail).to.satisfy(function (v) {",
+                      "        return v.includes(\"authentication\") || v.includes(\"credentials\") || v.includes(\"token\");",
+                      "    });",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "{{bearerToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/unread-count/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "unread-count",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC14 - Success - unread_count is finite number",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Arrange",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// GET /api/notifications/unread-count/",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test(\"unread_count is finite\", function () {",
+                      "    pm.expect(isFinite(jsonData.unread_count)).to.eql(true);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/unread-count/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "unread-count",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{bearerTokenA}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "bearerToken",
+      "value": ""
+    }
+  ]
+}
