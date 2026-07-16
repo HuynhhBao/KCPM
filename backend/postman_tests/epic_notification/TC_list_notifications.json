@@ -1,0 +1,1650 @@
+{
+  "info": {
+    "_postman_id": "89d3badc-c5aa-4dc2-909e-3517a7e21835",
+    "name": "Notifications",
+    "description": "Postman tests for notifications endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "54905880",
+    "_collection_link": "https://go.postman.co/collection/54905880-89d3badc-c5aa-4dc2-909e-3517a7e21835?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "api",
+      "item": [
+        {
+          "name": "CHUNGVI-32 List notifications",
+          "item": [
+            {
+              "name": "Setup - Login user A",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "pm.test(\"Has access token\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"access\");",
+                      "});",
+                      "",
+                      "pm.environment.set(\"bearerTokenA\", jsonData.access);"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"phuonghuynh01020304@gmail.com\",\n  \"password\": \"phuong1234\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/login/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "login",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Setup - Login user B",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "pm.test(\"Has access token\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"access\");",
+                      "});",
+                      "",
+                      "pm.environment.set(\"bearerTokenB\", jsonData.access);",
+                      "pm.environment.set(\"bearerToken\", jsonData.access);"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"hoangphuongphgg@gmail.com\",\n  \"password\": \"phuong1234\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/login/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "login",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Setup - Create household (user A)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 201\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "pm.environment.set(\"householdId\", jsonData.id);",
+                      "pm.environment.set(\"inviteCode\", jsonData.invite_code);"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{bearerTokenA}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Household Notifications\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/households/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "households",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Setup - Join household (user B)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{bearerTokenB}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"invite_code\": \"{{inviteCode}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/households/join/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "households",
+                    "join",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Setup - Get household detail",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "if (jsonData.members && jsonData.members.length > 0) {",
+                      "    jsonData.members.forEach(function (member) {",
+                      "        if (member.user_email === pm.environment.get(\"userAEmail\")) {",
+                      "            pm.environment.set(\"userIdA\", Number(member.user));",
+                      "        }",
+                      "        if (member.user_email === pm.environment.get(\"userBEmail\")) {",
+                      "            pm.environment.set(\"userIdB\", Number(member.user));",
+                      "        }",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{bearerTokenA}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/households/{{householdId}}/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "households",
+                    "{{householdId}}",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Setup - Create expense (creates notification)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 201\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{bearerTokenA}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"household\": \"{{householdId}}\",\n  \"title\": \"Notification seed expense\",\n  \"amount\": 100000,\n  \"split_type\": \"equal\",\n  \"participants\": [\n    {\"user_id\": {{userIdA}}},\n    {\"user_id\": {{userIdB}}}\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC01 - Success - Split EQUAL",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 201\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "pm.test(\"Has valid ID\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"id\");",
+                      "});",
+                      "",
+                      "pm.test(\"Check participants share amount (equal)\", function () {",
+                      "    pm.expect(jsonData.participants).to.be.an(\"array\").that.is.not.empty;",
+                      "    var sum = jsonData.participants.reduce((a, b) => a + Number(b.share_amount), 0);",
+                      "    pm.expect(sum).to.eql(Number(jsonData.amount));",
+                      "});",
+                      "",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"household\": \"{{householdId}}\",\n    \"title\": \"Ăn trưa (Chia đều)\",\n    \"amount\": 300000,\n    \"split_type\": \"equal\",\n    \"note\": \"Ăn trưa công ty\",\n    \"participants\": [\n        {\n            \"user_id\": \"{{userIdA}}\"\n        },\n        {\n            \"user_id\": \"{{userIdB}}\"\n        }\n    ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC02 - Success - Split MANUAL",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 201\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "var jsonData = pm.response.json();",
+                      "pm.test(\"Has valid ID\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"id\");",
+                      "});",
+                      "pm.test(\"Check manual split amounts\", function () {",
+                      "    var sum = jsonData.participants.reduce((a, b) => a + Number(b.share_amount), 0);",
+                      "    var reqBody = JSON.parse(pm.request.body.raw);",
+                      "    pm.expect(sum).to.eql(Number(reqBody.amount));",
+                      "});",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"household\": \"{{householdId}}\",\n    \"title\": \"Ăn tối (Chia tay)\",\n    \"amount\": 500000,\n    \"split_type\": \"manual\",\n    \"note\": \"Chia tay bạn đồng nghiệp\",\n    \"participants\": [\n        {\n            \"user_id\": {{userIdA}},\n            \"share_amount\": 300000\n        },\n        {\n            \"user_id\": {{userIdB}},\n            \"share_amount\": 200000\n        }\n    ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC03 - Fail - Empty Title",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "pm.test(\"Check error message for title\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    var errorMsg = JSON.stringify(jsonData);",
+                      "    pm.expect(errorMsg).to.include(\"Trường này không được bỏ trống.\");",
+                      "});",
+                      "",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "",
+                    "value": ""
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"household\": \"{{householdId}}\",\n    \"title\": \"  \",\n    \"amount\": 300000,\n    \"split_type\": \"equal\",\n    \"participants\": [\n        {\n            \"user_id\": {{userIdA}}\n        }\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC04 - Fail - Amount <= 0",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "pm.test(\"Check error message for amount\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    var errorMsg = JSON.stringify(jsonData);",
+                      "    pm.expect(errorMsg).to.include(\"Số tiền phải lớn hơn 0.\");",
+                      "});",
+                      "",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "",
+                    "value": ""
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"household\": \"{{householdId}}\",\n    \"title\": \"Test amount\",\n    \"amount\": 0,\n    \"split_type\": \"equal\",\n    \"participants\": [\n        {\n            \"user_id\": {{userIdA}}\n        }\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC05 - Fail - No Participants",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "pm.test(\"Check error message for empty participants\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    var errorMsg = JSON.stringify(jsonData);",
+                      "    pm.expect(errorMsg).to.include(\"Vui lòng chọn ít nhất một người tham gia chia tiền.\");",
+                      "});",
+                      "",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"household\": \"{{householdId}}\",\n    \"title\": \"Test no participants\",\n    \"amount\": 100000,\n    \"split_type\": \"equal\",\n    \"participants\": []\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC06 - Fail - Manual Split Mismatch",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "pm.test(\"Check error message for mismatched manual split\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    var errorMsg = JSON.stringify(jsonData);",
+                      "    pm.expect(errorMsg).to.include(\"Tổng số tiền chia phải bằng tổng khoản chi.\");",
+                      "});",
+                      "",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"household\": \"{{householdId}}\",\n    \"title\": \"Test manual fail\",\n    \"amount\": 500000,\n    \"split_type\": \"manual\",\n    \"participants\": [\n        {\n            \"user_id\": {{userIdA}},\n            \"share_amount\": 100000\n        },\n        {\n            \"user_id\": {{userIdB}},\n            \"share_amount\": 200000\n        }\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC07 - Fail - Duplicate Participants",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "pm.test(\"Check error message for duplicates\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    var errorMsg = JSON.stringify(jsonData);",
+                      "    pm.expect(errorMsg).to.include(\"Danh sách người chia tiền bị trùng.\");",
+                      "});",
+                      "",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"household\": \"{{householdId}}\",\n    \"title\": \"Test duplicate participants\",\n    \"amount\": 500000,\n    \"split_type\": \"equal\",\n    \"participants\": [\n        {\n            \"user_id\": {{userIdA}}\n        },\n        {\n            \"user_id\": {{userIdB}}\n        }\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC08 - Fail - Invalid Split Type",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "pm.test(\"Check error message for invalid split type\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    var errorMsg = JSON.stringify(jsonData);",
+                      "    pm.expect(errorMsg).to.match(/hợp lệ|invalid|choice|bỏ trống/i);",
+                      "});",
+                      "",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"household\": \"{{householdId}}\",\n    \"title\": \"Test invalid split type\",\n    \"amount\": 300000,\n    \"split_type\": \"random\",\n    \"participants\": [\n        {\n            \"user_id\": {{userIdA}}\n        }\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC09 - Fail - Title Too Long",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "pm.test(\"Check error message for title too long\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    var errorMsg = JSON.stringify(jsonData);",
+                      "    pm.expect(errorMsg).to.match(/dài|vượt quá|max length/i);",
+                      "});",
+                      "",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"household\": \"{{householdId}}\",\n    \"title\": \"chữ - aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n    \"amount\": 300000,\n    \"split_type\": \"equal\",\n    \"participants\": [\n        {\n            \"user_id\": {{userIdA}}\n        }\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC10 - Fail - Negative Share Amount",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "pm.test(\"Check error message for negative share\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    var errorMsg = JSON.stringify(jsonData);",
+                      "    pm.expect(errorMsg).to.include(\"Số tiền chia cho từng người phải lớn hơn 0.\");",
+                      "});",
+                      "",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"household\": \"{{householdId}}\",\n    \"title\": \"Test negative share\",\n    \"amount\": 500000,\n    \"split_type\": \"manual\",\n    \"participants\": [\n        {\n            \"user_id\": {{userIdA}},\n            \"share_amount\": 600000\n        },\n        {\n            \"user_id\": {{userIdB}},\n            \"share_amount\": -100000\n        }\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC11 - Fail - Missing Household",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "pm.test(\"Check error message for missing household\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    var errorMsg = JSON.stringify(jsonData);",
+                      "    pm.expect(errorMsg).to.match(/bỏ trống|required|thiếu|bắt buộc/i);",
+                      "});",
+                      "",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"title\": \"Test missing household\",\n    \"amount\": 300000,\n    \"split_type\": \"equal\",\n    \"participants\": [\n        {\n            \"user_id\": {{userIdA}}\n        }\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC12 - Fail - Payer Not In Household",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "pm.test(\"Check error message for invalid payer\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    var errorMsg = JSON.stringify(jsonData);",
+                      "    pm.expect(errorMsg).to.match(/không thuộc nhóm này|tồn tại trong hệ thống/i);",
+                      "});",
+                      "",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"household\": \"{{householdId}}\",\n    \"title\": \"Test payer not in household\",\n    \"amount\": 300000,\n    \"payer\": 99999,\n    \"split_type\": \"equal\",\n    \"participants\": [\n        {\n            \"user_id\": {{userIdA}}\n        }\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC13 - Fail - Missing Share Amount in Manual Split",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "pm.test(\"Check error message for missing share amount\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    var errorMsg = JSON.stringify(jsonData);",
+                      "    pm.expect(errorMsg).to.include(\"Chia thủ công cần nhập số tiền cho từng người.\");",
+                      "});",
+                      "",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"household\": \"{{householdId}}\",\n    \"title\": \"Test manual missing share amount\",\n    \"amount\": 500000,\n    \"split_type\": \"manual\",\n    \"participants\": [\n        {\n            \"user_id\": {{userIdA}}\n        },\n        {\n            \"user_id\": {{userIdB}}\n        }\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC14 - Fail - Missing Amount",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "pm.test(\"Check error message\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    var errorMsg = JSON.stringify(jsonData);",
+                      "    pm.expect(errorMsg).to.match(/bỏ trống|required|thiếu|bắt buộc/i);",
+                      "});",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"household\": \"{{householdId}}\",\n    \"title\": \"Test missing amount\",\n    \"split_type\": \"equal\",\n    \"participants\": [\n        {\n            \"user_id\": {{userIdA}}\n        }\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC15 - Fail - Amount is String",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "pm.test(\"Check error message\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    var errorMsg = JSON.stringify(jsonData);",
+                      "    pm.expect(errorMsg).to.match(/hợp lệ|invalid|number|số/i);",
+                      "});",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"household\": \"{{householdId}}\",\n    \"title\": \"Test string amount\",\n    \"amount\": \"abc\",\n    \"split_type\": \"equal\",\n    \"participants\": [\n        {\n            \"user_id\": {{userIdA}}\n        }\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC16 - Success - Default Split Type is Equal",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 201\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "pm.test(\"Check default split type\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    pm.expect(jsonData.split_type).to.eql(\"equal\");",
+                      "});",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"household\": \"{{householdId}}\",\n    \"title\": \"Test missing split type\",\n    \"amount\": 100000,\n    \"participants\": [\n        {\n            \"user_id\": {{userIdA}}\n        }\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC17 - Fail - Unauthenticated (No Token)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 401\", function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "pm.test(\"Check error message\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    var errorMsg = JSON.stringify(jsonData);",
+                      "    pm.expect(errorMsg).to.match(/authentication|credentials|token|xác thực/i);",
+                      "});",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"household\": \"{{householdId}}\",\n    \"title\": \"Test no token\",\n    \"amount\": 100000,\n    \"split_type\": \"equal\",\n    \"participants\": [\n        {\n            \"user_id\": {{userIdA}}\n        }\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC18 - Fail - Non-existent Participant",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "pm.test(\"Check error message\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    var errorMsg = JSON.stringify(jsonData);",
+                      "    pm.expect(errorMsg).to.match(/không tồn tại|not found|không hợp lệ|không thuộc nhóm/i);",
+                      "});",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"household\": \"{{householdId}}\",\n    \"title\": \"Test non-existent user\",\n    \"amount\": 100000,\n    \"split_type\": \"equal\",\n    \"participants\": [\n        {\n            \"user_id\": 9999999\n        }\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC19 - Fail/Success - SQL Injection in Title",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is not 500 (SQLi handled)\", function () {",
+                      "    pm.expect(pm.response.code).to.not.equal(500);",
+                      "});",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"household\": \"{{householdId}}\",\n    \"title\": \"'; DROP TABLE expenses; --\",\n    \"amount\": 100000,\n    \"split_type\": \"equal\",\n    \"participants\": [\n        {\n            \"user_id\": {{userIdA}}\n        }\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC20 - Fail/Success - XSS in Title",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is not 500 (XSS handled)\", function () {",
+                      "    pm.expect(pm.response.code).to.not.equal(500);",
+                      "});",
+                      "pm.test(\"Response does not contain raw script tag\", function () {",
+                      "    var respText = pm.response.text();",
+                      "    pm.expect(respText).to.not.include(\"<script>\");",
+                      "});",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"household\": \"{{householdId}}\",\n    \"title\": \"<script>alert('xss')</script>\",\n    \"amount\": 100000,\n    \"split_type\": \"equal\",\n    \"participants\": [\n        {\n            \"user_id\": {{userIdA}}\n        }\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC21 - Fail - Missing Participants Array",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "pm.test(\"Check error message\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    var errorMsg = JSON.stringify(jsonData);",
+                      "    pm.expect(errorMsg).to.match(/bỏ trống|required|thiếu|bắt buộc/i);",
+                      "});",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"household\": \"{{householdId}}\",\n    \"title\": \"Test missing participants array\",\n    \"amount\": 100000,\n    \"split_type\": \"equal\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC22 - Fail - Extremely Large Amount",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "pm.test(\"Check error message\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    var errorMsg = JSON.stringify(jsonData);",
+                      "    pm.expect(errorMsg).to.match(/lớn|max|vượt quá|hợp lệ/i);",
+                      "});",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"household\": \"{{householdId}}\",\n    \"title\": \"Test large amount\",\n    \"amount\": 999999999999999999999999,\n    \"split_type\": \"equal\",\n    \"participants\": [\n        {\n            \"user_id\": {{userIdA}}\n        }\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC23 - Fail - Amount is Array",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 400\", function () {",
+                      "    pm.response.to.have.status(400);",
+                      "});",
+                      "pm.test(\"Check error message\", function () {",
+                      "    var jsonData = pm.response.json();",
+                      "    var errorMsg = JSON.stringify(jsonData);",
+                      "    pm.expect(errorMsg).to.match(/hợp lệ|kiểu|type/i);",
+                      "});",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n    \"household\": \"{{householdId}}\",\n    \"title\": \"Test array amount\",\n    \"amount\": [\n        10000\n    ],\n    \"split_type\": \"equal\",\n    \"participants\": [\n        {\n            \"user_id\": {{userIdA}}\n        }\n    ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{bearerToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:8000/api"
+    },
+    {
+      "key": "token",
+      "value": "YOUR_TOKEN_HERE"
+    },
+    {
+      "key": "household_id",
+      "value": "YOUR_HOUSEHOLD_ID"
+    },
+    {
+      "key": "user1_id",
+      "value": "1"
+    },
+    {
+      "key": "user2_id",
+      "value": "2"
+    },
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "bearerToken",
+      "value": ""
+    },
+    {
+      "key": "notificationId",
+      "value": "00000000-0000-0000-0000-000000000000"
+    },
+    {
+      "key": "bearerTokenA",
+      "value": ""
+    },
+    {
+      "key": "bearerTokenB",
+      "value": ""
+    },
+    {
+      "key": "userAEmail",
+      "value": "phuonghuynh01020304@gmail.com"
+    },
+    {
+      "key": "userAPassword",
+      "value": "phuong1234"
+    },
+    {
+      "key": "userBEmail",
+      "value": "hoangphuongphgg@gmail.com"
+    },
+    {
+      "key": "userBPassword",
+      "value": "phuong1234"
+    },
+    {
+      "key": "householdId",
+      "value": ""
+    },
+    {
+      "key": "inviteCode",
+      "value": ""
+    },
+    {
+      "key": "userIdA",
+      "value": ""
+    },
+    {
+      "key": "userIdB",
+      "value": ""
+    },
+    {
+      "key": "fcmToken",
+      "value": "test-fcm-token"
+    },
+    {
+      "key": "deviceType",
+      "value": "android"
+    }
+  ]
+}
