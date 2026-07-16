@@ -1,0 +1,628 @@
+{
+  "info": {
+    "_postman_id": "8a1b3c5d-2e4f-4a6b-8c9d-0e1f2a3b4c5d",
+    "name": "TC_Mark_all_as_read",
+    "description": "Postman tests for Mark all notifications as read. Endpoint: PATCH /api/notifications/mark-all-read/. Mock: not required (no external services - chỉ thao tác DB nội bộ, không gọi Firebase/SMS/Email/Stripe trong view này).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "54905880"
+  },
+  "item": [
+    {
+      "name": "api",
+      "item": [
+        {
+          "name": "CHUNGVI-35 Mark all as read",
+          "item": [
+            {
+              "name": "TC01 - Setup - Login user A",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Arrange",
+                      "// Precondition: user A credentials are valid and auth endpoint is reachable",
+                      "var jsonData = {};",
+                      "try { jsonData = pm.response.json(); } catch (e) {}",
+                      "",
+                      "// Act",
+                      "// Login request was sent with email/password to obtain access token",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test(\"Has access token\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"access\");",
+                      "});",
+                      "if (jsonData && jsonData.access) {",
+                      "    pm.environment.set(\"bearerTokenA\", jsonData.access);",
+                      "}"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "POST",
+                "header": [
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Accept", "value": "application/json" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"phuonghuynh01020304@gmail.com\",\n  \"password\": \"phuong1234\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/login/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "auth", "login", ""]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC02 - Setup - Verify user has notifications (unread list)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Arrange",
+                      "// Precondition: bearerTokenA is set from TC01",
+                      "var jsonData = {};",
+                      "try { jsonData = pm.response.json(); } catch (e) {}",
+                      "",
+                      "// Act",
+                      "// GET notifications list filtered by is_read=false to confirm there is data to mark",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "var count = Array.isArray(jsonData) ? jsonData.length : (jsonData && jsonData.results ? jsonData.results.length : 0);",
+                      "console.log(\"Unread notifications count:\", count);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{bearerTokenA}}" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/?is_read=false",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "notifications", ""],
+                  "query": [
+                    { "key": "is_read", "value": "false" }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC03 - Success - Mark all unread notifications as read",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Arrange",
+                      "// Precondition: user A authenticated; user may have unread notifications",
+                      "var jsonData = {};",
+                      "try { jsonData = pm.response.json(); } catch (e) {}",
+                      "",
+                      "// Act",
+                      "// PATCH /api/notifications/mark-all-read/ with valid Bearer token",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test(\"Response has message property\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"message\");",
+                      "});",
+                      "pm.test(\"Message indicates đánh dấu tất cả\", function () {",
+                      "    var msg = (jsonData.message || \"\").toLowerCase();",
+                      "    pm.expect(msg.indexOf(\"đã đánh dấu\") >= 0 || msg.indexOf(\"tất cả\") >= 0).to.be.true;",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{bearerTokenA}}" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/mark-all-read/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "notifications", "mark-all-read", ""]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC04 - Success - Idempotent - Call mark-all-read again",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Arrange",
+                      "// Precondition: TC03 just ran; everything should already be read",
+                      "var jsonData = {};",
+                      "try { jsonData = pm.response.json(); } catch (e) {}",
+                      "",
+                      "// Act",
+                      "// Re-send the same PATCH to verify idempotent behavior",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test(\"Message present (idempotent)\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"message\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{bearerTokenA}}" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/mark-all-read/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "notifications", "mark-all-read", ""]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC05 - Success - User with no unread notifications still 200",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Arrange",
+                      "// Precondition: TC04 left zero unread notifications",
+                      "var jsonData = {};",
+                      "try { jsonData = pm.response.json(); } catch (e) {}",
+                      "",
+                      "// Act",
+                      "// PATCH again - state should still be 200 even with no unread",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test(\"Message present\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"message\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{bearerTokenA}}" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/mark-all-read/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "notifications", "mark-all-read", ""]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC06 - Success - Content-Type is JSON",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Arrange",
+                      "// Precondition: authenticated user A",
+                      "",
+                      "// Act",
+                      "// PATCH mark-all-read and inspect response Content-Type header",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test(\"Content-Type is application/json\", function () {",
+                      "    var ct = pm.response.headers.get(\"Content-Type\") || \"\";",
+                      "    pm.expect(ct.toLowerCase()).to.include(\"application/json\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{bearerTokenA}}" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/mark-all-read/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "notifications", "mark-all-read", ""]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC07 - Success - Response time under 1000ms",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Arrange",
+                      "// Precondition: authenticated user A",
+                      "",
+                      "// Act",
+                      "// PATCH mark-all-read, measure response time",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});",
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{bearerTokenA}}" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/mark-all-read/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "notifications", "mark-all-read", ""]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC08 - Fail - No Authorization header",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Arrange",
+                      "// Precondition: no Authorization header is sent",
+                      "var jsonData = {};",
+                      "try { jsonData = pm.response.json(); } catch (e) {}",
+                      "",
+                      "// Act",
+                      "// PATCH mark-all-read without auth",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 401\", function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "pm.test(\"Detail mentions authentication/credentials/not provided\", function () {",
+                      "    var detail = ((jsonData && jsonData.detail) || \"\").toString().toLowerCase();",
+                      "    pm.expect(",
+                      "        detail.indexOf(\"authentication\") >= 0 ||",
+                      "        detail.indexOf(\"credentials\") >= 0 ||",
+                      "        detail.indexOf(\"not provided\") >= 0",
+                      "    ).to.be.true;",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "PATCH",
+                "header": [
+                  { "key": "Accept", "value": "application/json" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/mark-all-read/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "notifications", "mark-all-read", ""]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC09 - Fail - Invalid bearer token",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Arrange",
+                      "// Precondition: a malformed/invalid JWT is supplied",
+                      "var jsonData = {};",
+                      "try { jsonData = pm.response.json(); } catch (e) {}",
+                      "",
+                      "// Act",
+                      "// PATCH mark-all-read with invalid Bearer token",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 401\", function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "pm.test(\"Detail mentions token/invalid/not valid\", function () {",
+                      "    var detail = ((jsonData && jsonData.detail) || \"\").toString().toLowerCase();",
+                      "    pm.expect(",
+                      "        detail.indexOf(\"token\") >= 0 ||",
+                      "        detail.indexOf(\"invalid\") >= 0 ||",
+                      "        detail.indexOf(\"not valid\") >= 0",
+                      "    ).to.be.true;",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "PATCH",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer this.is.an.invalid.token.string" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/mark-all-read/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "notifications", "mark-all-read", ""]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC10 - Fail - Authorization scheme not Bearer",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Arrange",
+                      "// Precondition: Authorization uses Basic instead of Bearer",
+                      "var jsonData = {};",
+                      "try { jsonData = pm.response.json(); } catch (e) {}",
+                      "",
+                      "// Act",
+                      "// PATCH mark-all-read with Basic auth header",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 401\", function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "pm.test(\"Has detail property\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"detail\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "auth": { "type": "noauth" },
+                "method": "PATCH",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Basic dXNlcjpwYXNz" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/mark-all-read/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "notifications", "mark-all-read", ""]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC11 - Fail - Wrong method GET",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Arrange",
+                      "// Precondition: authenticated user, but using GET instead of PATCH",
+                      "var jsonData = {};",
+                      "try { jsonData = pm.response.json(); } catch (e) {}",
+                      "",
+                      "// Act",
+                      "// GET /api/notifications/mark-all-read/ should not be allowed",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 405\", function () {",
+                      "    pm.response.to.have.status(405);",
+                      "});",
+                      "pm.test(\"Detail mentions not allowed\", function () {",
+                      "    var detail = ((jsonData && jsonData.detail) || \"\").toString().toLowerCase();",
+                      "    pm.expect(detail).to.include(\"not allowed\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{bearerTokenA}}" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/mark-all-read/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "notifications", "mark-all-read", ""]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC12 - Fail - Wrong method POST",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Arrange",
+                      "// Precondition: authenticated user, but using POST instead of PATCH",
+                      "var jsonData = {};",
+                      "try { jsonData = pm.response.json(); } catch (e) {}",
+                      "",
+                      "// Act",
+                      "// POST /api/notifications/mark-all-read/ should not be allowed",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 405\", function () {",
+                      "    pm.response.to.have.status(405);",
+                      "});",
+                      "pm.test(\"Detail mentions not allowed\", function () {",
+                      "    var detail = ((jsonData && jsonData.detail) || \"\").toString().toLowerCase();",
+                      "    pm.expect(detail).to.include(\"not allowed\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{bearerTokenA}}" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/mark-all-read/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "notifications", "mark-all-read", ""]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC13 - Fail - Wrong method DELETE",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Arrange",
+                      "// Precondition: authenticated user, but using DELETE instead of PATCH",
+                      "var jsonData = {};",
+                      "try { jsonData = pm.response.json(); } catch (e) {}",
+                      "",
+                      "// Act",
+                      "// DELETE /api/notifications/mark-all-read/ should not be allowed",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 405\", function () {",
+                      "    pm.response.to.have.status(405);",
+                      "});",
+                      "pm.test(\"Detail mentions not allowed\", function () {",
+                      "    var detail = ((jsonData && jsonData.detail) || \"\").toString().toLowerCase();",
+                      "    pm.expect(detail).to.include(\"not allowed\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{bearerTokenA}}" }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/mark-all-read/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "notifications", "mark-all-read", ""]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC14 - Success - Extra body bị bỏ qua",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "// Arrange",
+                      "// Precondition: authenticated user A; PATCH endpoint không yêu cầu body",
+                      "var jsonData = {};",
+                      "try { jsonData = pm.response.json(); } catch (e) {}",
+                      "",
+                      "// Act",
+                      "// PATCH mark-all-read with an extra JSON body that should be ignored",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test(\"Message present (extra body ignored)\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"message\");",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  { "key": "Accept", "value": "application/json" },
+                  { "key": "Content-Type", "value": "application/json" },
+                  { "key": "Authorization", "value": "Bearer {{bearerTokenA}}" }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"foo\": \"bar\"\n}",
+                  "options": { "raw": { "language": "json" } }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/mark-all-read/",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "notifications", "mark-all-read", ""]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
