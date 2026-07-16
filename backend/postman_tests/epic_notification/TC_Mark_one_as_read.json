@@ -1,0 +1,1288 @@
+{
+  "info": {
+    "_postman_id": "0e53e921-f26f-4d0f-b835-bb576b333161",
+    "name": "TC_Mark_one_as_read",
+    "description": "Postman tests for Mark one notification as read. Endpoint: PATCH /api/notifications/<uuid:pk>/read/. Mock: not required (no external services - chỉ thao tác DB nội bộ, không gọi Firebase/SMS/Email/Stripe trong view này).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "54905880",
+    "_collection_link": "https://go.postman.co/collection/54905880-0e53e921-f26f-4d0f-b835-bb576b333161?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "api",
+      "item": [
+        {
+          "name": "CHUNGVI-34 Mark one as read",
+          "item": [
+            {
+              "name": "Setup - Login user A",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "pm.test(\"Has access token\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"access\");",
+                      "});",
+                      "",
+                      "pm.environment.set(\"bearerTokenA\", jsonData.access);"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"phuonghuynh01020304@gmail.com\",\n  \"password\": \"phuong1234\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/login/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "login",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Setup - Login user B",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "pm.test(\"Has access token\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"access\");",
+                      "});",
+                      "",
+                      "pm.environment.set(\"bearerTokenB\", jsonData.access);",
+                      "pm.environment.set(\"bearerToken\", jsonData.access);"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"email\": \"hoangphuongphgg@gmail.com\",\n  \"password\": \"phuong1234\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/auth/login/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "auth",
+                    "login",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Setup - Create household (user A)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 201\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "pm.environment.set(\"householdId\", jsonData.id);",
+                      "pm.environment.set(\"inviteCode\", jsonData.invite_code);"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{bearerTokenA}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Household Notifications\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/households/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "households",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Setup - Join household (user B)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{bearerTokenB}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"invite_code\": \"{{inviteCode}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/households/join/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "households",
+                    "join",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Setup - Get household detail",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "var jsonData = pm.response.json();",
+                      "if (jsonData.members && jsonData.members.length > 0) {",
+                      "    jsonData.members.forEach(function (member) {",
+                      "        if (member.user_email === pm.environment.get(\"userAEmail\")) {",
+                      "            pm.environment.set(\"userIdA\", member.user);",
+                      "        }",
+                      "        if (member.user_email === pm.environment.get(\"userBEmail\")) {",
+                      "            pm.environment.set(\"userIdB\", member.user);",
+                      "        }",
+                      "    });",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "protocolProfileBehavior": {
+                "disableBodyPruning": true
+              },
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{bearerTokenA}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/households/{{householdId}}/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "households",
+                    "{{householdId}}",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Setup - Create expense (creates notification)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code is 201\", function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "var jsonData = pm.response.json();",
+                      "var userAEmail = \"phuonghuynh01020304@gmail.com\";",
+                      "var userBEmail = \"hoangphuongphgg@gmail.com\";",
+                      "",
+                      "if (jsonData.members && jsonData.members.length > 0) {",
+                      "    jsonData.members.forEach(function (member) {",
+                      "        var email = member.user_email || member.email || (member.user && member.user.email);",
+                      "        var userId = (typeof member.user === \"object\" && member.user !== null) ? (member.user.id || member.user.user_id) : member.user;",
+                      "        if (userId === undefined) {",
+                      "            userId = member.user_id || member.id;",
+                      "        }",
+                      "        if (email === userAEmail) {",
+                      "            pm.environment.set(\"userIdA\", userId);",
+                      "        }",
+                      "        if (email === userBEmail) {",
+                      "            pm.environment.set(\"userIdB\", userId);",
+                      "        }",
+                      "    });",
+                      "}",
+                      "pm.test(\"userIdA is set\", function () {",
+                      "    pm.expect(pm.environment.get(\"userIdA\")).to.not.be.undefined;",
+                      "});",
+                      "pm.test(\"userIdB is set\", function () {",
+                      "    pm.expect(pm.environment.get(\"userIdB\")).to.not.be.undefined;",
+                      "});",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{bearerTokenA}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"household\": \"{{householdId}}\",\n  \"title\": \"Notification seed expense\",\n  \"amount\": 100000,\n  \"split_type\": \"equal\",\n  \"participants\": [\n    {\"user_id\": {{userIdA}}},\n    {\"user_id\": {{userIdB}}}\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/expenses/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expenses",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Setup - Get ID Notification",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "var jsonData = pm.response.json();\r",
+                      "\r",
+                      "// Lấy id thông báo thực sự của User B từ danh sách trả về\r",
+                      "if (jsonData.results && jsonData.results.length > 0) {\r",
+                      "    pm.environment.set(\"other_user_notification_id\", jsonData.results[0].id);\r",
+                      "    console.log(\"Đã lấy đúng ID thông báo của B: \" + jsonData.results[0].id);\r",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC01 - Success - Mark a valid unread notification as read",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Arrange",
+                      "// Notification hợp lệ thuộc về user đang đăng nhập, đang ở trạng thái unread",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// PATCH /api/notifications/{{notification_id}}/read/",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test(\"Response has success message\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"message\");",
+                      "    pm.expect(jsonData.message).to.include(\"đã đọc\");",
+                      "});",
+                      "pm.test(\"Content-Type is JSON\", function () {",
+                      "    pm.expect(pm.response.headers.get(\"Content-Type\")).to.include(\"application/json\");",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/{{notificationId}}/read/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "{{notificationId}}",
+                    "read",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC02 - Success - Idempotent - Mark already-read notification again",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Arrange",
+                      "// Notification đã được mark read trước đó (gọi lại lần 2)",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// PATCH /api/notifications/{{notification_id}}/read/ (lần 2)",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 200 (idempotent)\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test(\"Vẫn trả về thông báo thành công\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"message\");",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/{{notificationId}}/read/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "{{notificationId}}",
+                    "read",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC03 - Fail - No Authorization header",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Arrange",
+                      "// Không gửi Authorization header",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// PATCH /api/notifications/{{notification_id}}/read/ (no token)",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 401\", function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "pm.test(\"Error indicates authentication required\", function () {",
+                      "    var detail = (jsonData.detail || \"\").toLowerCase();",
+                      "    pm.expect(detail).to.satisfy(function (v) {",
+                      "        return v.includes(\"authentication\") || v.includes(\"credentials\") || v.includes(\"not provided\");",
+                      "    });",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/{{notificationId}}/read/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "{{notificationId}}",
+                    "read",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC04 - Fail - Invalid bearer token",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Arrange",
+                      "// Token sai/đã bị hỏng",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// PATCH với Bearer token không hợp lệ",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 401\", function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "pm.test(\"Error message indicates invalid token\", function () {",
+                      "    var detail = (jsonData.detail || \"\").toLowerCase();",
+                      "    pm.expect(detail).to.satisfy(function (v) {",
+                      "        return v.includes(\"token\") || v.includes(\"invalid\") || v.includes(\"not valid\");",
+                      "    });",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "sai_token",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer this.is.an.invalid.token.string"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/{{notificationId}}/read/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "{{notificationId}}",
+                    "read",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC05 - Fail - Authorization scheme is not Bearer",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Arrange",
+                      "// Sai scheme (Basic thay vì Bearer)",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// PATCH với header Authorization: Basic ...",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 401\", function () {",
+                      "    pm.response.to.have.status(401);",
+                      "});",
+                      "pm.test(\"Có thông báo lỗi xác thực\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"detail\");",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "sai_token",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Basic dXNlcjpwYXNz"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/{{notificationId}}/read/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "{{notificationId}}",
+                    "read",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC06 - Fail - Notification UUID không tồn tại",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Arrange",
+                      "// UUID đúng định dạng nhưng không có trong DB",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// PATCH /api/notifications/<random-uuid>/read/",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 404\", function () {",
+                      "    pm.response.to.have.status(404);",
+                      "});",
+                      "pm.test(\"Response báo không tìm thấy thông báo\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"detail\");",
+                      "    pm.expect(jsonData.detail).to.include(\"Không tìm thấy\");",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/00000000-0000-0000-0000-000000000000/read/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "00000000-0000-0000-0000-000000000000",
+                    "read",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC07 - Fail - Notification thuộc user khác (cross-user access)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Arrange",
+                      "// User A đang login, nhưng truyền notification_id thuộc về User B",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// PATCH /api/notifications/{{other_user_notification_id}}/read/",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 404 (không lộ thông tin user khác)\", function () {",
+                      "    pm.response.to.have.status(404);",
+                      "});",
+                      "pm.test(\"Response báo không tìm thấy thông báo\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"detail\");",
+                      "    pm.expect(jsonData.detail).to.include(\"Không tìm thấy\");",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/{{other_user_notification_id}}/read/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "{{other_user_notification_id}}",
+                    "read",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC08 - Fail - UUID sai định dạng (chuỗi text)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Arrange",
+                      "// pk không phải UUID hợp lệ → URL pattern <uuid:pk> không match",
+                      "",
+                      "// Act",
+                      "// PATCH /api/notifications/not-a-uuid/read/",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 404 (route không match)\", function () {",
+                      "    pm.response.to.have.status(404);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/not-a-uuid/read/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "not-a-uuid",
+                    "read",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC09 - Fail - UUID sai định dạng (số nguyên)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Arrange",
+                      "// pk là số nguyên, không phải UUID",
+                      "",
+                      "// Act",
+                      "// PATCH /api/notifications/123/read/",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 404 (route không match)\", function () {",
+                      "    pm.response.to.have.status(404);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/123/read/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "123",
+                    "read",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC10 - Fail - Wrong method GET",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Arrange",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// GET vào endpoint chỉ hỗ trợ PATCH",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 405\", function () {",
+                      "    pm.response.to.have.status(405);",
+                      "});",
+                      "pm.test(\"Error mentions method not allowed\", function () {",
+                      "    var detail = (jsonData.detail || \"\").toLowerCase();",
+                      "    pm.expect(detail).to.include(\"not allowed\");",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/{{notificationId}}/read/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "{{notificationId}}",
+                    "read",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC11 - Fail - Wrong method POST",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Arrange",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// POST vào endpoint chỉ hỗ trợ PATCH",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 405\", function () {",
+                      "    pm.response.to.have.status(405);",
+                      "});",
+                      "pm.test(\"Error mentions method not allowed\", function () {",
+                      "    var detail = (jsonData.detail || \"\").toLowerCase();",
+                      "    pm.expect(detail).to.include(\"not allowed\");",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/{{notificationId}}/read/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "{{notificationId}}",
+                    "read",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC12 - Fail - Wrong method DELETE",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Arrange",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// DELETE vào endpoint chỉ hỗ trợ PATCH",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 405\", function () {",
+                      "    pm.response.to.have.status(405);",
+                      "});",
+                      "pm.test(\"Error mentions method not allowed\", function () {",
+                      "    var detail = (jsonData.detail || \"\").toLowerCase();",
+                      "    pm.expect(detail).to.include(\"not allowed\");",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/{{notificationId}}/read/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "{{notificationId}}",
+                    "read",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC13 - Success - PATCH với extra body bị bỏ qua",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Arrange",
+                      "// View không đọc request.data, body thừa nên bị bỏ qua",
+                      "var jsonData = pm.response.json();",
+                      "",
+                      "// Act",
+                      "// PATCH với JSON body bất kỳ",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Status code is 200\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "pm.test(\"Vẫn trả về thông báo thành công\", function () {",
+                      "    pm.expect(jsonData).to.have.property(\"message\");",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"is_read\": false,\n  \"extra_field\": \"should be ignored\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/{{notificationId}}/read/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "{{notificationId}}",
+                    "read",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "TC14 - Performance - Response time under 1000ms",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Arrange",
+                      "// Notification hợp lệ thuộc user đang login",
+                      "",
+                      "// Act",
+                      "// PATCH /api/notifications/{{notification_id}}/read/",
+                      "",
+                      "// Assert",
+                      "pm.test(\"Response time is less than 1000ms\", function () {",
+                      "    pm.expect(pm.response.responseTime).to.be.below(1000);",
+                      "});",
+                      "pm.test(\"Status code is 200 or 404 (idempotent)\", function () {",
+                      "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Accept",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{bearerToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/notifications/{{notificationId}}/read/",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "notifications",
+                    "{{notificationId}}",
+                    "read",
+                    ""
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{bearerToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ]
+}
